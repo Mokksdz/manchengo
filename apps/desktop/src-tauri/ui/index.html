@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manchengo Smart ERP</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, #ffc107, #ff9800);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p {
+            color: #a0a0a0;
+            margin-bottom: 2rem;
+        }
+        .status {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            border-radius: 0.5rem;
+            color: #ffc107;
+        }
+        .info {
+            margin-top: 2rem;
+            font-size: 0.875rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧀 Manchengo Smart ERP</h1>
+        <p>Application de gestion pour l'industrie agroalimentaire</p>
+        <div class="status">✓ Backend Rust initialisé</div>
+        <p class="info">
+            En mode développement, connectez-vous à <code>http://localhost:3001</code><br>
+            ou lancez <code>npm run dev</code> dans <code>apps/web</code>
+        </p>
+    </div>
+    <script>
+        // Test Tauri API
+        if (window.__TAURI__) {
+            console.log('Tauri API available');
+        }
+    </script>
+</body>
+</html>

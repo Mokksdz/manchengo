@@ -1,0 +1,83 @@
+name: manchengo_mobile
+description: Manchengo Smart ERP Mobile Application
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State management
+  provider: ^6.1.1
+  
+  # Database
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  
+  # Rust bridge (for shared core)
+  flutter_rust_bridge: ^2.0.0
+  
+  # QR Code
+  mobile_scanner: ^3.5.5
+  qr_flutter: ^4.1.0
+  
+  # Camera
+  camera: ^0.10.5+7
+  
+  # Image processing / OCR
+  google_mlkit_text_recognition: ^0.11.0
+  
+  # Navigation
+  go_router: ^13.0.1
+  
+  # Forms
+  flutter_form_builder: ^9.2.0
+  form_builder_validators: ^9.1.0
+  
+  # UI
+  flutter_slidable: ^3.0.1
+  shimmer: ^3.0.0
+  cached_network_image: ^3.3.1
+  
+  # Utils
+  intl: ^0.18.1
+  uuid: ^4.2.2
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+  share_plus: ^7.2.1
+  
+  # Storage
+  shared_preferences: ^2.2.2
+  
+  # Connectivity
+  connectivity_plus: ^5.0.2
+  
+  # HTTP
+  http: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.8
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/
+
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
