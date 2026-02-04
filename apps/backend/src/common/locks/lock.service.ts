@@ -5,16 +5,16 @@ import { PrismaService } from '../../prisma/prisma.service';
  * ═══════════════════════════════════════════════════════════════════════════════
  * LOCK SERVICE — Verrou serveur strict (P1.1-D)
  * ═══════════════════════════════════════════════════════════════════════════════
- * 
+ *
  * Ce service gère les verrous métier côté serveur.
  * RÈGLE: Chaque action critique DOIT vérifier le verrou avant exécution.
- * 
+ *
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 const LOCK_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
-export type LockableEntity = 'DEMANDE' | 'PURCHASE_ORDER';
+export type LockableEntity = 'PURCHASE_ORDER';
 
 export interface LockInfo {
   lockedById: string | null;
@@ -59,59 +59,6 @@ export class LockService {
         hint: 'Attendez que le verrou expire ou contactez l\'utilisateur',
       });
     }
-  }
-
-  /**
-   * Acquiert un verrou sur une demande
-   * Note: Requiert migration P1.1 pour les champs lockedById, lockedAt, lockExpiresAt
-   */
-  async acquireDemandeLock(
-    demandeId: number,
-    userId: string,
-  ): Promise<LockResult> {
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + LOCK_DURATION_MS);
-
-    const demande = await (this.prisma.demandeApprovisionnementMp as any).findUnique({
-      where: { id: demandeId },
-      include: {
-        lockedBy: { select: { firstName: true, lastName: true } },
-      },
-    }) as any;
-
-    if (!demande) {
-      return { success: false };
-    }
-
-    // Verrou actif par quelqu'un d'autre ?
-    if (
-      demande.lockedById &&
-      demande.lockedById !== userId &&
-      demande.lockExpiresAt &&
-      demande.lockExpiresAt > now
-    ) {
-      const lockedByName = demande.lockedBy
-        ? `${demande.lockedBy.firstName} ${demande.lockedBy.lastName}`
-        : demande.lockedById;
-
-      return {
-        success: false,
-        lockedBy: lockedByName,
-        expiresAt: demande.lockExpiresAt,
-      };
-    }
-
-    // Acquérir le verrou
-    await (this.prisma.demandeApprovisionnementMp as any).update({
-      where: { id: demandeId },
-      data: {
-        lockedById: userId,
-        lockedAt: now,
-        lockExpiresAt: expiresAt,
-      },
-    });
-
-    return { success: true, expiresAt };
   }
 
   /**
@@ -168,23 +115,6 @@ export class LockService {
   }
 
   /**
-   * Libère un verrou sur une demande
-   */
-  async releaseDemandeLock(demandeId: number, userId: string): Promise<void> {
-    await (this.prisma.demandeApprovisionnementMp as any).updateMany({
-      where: {
-        id: demandeId,
-        lockedById: userId,
-      },
-      data: {
-        lockedById: null,
-        lockedAt: null,
-        lockExpiresAt: null,
-      },
-    });
-  }
-
-  /**
    * Libère un verrou sur un BC
    */
   async releasePurchaseOrderLock(poId: string, userId: string): Promise<void> {
@@ -193,43 +123,6 @@ export class LockService {
         id: poId,
         lockedById: userId,
       },
-      data: {
-        lockedById: null,
-        lockedAt: null,
-        lockExpiresAt: null,
-      },
-    });
-  }
-
-  /**
-   * Renouvelle un verrou (heartbeat)
-   */
-  async renewDemandeLock(
-    demandeId: number,
-    userId: string,
-  ): Promise<LockResult> {
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + LOCK_DURATION_MS);
-
-    const result = await (this.prisma.demandeApprovisionnementMp as any).updateMany({
-      where: {
-        id: demandeId,
-        lockedById: userId,
-      },
-      data: {
-        lockExpiresAt: expiresAt,
-      },
-    });
-
-    return { success: result.count > 0, expiresAt };
-  }
-
-  /**
-   * Force le déverrouillage (ADMIN uniquement)
-   */
-  async forceUnlockDemande(demandeId: number): Promise<void> {
-    await (this.prisma.demandeApprovisionnementMp as any).update({
-      where: { id: demandeId },
       data: {
         lockedById: null,
         lockedAt: null,

@@ -22,7 +22,7 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -75,7 +75,7 @@ describe('AuthService', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('login', () => {
-    const validHash = bcrypt.hashSync('MotDePasse1', 10);
+    const validHash = bcrypt.hashSync('MotDePasse1!x', 10);
     const activeUser = {
       id: 'user-1',
       email: 'admin@manchengo.dz',
@@ -94,7 +94,7 @@ describe('AuthService', () => {
 
       const result = await authService.login({
         email: 'admin@manchengo.dz',
-        password: 'MotDePasse1',
+        password: 'MotDePasse1!x',
       });
 
       expect(result.accessToken).toBe('mock-access-token');
@@ -163,7 +163,7 @@ describe('AuthService', () => {
 
       await authService.login({
         email: 'admin@manchengo.dz',
-        password: 'MotDePasse1',
+        password: 'MotDePasse1!x',
         deviceId: 'device-123',
         deviceName: 'Samsung Galaxy',
         platform: 'android',
@@ -187,7 +187,7 @@ describe('AuthService', () => {
 
       await authService.login({
         email: 'admin@manchengo.dz',
-        password: 'MotDePasse1',
+        password: 'MotDePasse1!x',
       });
 
       expect(mockPrisma.device.upsert).not.toHaveBeenCalled();
@@ -202,7 +202,7 @@ describe('AuthService', () => {
 
       const result = await authService.login({
         email: 'admin@manchengo.dz',
-        password: 'MotDePasse1',
+        password: 'MotDePasse1!x',
       });
 
       expect(result.user.mustChangePassword).toBe(true);
@@ -214,7 +214,7 @@ describe('AuthService', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('changePassword', () => {
-    const validHash = bcrypt.hashSync('AncienMdp1', 10);
+    const validHash = bcrypt.hashSync('AncienMdp1!x', 10);
     const activeUser = {
       id: 'user-1',
       email: 'user@manchengo.dz',
@@ -223,25 +223,25 @@ describe('AuthService', () => {
       role: 'ADMIN',
     };
 
-    it('devrait rejeter un mot de passe trop court (moins de 8 caracteres)', async () => {
+    it('devrait rejeter un mot de passe trop court (moins de 12 caracteres)', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(activeUser);
 
       await expect(
-        authService.changePassword('user-1', 'AncienMdp1', 'Ab1'),
+        authService.changePassword('user-1', 'AncienMdp1!x', 'Ab1!'),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        authService.changePassword('user-1', 'AncienMdp1', 'Ab1'),
-      ).rejects.toThrow(/au moins 8 caractères/);
+        authService.changePassword('user-1', 'AncienMdp1!x', 'Ab1!'),
+      ).rejects.toThrow(/au moins 12 caractères/);
     });
 
     it('devrait rejeter un mot de passe sans majuscule', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(activeUser);
 
       await expect(
-        authService.changePassword('user-1', 'AncienMdp1', 'sansmajuscule1'),
+        authService.changePassword('user-1', 'AncienMdp1!x', 'sansmajuscule1!'),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        authService.changePassword('user-1', 'AncienMdp1', 'sansmajuscule1'),
+        authService.changePassword('user-1', 'AncienMdp1!x', 'sansmajuscule1!'),
       ).rejects.toThrow(/majuscule/);
     });
 
@@ -249,10 +249,10 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(activeUser);
 
       await expect(
-        authService.changePassword('user-1', 'AncienMdp1', 'SansChiffre'),
+        authService.changePassword('user-1', 'AncienMdp1!x', 'SansChiffreXx!'),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        authService.changePassword('user-1', 'AncienMdp1', 'SansChiffre'),
+        authService.changePassword('user-1', 'AncienMdp1!x', 'SansChiffreXx!'),
       ).rejects.toThrow(/chiffre/);
     });
 
@@ -260,10 +260,10 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(activeUser);
 
       await expect(
-        authService.changePassword('user-1', 'AncienMdp1', 'AncienMdp1'),
+        authService.changePassword('user-1', 'AncienMdp1!x', 'AncienMdp1!x'),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        authService.changePassword('user-1', 'AncienMdp1', 'AncienMdp1'),
+        authService.changePassword('user-1', 'AncienMdp1!x', 'AncienMdp1!x'),
       ).rejects.toThrow(/différent de l'ancien/);
     });
 
@@ -271,10 +271,10 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(activeUser);
 
       await expect(
-        authService.changePassword('user-1', 'MauvaisActuel', 'NouveauMdp1'),
+        authService.changePassword('user-1', 'MauvaisActuel1!', 'NouveauMdp1!x'),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        authService.changePassword('user-1', 'MauvaisActuel', 'NouveauMdp1'),
+        authService.changePassword('user-1', 'MauvaisActuel1!', 'NouveauMdp1!x'),
       ).rejects.toThrow(/Mot de passe actuel incorrect/);
     });
 
@@ -285,7 +285,7 @@ describe('AuthService', () => {
       });
 
       await expect(
-        authService.changePassword('user-1', 'AncienMdp1', 'NouveauMdp1'),
+        authService.changePassword('user-1', 'AncienMdp1!x', 'NouveauMdp1!x'),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -293,7 +293,7 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(activeUser);
       mockPrisma.user.update.mockResolvedValue({});
 
-      const result = await authService.changePassword('user-1', 'AncienMdp1', 'NouveauMdp1');
+      const result = await authService.changePassword('user-1', 'AncienMdp1!x', 'NouveauMdp1!x');
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('succès');
@@ -311,11 +311,11 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(activeUser);
       mockPrisma.user.update.mockResolvedValue({});
 
-      await authService.changePassword('user-1', 'AncienMdp1', 'NouveauMdp1');
+      await authService.changePassword('user-1', 'AncienMdp1!x', 'NouveauMdp1!x');
 
       const updateCall = mockPrisma.user.update.mock.calls[0][0];
       expect(updateCall.data.passwordHash).toMatch(/^\$2b\$10\$/);
-      expect(updateCall.data.passwordHash).not.toBe('NouveauMdp1');
+      expect(updateCall.data.passwordHash).not.toBe('NouveauMdp1!x');
     });
   });
 
@@ -406,7 +406,7 @@ describe('AuthService', () => {
         authService.createUser({
           code: 'NEW001',
           email: 'existant@test.dz',
-          password: 'MotDePasse1',
+          password: 'MotDePasse1!x',
           firstName: 'Nouveau',
           lastName: 'Utilisateur',
           role: 'COMMERCIAL' as any,
@@ -434,14 +434,14 @@ describe('AuthService', () => {
       mockPrisma.user.findFirst.mockResolvedValue(null);
       mockPrisma.user.create.mockImplementation(async ({ data }: any) => {
         expect(data.passwordHash).toMatch(/^\$2b\$10\$/);
-        expect(data.passwordHash).not.toBe('MotDePasse1');
+        expect(data.passwordHash).not.toBe('MotDePasse1!x');
         return { id: 'new-id', code: data.code, email: data.email };
       });
 
       await authService.createUser({
         code: 'NEW001',
         email: 'new@test.dz',
-        password: 'MotDePasse1',
+        password: 'MotDePasse1!x',
         firstName: 'Nouveau',
         lastName: 'Utilisateur',
         role: 'APPRO' as any,
@@ -461,7 +461,7 @@ describe('AuthService', () => {
       const result = await authService.createUser({
         code: 'NEW001',
         email: 'new@test.dz',
-        password: 'MotDePasse1',
+        password: 'MotDePasse1!x',
         firstName: 'Nouveau',
         lastName: 'Utilisateur',
         role: 'COMMERCIAL' as any,

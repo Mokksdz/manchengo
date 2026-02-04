@@ -19,6 +19,7 @@ export class CsrfMiddleware implements NestMiddleware {
   private static readonly UNSAFE_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
 
   // Paths exempt from CSRF (login needs to work without a prior token)
+  // NOTE: req.path INCLUDES the global prefix '/api' when middleware runs
   private static readonly EXEMPT_PATHS = [
     '/api/auth/login',
     '/api/auth/refresh',

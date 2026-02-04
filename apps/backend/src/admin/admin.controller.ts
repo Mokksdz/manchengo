@@ -182,13 +182,16 @@ export class AdminController {
   @ApiOperation({ summary: 'Get users list' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'role', required: false })
   async getUsers(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('role') role?: string,
   ) {
     return this.adminService.getUsers({
       page: page ? parseInt(page) : undefined,
       limit: limit ? parseInt(limit) : undefined,
+      role,
     });
   }
 

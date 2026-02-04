@@ -16,16 +16,20 @@ import { LicensingService } from './licensing.service';
 import { DevicePlatform } from '@prisma/client';
 
 /**
- * Licensing Controller
- * 
- * Endpoints for license management:
- * - License validation and status
- * - Device registration
- * - Company management (admin)
- * 
- * Most endpoints require authentication.
+ * Licensing Controller - SaaS License Management
+ *
+ * ⚠️ NOTE: These endpoints are NOT exposed in the current frontend.
+ * They are designed for:
+ * - SaaS multi-tenant license management (future feature)
+ * - Device registration and validation
+ * - Company/tenant management
+ *
+ * Routes include:
+ * - License validation and status checks
+ * - Device registration for offline sync
+ * - Company setup and configuration
  */
-@ApiTags('Licensing')
+@ApiTags('Licensing (SaaS - Future)')
 @Controller('licensing')
 export class LicensingController {
   constructor(private licensingService: LicensingService) {}

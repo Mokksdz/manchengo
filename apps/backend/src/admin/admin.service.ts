@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StockService } from '../stock/stock.service';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import {
   CreateProductMpDto,
   UpdateProductMpDto,
@@ -399,9 +399,10 @@ export class AdminService {
 
     for (const consumption of order.consumptions) {
       const stockMp = stockMap.get(consumption.productMpId) || 0;
-      if (stockMp < consumption.quantityPlanned) {
+      const quantityPlanned = Number(consumption.quantityPlanned);
+      if (stockMp < quantityPlanned) {
         throw new BadRequestException(
-          `Stock MP insuffisant pour ${consumption.productMp.name}: disponible ${stockMp}, requis ${consumption.quantityPlanned}`,
+          `Stock MP insuffisant pour ${consumption.productMp.name}: disponible ${stockMp}, requis ${quantityPlanned}`,
         );
       }
     }
@@ -416,7 +417,7 @@ export class AdminService {
             productType: 'MP',
             origin: 'PRODUCTION_OUT',
             productMpId: consumption.productMpId,
-            quantity: consumption.quantityPlanned,
+            quantity: Number(consumption.quantityPlanned),
             referenceType: 'PRODUCTION',
             referenceId: order.id,
             reference: order.reference,
@@ -653,9 +654,11 @@ export class AdminService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   // A29: Pagination support (backward compatible — no params = all results)
-  async getUsers(options?: { page?: number; limit?: number }) {
-    const { page, limit } = options || {};
+  async getUsers(options?: { page?: number; limit?: number; role?: string }) {
+    const { page, limit, role } = options || {};
+    const where = role ? { role: role as any } : {};
     const query: any = {
+      where,
       select: {
         id: true,
         code: true,
@@ -675,7 +678,7 @@ export class AdminService {
     }
     const [users, total] = await Promise.all([
       this.prisma.user.findMany(query),
-      this.prisma.user.count(),
+      this.prisma.user.count({ where }),
     ]);
     return { users, total, page: page || 1, limit: limit || total };
   }

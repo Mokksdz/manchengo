@@ -6,9 +6,21 @@ import { FeatureFlagsService } from './feature-flags.service';
 import { UserRole } from '@prisma/client';
 
 /**
- * Governance Controller - Admin-only endpoints for system governance
+ * Governance Controller - ADMIN-ONLY endpoints for system governance
+ *
+ * ⚠️ NOTE: These endpoints are intentionally NOT exposed in the frontend.
+ * They are designed for:
+ * - System administrators via API calls
+ * - Automated scripts / cron jobs
+ * - Emergency interventions
+ *
+ * Routes include:
+ * - Data retention policies management
+ * - Security hardening controls
+ * - Feature flags management
+ * - Emergency mode controls
  */
-@ApiTags('Governance')
+@ApiTags('Governance (Admin Only)')
 @ApiBearerAuth()
 @Controller('governance')
 export class GovernanceController {

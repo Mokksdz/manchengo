@@ -3,6 +3,7 @@
 use manchengo_database::Database;
 use manchengo_sync::{EventStore, SyncQueue};
 use std::sync::Mutex;
+use tracing::error;
 
 /// Global application state
 pub struct AppState {
@@ -15,16 +16,31 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(db: Database) -> Self {
-        // Create a new database connection for event store
-        let event_db = Database::open(manchengo_database::DatabaseConfig {
-            path: db.path().to_string(),
-            ..Default::default()
-        }).expect("Failed to open event store database");
+        let db_path = db.path().to_string();
 
-        let sync_db = Database::open(manchengo_database::DatabaseConfig {
-            path: db.path().to_string(),
+        let event_db = match Database::open(manchengo_database::DatabaseConfig {
+            path: db_path.clone(),
             ..Default::default()
-        }).expect("Failed to open sync queue database");
+        }) {
+            Ok(db) => db,
+            Err(e) => {
+                error!("Failed to open event store database: {}", e);
+                eprintln!("Error: Could not open event store database: {}", e);
+                std::process::exit(1);
+            }
+        };
+
+        let sync_db = match Database::open(manchengo_database::DatabaseConfig {
+            path: db_path,
+            ..Default::default()
+        }) {
+            Ok(db) => db,
+            Err(e) => {
+                error!("Failed to open sync queue database: {}", e);
+                eprintln!("Error: Could not open sync queue database: {}", e);
+                std::process::exit(1);
+            }
+        };
 
         Self {
             db,

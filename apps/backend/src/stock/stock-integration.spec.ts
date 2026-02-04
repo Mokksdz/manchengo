@@ -16,6 +16,7 @@ import { LotConsumptionService } from './lot-consumption.service';
 import { InventoryService } from './inventory.service';
 import { StockDashboardService } from './stock-dashboard.service';
 import { LotExpiryJob } from './jobs/lot-expiry.job';
+import { CacheService } from '../cache/cache.service';
 
 describe('Stock Module Integration Tests', () => {
   let prisma: PrismaService;
@@ -53,6 +54,7 @@ describe('Stock Module Integration Tests', () => {
       create: jest.fn().mockResolvedValue({ id: 1 }),
       count: jest.fn().mockResolvedValue(0),
       aggregate: jest.fn().mockResolvedValue({ _sum: { quantity: 0 } }),
+      groupBy: jest.fn().mockResolvedValue([]),
     },
     inventoryDeclaration: {
       findUnique: jest.fn().mockResolvedValue(null),
@@ -86,6 +88,13 @@ describe('Stock Module Integration Tests', () => {
     }),
   };
 
+  const mockCacheService = {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+    del: jest.fn().mockResolvedValue(undefined),
+    getOrSet: jest.fn().mockImplementation((_key: string, fn: () => any) => fn()),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -94,6 +103,7 @@ describe('Stock Module Integration Tests', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: AuditService, useValue: mockAudit },
         { provide: LotExpiryJob, useValue: mockLotExpiryJob },
+        { provide: CacheService, useValue: mockCacheService },
         LotConsumptionService,
         InventoryService,
         StockDashboardService,

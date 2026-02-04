@@ -63,6 +63,7 @@ describe('SyncModule', () => {
     },
     client: {
       findUnique: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn(),
     },
     productPf: {

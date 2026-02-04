@@ -1,65 +1,321 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manchengo Smart ERP</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #fff;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container {
-            text-align: center;
-            padding: 2rem;
-        }
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            background: linear-gradient(90deg, #ffc107, #ff9800);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        p {
-            color: #a0a0a0;
-            margin-bottom: 2rem;
-        }
-        .status {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 193, 7, 0.1);
-            border: 1px solid #ffc107;
-            border-radius: 0.5rem;
-            color: #ffc107;
-        }
-        .info {
-            margin-top: 2rem;
-            font-size: 0.875rem;
-            color: #666;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manchengo Smart ERP</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0f172a;
+      --bg-card: #1e293b;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #EC7620;
+      --accent-hover: #DD5C16;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+      --blue: #3b82f6;
+      --border: #334155;
+      --radius: 12px;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; overflow-x: hidden;
+    }
+    .app { display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px; background: #0b1120; border-right: 1px solid var(--border);
+      padding: 20px 12px; display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 10;
+    }
+    .main { flex: 1; margin-left: 220px; padding: 28px; }
+
+    .logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 20px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .logo-icon { width: 34px; height: 34px; background: var(--accent); border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff; }
+    .logo-text { font-size: 14px; font-weight: 600; }
+    .logo-sub { font-size: 10px; color: var(--text-muted); }
+
+    .nav-section { margin-bottom: 16px; }
+    .nav-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); padding: 0 10px 6px; }
+    .nav-item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 8px; color: var(--text-muted); cursor: pointer; font-size: 13px; transition: all 0.15s; text-decoration: none; }
+    .nav-item:hover { background: var(--bg-card); color: var(--text); }
+    .nav-item.active { background: var(--accent); color: #fff; font-weight: 500; }
+
+    .sidebar-footer { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
+    .version { font-size: 10px; color: var(--text-dim); text-align: center; padding: 6px; }
+    .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
+    .status-online { background: var(--green); }
+
+    /* Page */
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+    .page-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    /* Cards */
+    .card-grid { display: grid; gap: 14px; margin-bottom: 20px; }
+    .card-grid-4 { grid-template-columns: repeat(4, 1fr); }
+    .card-grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .card-grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; transition: border-color 0.2s; }
+    .card:hover { border-color: #475569; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .card-value { font-size: 28px; font-weight: 700; line-height: 1; }
+    .card-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .card-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-red { background: rgba(239,68,68,0.15); color: var(--red); }
+    .badge-yellow { background: rgba(234,179,8,0.15); color: var(--yellow); }
+    .badge-blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+
+    .icon-box { width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .icon-orange { background: rgba(236,118,32,0.15); color: var(--accent); }
+    .icon-green { background: rgba(34,197,94,0.15); color: var(--green); }
+    .icon-blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+
+    /* Table */
+    .table-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .table-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+    .card-title { font-size: 13px; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 10px 18px; font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+    td { padding: 12px 18px; font-size: 13px; border-bottom: 1px solid rgba(51,65,85,0.5); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(51,65,85,0.3); }
+
+    /* Login */
+    .login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+    .login-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 36px; width: 100%; max-width: 400px; }
+    .login-card h1 { text-align: center; margin-bottom: 6px; font-size: 20px; }
+    .login-card .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 28px; font-size: 13px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 5px; color: var(--text-muted); }
+    .form-input { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: 13px; outline: none; transition: border-color 0.15s; }
+    .form-input:focus { border-color: var(--accent); }
+    .form-input::placeholder { color: var(--text-dim); }
+    .login-btn { width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+    .login-btn:hover { background: var(--accent-hover); }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .error-msg { color: var(--red); font-size: 12px; text-align: center; margin-bottom: 12px; }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-dim); }
+    .empty-state .icon { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }
+    .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 20px auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    @media (max-width: 1100px) { .card-grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; padding: 16px; } .card-grid-4, .card-grid-2 { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🧀 Manchengo Smart ERP</h1>
-        <p>Application de gestion pour l'industrie agroalimentaire</p>
-        <div class="status">✓ Backend Rust initialisé</div>
-        <p class="info">
-            En mode développement, connectez-vous à <code>http://localhost:3001</code><br>
-            ou lancez <code>npm run dev</code> dans <code>apps/web</code>
-        </p>
-    </div>
-    <script>
-        // Test Tauri API
-        if (window.__TAURI__) {
-            console.log('Tauri API available');
+  <div id="app"></div>
+  <script>
+    const API_URL = localStorage.getItem('api_url') || 'http://localhost:3000';
+    let token = localStorage.getItem('access_token') || null;
+    let user = null;
+    let page = 'dashboard';
+
+    async function api(path, opts = {}) {
+      const h = { 'Content-Type': 'application/json' };
+      if (token) h['Authorization'] = 'Bearer ' + token;
+      const r = await fetch(API_URL + '/api' + path, { ...opts, headers: h });
+      if (r.status === 401) { token = null; localStorage.removeItem('access_token'); render(); throw new Error('Session expiree'); }
+      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.message || 'Erreur ' + r.status); }
+      return r.json();
+    }
+
+    function render() {
+      const el = document.getElementById('app');
+      if (!token) { el.innerHTML = loginHTML(); bindLogin(); }
+      else { el.innerHTML = appHTML(); bindNav(); loadPage(); }
+    }
+
+    function loginHTML() {
+      return '<div class="login-container fade-in"><div class="login-card">' +
+        '<div style="text-align:center;margin-bottom:20px"><div class="logo-icon" style="width:50px;height:50px;font-size:20px;margin:0 auto 14px;border-radius:12px">M</div>' +
+        '<h1>Manchengo Smart ERP</h1><p class="subtitle">Connectez-vous pour continuer</p></div>' +
+        '<div id="lerr"></div><form id="lform">' +
+        '<div class="form-group"><label>Email</label><input type="email" class="form-input" id="lemail" placeholder="admin@manchengo.dz" required></div>' +
+        '<div class="form-group"><label>Mot de passe</label><input type="password" class="form-input" id="lpass" placeholder="Mot de passe" required></div>' +
+        '<div class="form-group"><label>Serveur</label><input type="text" class="form-input" id="lapi" value="' + API_URL + '"></div>' +
+        '<button type="submit" class="login-btn" id="lbtn">Se connecter</button></form></div></div>';
+    }
+
+    function bindLogin() {
+      document.getElementById('lform').onsubmit = async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('lbtn');
+        btn.disabled = true; btn.textContent = 'Connexion...';
+        document.getElementById('lerr').innerHTML = '';
+        const apiUrl = document.getElementById('lapi').value.replace(/\/+$/, '');
+        localStorage.setItem('api_url', apiUrl);
+        try {
+          const r = await fetch(apiUrl + '/api/auth/login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: document.getElementById('lemail').value, password: document.getElementById('lpass').value })
+          });
+          if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.message || 'Identifiants invalides'); }
+          const d = await r.json();
+          token = d.access_token; user = d.user || parseJwt(token);
+          localStorage.setItem('access_token', token); render();
+        } catch (err) {
+          document.getElementById('lerr').innerHTML = '<p class="error-msg">' + err.message + '</p>';
+          btn.disabled = false; btn.textContent = 'Se connecter';
         }
-    </script>
+      };
+    }
+
+    function parseJwt(t) { try { return JSON.parse(atob(t.split('.')[1])); } catch { return {}; } }
+
+    function appHTML() {
+      return '<div class="app"><aside class="sidebar">' +
+        '<div class="logo"><div class="logo-icon">M</div><div><div class="logo-text">Manchengo ERP</div><div class="logo-sub">Smart Factory</div></div></div>' +
+        '<nav><div class="nav-section"><div class="nav-label">Principal</div>' +
+        navItem('dashboard', '\u{1F4CA}', 'Dashboard') + '</div>' +
+        '<div class="nav-section"><div class="nav-label">Operations</div>' +
+        navItem('stock', '\u{1F4E6}', 'Stock MP') +
+        navItem('production', '\u{1F3ED}', 'Production') +
+        navItem('appro', '\u{1F6D2}', 'Approvisionnement') + '</div>' +
+        '<div class="nav-section"><div class="nav-label">Commercial</div>' +
+        navItem('clients', '\u{1F465}', 'Clients') +
+        navItem('factures', '\u{1F4C4}', 'Factures') + '</div></nav>' +
+        '<div class="sidebar-footer"><div class="nav-item" id="logout" style="cursor:pointer">\u{1F6AA} Deconnexion</div>' +
+        '<div class="version"><span class="status-dot status-online"></span>v1.0.0</div></div></aside>' +
+        '<main class="main"><div id="pc"><div class="spinner"></div></div></main></div>';
+    }
+
+    function navItem(p, icon, label) {
+      return '<a class="nav-item' + (page === p ? ' active' : '') + '" data-page="' + p + '">' + icon + ' ' + label + '</a>';
+    }
+
+    function bindNav() {
+      document.querySelectorAll('[data-page]').forEach(function(el) {
+        el.onclick = function(e) { e.preventDefault(); page = el.dataset.page; render(); };
+      });
+      var lo = document.getElementById('logout');
+      if (lo) lo.onclick = function() { token = null; user = null; localStorage.removeItem('access_token'); render(); };
+    }
+
+    async function loadPage() {
+      var el = document.getElementById('pc');
+      try {
+        if (page === 'dashboard') await loadDash(el);
+        else if (page === 'stock') await loadStock(el);
+        else if (page === 'production') await loadProd(el);
+        else if (page === 'appro') await loadAppro(el);
+        else if (page === 'clients') await loadClients(el);
+        else if (page === 'factures') await loadFactures(el);
+      } catch (err) {
+        el.innerHTML = '<div class="empty-state fade-in"><div class="icon">\u26A0</div><p>' + err.message + '</p>' +
+          '<p style="margin-top:6px;font-size:11px;color:var(--text-dim)">Serveur: ' + API_URL + '</p>' +
+          '<button class="btn btn-primary" style="margin-top:14px" onclick="loadPage()">Reessayer</button></div>';
+      }
+    }
+
+    async function loadDash(el) {
+      var k = null;
+      try { k = await api('/dashboard/kpis'); } catch {}
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Dashboard</h1><p>Vue d\'ensemble</p></div></div>' +
+        '<div class="card-grid card-grid-4">' +
+        kpiCard('\u{1F4E6}', 'icon-orange', 'Stock MP', k?.stock?.mp?.total, k?.stock?.mp?.lowStock > 0 ? k.stock.mp.lowStock + ' alertes' : null, 'red') +
+        kpiCard('\u{1F3ED}', 'icon-green', 'Stock PF', k?.stock?.pf?.total, k?.stock?.pf?.lowStock > 0 ? k.stock.pf.lowStock + ' bas' : null, 'yellow') +
+        kpiCard('\u{1F4B0}', 'icon-blue', 'Ventes du jour', formatDZD(k?.sales?.todayAmount), (k?.sales?.todayInvoices ?? 0) + ' fact.', 'blue') +
+        kpiCard('\u{1F4C8}', 'icon-orange', 'Sync en attente', k?.sync?.pendingEvents ?? 0, null, null) +
+        '</div>' +
+        (k === null ? '<div class="card" style="text-align:center;padding:32px"><div style="font-size:40px;margin-bottom:8px">\u{1F310}</div><p style="font-weight:600">Mode hors ligne</p><p style="color:var(--text-muted);font-size:13px">Backend non accessible</p></div>' : '') +
+        '</div>';
+    }
+
+    function kpiCard(icon, cls, label, value, badge, badgeColor) {
+      return '<div class="card"><div class="card-header"><div class="icon-box ' + cls + '">' + icon + '</div>' +
+        (badge ? '<span class="card-badge badge-' + badgeColor + '">' + badge + '</span>' : '') +
+        '</div><div class="card-value">' + (value != null ? value.toLocaleString?.() || value : '\u2014') + '</div>' +
+        '<div class="card-label">' + label + '</div></div>';
+    }
+
+    async function loadStock(el) {
+      var d = await api('/stock/dashboard');
+      var items = d.critique?.items || [];
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Stock MP</h1><p>Tableau de bord stock</p></div></div>' +
+        '<div class="card-grid card-grid-3">' +
+        '<div class="card"><div class="card-value" style="color:var(--red)">' + (d.critique?.totalCount ?? 0) + '</div><div class="card-label">Critiques</div></div>' +
+        '<div class="card"><div class="card-value" style="color:var(--yellow)">' + (d.aTraiter?.totalCount ?? 0) + '</div><div class="card-label">A traiter</div></div>' +
+        '<div class="card"><div class="card-value" style="color:var(--green)">' + (d.sante?.fifoCompliance ?? '-') + '%</div><div class="card-label">FIFO</div></div></div>' +
+        (items.length > 0 ? tableHTML('Alertes', ['Produit','Stock','Seuil','Statut'], items.slice(0,20).map(function(p) {
+          return [p.name||p.code||'-', p.currentStock??p.stock??'-', p.minStock??'-', badge(p.status)];
+        })) : emptyHTML('\u2705', 'Aucune alerte')) + '</div>';
+    }
+
+    async function loadProd(el) {
+      var items = []; try { var d = await api('/production/orders?limit=20'); items = d.items || d || []; } catch {}
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Production</h1><p>Ordres de production</p></div></div>' +
+        (items.length > 0 ? tableHTML('Ordres', ['Ref','Produit','Qte','Statut','Date'], items.map(function(o) {
+          return [o.reference||o.id, o.productPf?.name||'-', o.quantity??'-', badge(o.status), fmtDate(o.createdAt)];
+        })) : emptyHTML('\u{1F3ED}', 'Aucun ordre')) + '</div>';
+    }
+
+    async function loadAppro(el) {
+      var items = []; try { var d = await api('/appro/purchase-orders?limit=20'); items = d.items || d || []; } catch {}
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Approvisionnement</h1><p>Bons de commande</p></div></div>' +
+        (items.length > 0 ? tableHTML('Bons de commande', ['Ref','Fournisseur','Montant','Statut','Date'], items.map(function(b) {
+          return [b.reference||b.id, b.supplier?.name||'-', formatDZD(b.totalAmount), badge(b.status), fmtDate(b.createdAt)];
+        })) : emptyHTML('\u{1F6D2}', 'Aucun bon de commande')) + '</div>';
+    }
+
+    async function loadClients(el) {
+      var items = []; try { var d = await api('/clients?limit=20'); items = d.items || d || []; } catch {}
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Clients</h1><p>' + items.length + ' clients</p></div></div>' +
+        (items.length > 0 ? tableHTML('Clients', ['Nom','Email','Tel','Wilaya'], items.map(function(c) {
+          return [c.name||c.companyName||'-', c.email||'-', c.phone||'-', c.wilaya||'-'];
+        })) : emptyHTML('\u{1F465}', 'Aucun client')) + '</div>';
+    }
+
+    async function loadFactures(el) {
+      var items = []; try { var d = await api('/invoices?limit=20'); items = d.items || d || []; } catch {}
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Factures</h1><p>' + items.length + ' factures</p></div></div>' +
+        (items.length > 0 ? tableHTML('Factures', ['Numero','Client','TTC','Statut','Date'], items.map(function(f) {
+          return [f.invoiceNumber||f.id, f.client?.name||'-', formatDZD(f.totalTTC), badge(f.status), fmtDate(f.createdAt)];
+        })) : emptyHTML('\u{1F4C4}', 'Aucune facture')) + '</div>';
+    }
+
+    function tableHTML(title, headers, rows) {
+      return '<div class="table-container"><div class="table-header"><span class="card-title">' + title + '</span></div><table><thead><tr>' +
+        headers.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead><tbody>' +
+        rows.map(function(r) { return '<tr>' + r.map(function(c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') +
+        '</tbody></table></div>';
+    }
+
+    function emptyHTML(icon, msg) {
+      return '<div class="empty-state"><div class="icon">' + icon + '</div><p>' + msg + '</p></div>';
+    }
+
+    function badge(status) {
+      var cls = 'badge-yellow';
+      if (status === 'COMPLETED' || status === 'PAID' || status === 'RECEIVED' || status === 'SAIN') cls = 'badge-green';
+      else if (status === 'IN_PROGRESS' || status === 'SENT') cls = 'badge-blue';
+      else if (status === 'RUPTURE' || status === 'BLOQUANT_PRODUCTION') cls = 'badge-red';
+      return '<span class="card-badge ' + cls + '">' + (status || '-') + '</span>';
+    }
+
+    function formatDZD(a) {
+      if (a == null) return '\u2014';
+      return new Intl.NumberFormat('fr-DZ', { style: 'currency', currency: 'DZD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(a).replace('DZD', 'DA');
+    }
+
+    function fmtDate(d) { return d ? new Date(d).toLocaleDateString('fr') : '-'; }
+
+    if (token) user = parseJwt(token);
+    render();
+  </script>
 </body>
 </html>

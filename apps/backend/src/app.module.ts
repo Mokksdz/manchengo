@@ -20,7 +20,6 @@ import { ProductsModule } from './products/products.module';
 import { LotsModule } from './lots/lots.module';
 import { ProductionModule } from './production/production.module';
 import { DeliveryModule } from './delivery/delivery.module';
-import { DemandesMpModule } from './demandes-mp/demandes-mp.module';
 import { ApproModule } from './appro/appro.module';
 import { GovernanceModule } from './governance/governance.module';
 import { RedisCacheModule } from './cache/cache.module';
@@ -28,6 +27,11 @@ import { SentryModule } from './common/sentry/sentry.module';
 import { HealthModule } from './common/health/health.module';
 import { MetricsModule } from './common/metrics/metrics.module';
 import { WebSocketModule } from './common/websocket/websocket.module';
+import { QueuesModule } from './common/queues/queues.module';
+import { EventsModule } from './common/events/events.module';
+import { PaginationModule } from './common/pagination/pagination.module';
+import { EmailModule } from './common/email';
+import { ReportsModule } from './reports/reports.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -85,7 +89,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     StockModule, // Stock management - movement-based
     ProductionModule, // Production - Recipes, Orders, FIFO consumption
     DeliveryModule,   // Delivery - QR validation, proof of delivery
-    DemandesMpModule, // Demandes approvisionnement MP (PRODUCTION → STOCK)
     ApproModule,      // Module APPRO PRO - Approvisionnement industriel
     DashboardModule,
     ExportsModule,
@@ -93,6 +96,11 @@ import { ScheduleModule } from '@nestjs/schedule';
     HealthModule,     // R6: Health checks (DB, Redis, memory)
     MetricsModule,    // R17: Prometheus metrics endpoint
     WebSocketModule,  // R18: WebSocket for real-time dashboard
+    QueuesModule,     // BullMQ - Async job processing (reports, notifications, alerts)
+    EventsModule,     // Event Sourcing - Domain events for full traceability
+    PaginationModule, // Cursor & Offset pagination utilities
+    EmailModule,      // Global - Nodemailer SMTP email service
+    ReportsModule,    // Advanced reporting with PDF/Excel export
   ],
   providers: [],
 })

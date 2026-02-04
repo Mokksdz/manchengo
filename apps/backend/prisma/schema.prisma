@@ -50,11 +50,6 @@ model User {
   productionOrders ProductionOrder[]
   syncEvents      SyncEvent[]
   
-  // Demandes approvisionnement
-  demandesCreees    DemandeApprovisionnementMp[] @relation("DemandeCreatedBy")
-  demandesValidees  DemandeApprovisionnementMp[] @relation("DemandeValidatedBy")
-  demandesLocked    DemandeApprovisionnementMp[] @relation("DemandeLock")
-  
   // Alertes APPRO accusées
   approAlertsAcknowledged ApproAlert[] @relation("ApproAlertAcknowledgedBy")
   
@@ -289,7 +284,6 @@ model ProductMp {
   productionConsumptions ProductionConsumption[]
   receptionLines  ReceptionMpLine[]
   recipeItems     RecipeItem[]
-  demandesApproLignes DemandeApproLigne[]
   purchaseOrderItems PurchaseOrderItem[]
 
   @@index([criticite])
@@ -734,7 +728,6 @@ model ReceptionMp {
 
   supplier      Supplier?       @relation(fields: [supplierId], references: [id])
   lines         ReceptionMpLine[]
-  demandesAppro DemandeApprovisionnementMp[]
 
   @@index([supplierId, date])
   @@index([status])
@@ -875,6 +868,9 @@ model ProductionOrder {
   // Rendement calculé
   yieldPercentage  Decimal?         @map("yield_percentage") @db.Decimal(18, 4) // Rendement (%)
   
+  // Planification
+  scheduledDate    DateTime?        @map("scheduled_date") // Date planifiée de production
+
   // Workflow
   status           ProductionStatus @default(PENDING)
   startedAt        DateTime?        @map("started_at")
@@ -902,6 +898,7 @@ model ProductionOrder {
   @@index([recipeId])
   @@index([createdAt])
   @@index([userId, status, createdAt])
+  @@index([scheduledDate, status])
   @@map("production_orders")
 }
 
@@ -1210,6 +1207,7 @@ enum ApproAlertType {
   RUPTURE               // Rupture de stock MP
   FOURNISSEUR_RETARD    // Fournisseur avec taux retard > seuil
   PRODUCTION_BLOQUEE    // Production refusée par /check-production
+  DLC_PROCHE            // Lot proche de la DLC
 }
 
 enum ApproAlertLevel {
@@ -1222,6 +1220,7 @@ enum ApproAlertEntity {
   MP                    // Matière première
   SUPPLIER              // Fournisseur
   PRODUCTION            // Ordre de production
+  LOT                   // Lot (pour alertes DLC)
 }
 
 model ApproAlert {
@@ -1249,103 +1248,7 @@ model ApproAlert {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// DEMANDE APPROVISIONNEMENT MP (PRODUCTION → STOCK)
-// ═══════════════════════════════════════════════════════════════════════════════
-// Workflow: PRODUCTION crée une demande → ADMIN/APPRO valide → Transforme en Réception
-// ═══════════════════════════════════════════════════════════════════════════════
-
-enum DemandeApproStatus {
-  BROUILLON           // En cours de création
-  SOUMISE             // Soumise pour validation (anciennement ENVOYEE)
-  VALIDEE             // Validée par ADMIN/APPRO
-  REJETEE             // Rejetée avec motif
-  EN_COURS_COMMANDE   // BC généré, en attente d'envoi fournisseur
-  COMMANDEE           // BC envoyé au fournisseur
-  RECEPTIONNEE        // Réception fournisseur complète
-  // DEPRECATED: ENVOYEE (use SOUMISE), TRANSFORMEE (use EN_COURS_COMMANDE)
-  ENVOYEE             // @deprecated - use SOUMISE
-  TRANSFORMEE         // @deprecated - use EN_COURS_COMMANDE
-}
-
-enum DemandeApproPriority {
-  NORMALE
-  URGENTE
-  CRITIQUE            // Rupture imminente
-}
-
-model DemandeApprovisionnementMp {
-  id            Int                   @id @default(autoincrement())
-  reference     String                @unique // REQ-MP-2025-001
-  status        DemandeApproStatus    @default(BROUILLON)
-  priority      DemandeApproPriority  @default(NORMALE)
-  
-  // Créateur (PRODUCTION)
-  createdById   String                @map("created_by_id")
-  createdBy     User                  @relation("DemandeCreatedBy", fields: [createdById], references: [id])
-  
-  // Commentaire production
-  commentaire   String?               // Motif: rupture, production planifiée, etc.
-  
-  // Dates
-  createdAt     DateTime              @default(now()) @map("created_at")
-  envoyeeAt     DateTime?             @map("envoyee_at")
-  
-  // Validation par ADMIN/APPRO
-  validatedById String?               @map("validated_by_id")
-  validatedBy   User?                 @relation("DemandeValidatedBy", fields: [validatedById], references: [id])
-  validatedAt   DateTime?             @map("validated_at")
-  rejectReason  String?               @map("reject_reason")
-  
-  // Transformation en Réception
-  receptionId   Int?                  @map("reception_id")
-  reception     ReceptionMp?          @relation(fields: [receptionId], references: [id])
-  
-  // Lignes de demande
-  lignes        DemandeApproLigne[]
-  
-  // Bons de commande générés (peut être multiple si split par fournisseur)
-  purchaseOrders PurchaseOrder[]
-  
-  // DURCISSEMENT P1: Verrouillage optimiste + soft lock
-  version       Int       @default(1)
-  lockedById    String?   @map("locked_by_id")
-  lockedBy      User?     @relation("DemandeLock", fields: [lockedById], references: [id])
-  lockedAt      DateTime? @map("locked_at")
-  lockExpiresAt DateTime? @map("lock_expires_at")
-  
-  // DURCISSEMENT P1.1-B: Point de non-retour métier
-  hasEngagedSupplier Boolean   @default(false) @map("has_engaged_supplier")
-  irreversibleAt     DateTime? @map("irreversible_at")
-  
-  @@index([status])
-  @@index([createdById])
-  @@index([createdAt])
-  @@map("demandes_approvisionnement_mp")
-}
-
-model DemandeApproLigne {
-  id              Int                       @id @default(autoincrement())
-  demandeId       Int                       @map("demande_id")
-  demande         DemandeApprovisionnementMp @relation(fields: [demandeId], references: [id], onDelete: Cascade)
-  
-  productMpId     Int                       @map("product_mp_id")
-  productMp       ProductMp                 @relation(fields: [productMpId], references: [id])
-  
-  quantiteDemandee Decimal                   @map("quantite_demandee") @db.Decimal(18, 4)
-  quantiteValidee  Decimal?                  @map("quantite_validee") @db.Decimal(18, 4) // Ajustée par ADMIN
-  
-  commentaire     String?                   // Commentaire ligne
-  
-  @@index([demandeId])
-  @@index([productMpId])
-  @@map("demandes_appro_lignes")
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// BONS DE COMMANDE (Purchase Orders) — Flux APPRO verrouillé
-// ═══════════════════════════════════════════════════════════════════════════════
-// RÈGLE MÉTIER: Un BC est TOUJOURS généré depuis une Demande APPRO validée
-// INTERDICTION: Création manuelle de BC
+// BONS DE COMMANDE (Purchase Orders) — Création directe par APPRO
 // ═══════════════════════════════════════════════════════════════════════════════
 
 enum PurchaseOrderStatus {
@@ -1364,11 +1267,7 @@ model PurchaseOrder {
   // Fournisseur cible
   supplierId        Int                 @map("supplier_id")
   supplier          Supplier            @relation(fields: [supplierId], references: [id])
-  
-  // Lien vers la Demande source (optionnel pour V1 création directe)
-  linkedDemandId    Int?                @map("linked_demand_id")
-  linkedDemand      DemandeApprovisionnementMp? @relation(fields: [linkedDemandId], references: [id])
-  
+
   // Statut workflow
   status            PurchaseOrderStatus @default(DRAFT)
   
@@ -1436,7 +1335,6 @@ model PurchaseOrder {
   
   @@index([status])
   @@index([supplierId])
-  @@index([linkedDemandId])
   @@index([createdAt])
   @@map("purchase_orders")
 }
@@ -1704,3 +1602,52 @@ model IdempotencyKey {
   @@index([entityType, entityId])
   @@map("idempotency_keys")
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EVENT SOURCING — Domain Events Store
+// ═══════════════════════════════════════════════════════════════════════════════
+//
+// PURPOSE: Complete event history for state reconstruction and audit
+// PRINCIPLES:
+//   - APPEND-ONLY: Events are immutable
+//   - ORDERED: Global sequence number for replay
+//   - COMPLETE: Contains all information needed to reconstruct state
+//
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model DomainEvent {
+  id             String   @id @default(uuid())
+  version        Int      @unique                    // Global sequence number
+  type           String                              // EventType enum value
+  category       String                              // EventCategory (STOCK, PRODUCTION, etc.)
+
+  // Aggregate reference
+  aggregateType  String   @map("aggregate_type")     // Entity type (ProductMp, ProductionOrder, etc.)
+  aggregateId    String   @map("aggregate_id")       // Entity ID
+
+  // Event payload
+  payload        Json                                // Event-specific data
+
+  // Metadata for tracing
+  metadata       Json?                               // userId, requestId, correlationId, etc.
+
+  // Timestamp
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Indexes for efficient queries
+  @@index([aggregateType, aggregateId, version])
+  @@index([type, createdAt])
+  @@index([category, createdAt])
+  @@index([version])
+  @@index([createdAt])
+
+  @@map("domain_events")
+}
+
+// DLC Proche Alert Type (ajout pour Event Sourcing)
+// Note: Ajouté à ApproAlertType enum existant via modification
+// enum ApproAlertType {
+//   ...existing...
+//   DLC_PROCHE            // Lot proche de la date limite
+//   LOT                   // Alert entity for lots
+// }

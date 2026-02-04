@@ -79,9 +79,12 @@ export class LicenseGuard implements CanActivate {
 
 /**
  * Read-Only Guard
- * 
- * Specifically for blocking write operations when license is expired.
- * Use on endpoints that modify data.
+ *
+ * Blocks write operations when license is in read-only mode.
+ * Use this for endpoints that modify data.
+ *
+ * Usage:
+ * @UseGuards(JwtAuthGuard, ReadOnlyGuard)
  */
 @Injectable()
 export class ReadOnlyGuard implements CanActivate {
@@ -92,14 +95,14 @@ export class ReadOnlyGuard implements CanActivate {
     const user = request.user;
 
     if (!user?.sub) {
-      return true; // Let auth guard handle this
+      throw new ForbiddenException('Authentication required');
     }
 
-    const isWriteAllowed = await this.licensingService.isWriteAllowed(user.sub);
+    const licenseStatus = await this.licensingService.validateUserLicense(user.sub);
 
-    if (!isWriteAllowed) {
+    if (licenseStatus.readOnly) {
       throw new ForbiddenException(
-        'License expired - modifications not allowed. Please renew your subscription.',
+        'License expired - read-only mode. Please renew your subscription to modify data.',
       );
     }
 

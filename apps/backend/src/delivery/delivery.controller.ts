@@ -34,6 +34,13 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════════
 // DELIVERY CONTROLLER - QR Validation & Proof of Delivery
 // ═══════════════════════════════════════════════════════════════════════════════
+//
+// ⚠️ NOTE: This module is WORK IN PROGRESS and NOT integrated in the frontend.
+// These endpoints are designed for:
+// - Mobile app delivery validation (future feature)
+// - QR code scanning for proof of delivery
+// - Delivery tracking and management
+//
 // SECURITY:
 // - All endpoints require JWT authentication
 // - QR validation is rate-limited to prevent brute force
@@ -41,7 +48,7 @@ import {
 // - Complete audit trail for all operations
 // ═══════════════════════════════════════════════════════════════════════════════
 
-@ApiTags('Deliveries')
+@ApiTags('Deliveries (WIP - Not in Frontend)')
 @Controller('deliveries')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()

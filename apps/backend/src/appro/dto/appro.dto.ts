@@ -70,16 +70,6 @@ export class StockMpQueryDto {
   criticalOnly?: boolean;
 }
 
-export class PerformanceQueryDto {
-  @ApiPropertyOptional({ description: 'Nombre de jours pour le calcul des métriques', default: 30 })
-  @IsOptional()
-  @IsInt()
-  @Min(7)
-  @Max(365)
-  @Type(() => Number)
-  days?: number = 30;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // CHECK PRODUCTION
 // ═══════════════════════════════════════════════════════════════════════════════

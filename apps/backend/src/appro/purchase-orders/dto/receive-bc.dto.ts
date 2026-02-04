@@ -101,9 +101,6 @@ export class ReceiveBcResponseDto {
   @ApiProperty({ description: 'Nombre de mouvements de stock créés' })
   stockMovementsCreated: number;
 
-  @ApiProperty({ description: 'Demande source clôturée' })
-  demandClosed: boolean;
-
   @ApiProperty({ description: 'Message de confirmation' })
   message: string;
 }

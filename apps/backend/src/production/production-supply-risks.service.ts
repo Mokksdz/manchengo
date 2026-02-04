@@ -471,7 +471,7 @@ export class ProductionSupplyRisksService {
           if (!item.productMp) continue;
 
           const mpId = item.productMp.id;
-          const requiredQty = item.quantity * order.batchCount;
+          const requiredQty = Number(item.quantity) * order.batchCount;
 
           // Vérifier si cette MP est critique
           const critMp = criticalMpMap.get(mpId);

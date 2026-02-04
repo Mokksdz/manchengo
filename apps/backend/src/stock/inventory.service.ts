@@ -366,7 +366,7 @@ export class InventoryService {
 
     // 7. Créer mouvement d'ajustement
     let movementCreated = false;
-    if (declaration.difference !== 0) {
+    if (Number(declaration.difference) !== 0) {
       await this.createAdjustmentMovement(declarationId, validatedById);
       movementCreated = true;
     }
@@ -490,10 +490,10 @@ export class InventoryService {
         productType: decl.productType,
         productName,
         productCode,
-        theoreticalStock: decl.theoreticalStock,
-        declaredStock: decl.declaredStock,
-        difference: decl.difference,
-        differencePercent: decl.differencePercent,
+        theoreticalStock: Number(decl.theoreticalStock),
+        declaredStock: Number(decl.declaredStock),
+        difference: Number(decl.difference),
+        differencePercent: Number(decl.differencePercent),
         riskLevel: decl.riskLevel,
         status: decl.status,
         countedBy: decl.countedBy,
@@ -607,7 +607,7 @@ export class InventoryService {
     // Vérifier si tous les écarts récents sont négatifs
     const allNegative =
       recentDecls.length >= CONSECUTIVE_NEGATIVE_THRESHOLD - 1 &&
-      recentDecls.every((d) => d.difference < 0);
+      recentDecls.every((d) => Number(d.difference) < 0);
 
     return allNegative;
   }
@@ -721,7 +721,7 @@ export class InventoryService {
       where: { id: declarationId },
     });
 
-    if (!declaration || declaration.difference === 0) return;
+    if (!declaration || Number(declaration.difference) === 0) return;
 
     const productId =
       declaration.productType === 'MP'
@@ -730,12 +730,12 @@ export class InventoryService {
 
     await this.prisma.stockMovement.create({
       data: {
-        movementType: declaration.difference > 0 ? 'IN' : 'OUT',
+        movementType: Number(declaration.difference) > 0 ? 'IN' : 'OUT',
         origin: 'INVENTAIRE',
         productType: declaration.productType,
         productMpId: declaration.productType === 'MP' ? productId : null,
         productPfId: declaration.productType === 'PF' ? productId : null,
-        quantity: declaration.difference,
+        quantity: Math.abs(Number(declaration.difference)),
         userId: approvedById,
         reference: `INV-${declarationId}`,
         referenceType: 'INVENTORY',
@@ -749,7 +749,7 @@ export class InventoryService {
       await this.prisma.productMp.update({
         where: { id: declaration.productMpId },
         data: {
-          lastPhysicalStock: declaration.declaredStock,
+          lastPhysicalStock: Number(declaration.declaredStock),
           lastPhysicalStockDate: declaration.countedAt,
         },
       });
@@ -757,7 +757,7 @@ export class InventoryService {
       await this.prisma.productPf.update({
         where: { id: declaration.productPfId },
         data: {
-          lastPhysicalStock: declaration.declaredStock,
+          lastPhysicalStock: Number(declaration.declaredStock),
           lastPhysicalStockDate: declaration.countedAt,
         },
       });

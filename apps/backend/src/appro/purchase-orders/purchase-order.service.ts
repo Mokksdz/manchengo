@@ -2,15 +2,9 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  * PURCHASE ORDER SERVICE — Logique métier Bons de Commande
  * ═══════════════════════════════════════════════════════════════════════════════
- * 
- * RÈGLES MÉTIER STRICTES:
- * ❌ INTERDICTION: Création manuelle de BC
- * ✅ Un BC est TOUJOURS généré depuis une Demande APPRO validée
- * ✅ Split automatique par fournisseur si multi-fournisseurs
- * ✅ Traçabilité complète (qui, quand, depuis quoi)
- * 
+ *
  * FLUX:
- * Demande VALIDÉE → Generate BC → Send → Confirm → Receive → Stock updated
+ * Create BC → Send → Confirm → Receive → Stock updated
  */
 
 import {
@@ -21,10 +15,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PurchaseOrderStatus, DemandeApproStatus } from '@prisma/client';
+import { PurchaseOrderStatus } from '@prisma/client';
 import {
-  GenerateBcDto,
-  GenerateBcResponseDto,
   SendBcDto,
   SendBcResponseDto,
   ReceiveBcDto,
@@ -39,236 +31,9 @@ export class PurchaseOrderService {
 
   /**
    * ═══════════════════════════════════════════════════════════════════════════════
-   * GÉNÉRATION DE BC DEPUIS UNE DEMANDE VALIDÉE
+   * CRÉATION BC DIRECTE
    * ═══════════════════════════════════════════════════════════════════════════════
-   * 
-   * LOGIQUE:
-   * 1. Vérifier que la Demande est VALIDÉE
-   * 2. Grouper les lignes par fournisseur principal
-   * 3. Créer 1 BC par fournisseur (split automatique)
-   * 4. Remplir les quantités depuis la Demande
-   * 5. Chercher le dernier prix fournisseur (ou fallback manuel)
-   */
-  async generateFromDemand(
-    demandId: number,
-    dto: GenerateBcDto,
-    userId: string,
-  ): Promise<GenerateBcResponseDto> {
-    // 1. Récupérer et valider la demande
-    const demand = await this.prisma.demandeApprovisionnementMp.findUnique({
-      where: { id: demandId },
-      include: {
-        lignes: {
-          include: {
-            productMp: {
-              include: {
-                fournisseurPrincipal: true,
-              },
-            },
-          },
-        },
-        purchaseOrders: true,
-      },
-    });
-
-    if (!demand) {
-      throw new NotFoundException(`Demande #${demandId} non trouvée`);
-    }
-
-    // RÈGLE MÉTIER: Seule une demande VALIDÉE peut générer un BC
-    if (demand.status !== DemandeApproStatus.VALIDEE) {
-      throw new BadRequestException(
-        `Impossible de générer un BC: la demande doit être VALIDÉE (statut actuel: ${demand.status})`,
-      );
-    }
-
-    // Vérifier qu'il n'y a pas déjà des BC générés pour cette demande
-    if (demand.purchaseOrders.length > 0) {
-      throw new BadRequestException(
-        `Des BC ont déjà été générés pour cette demande: ${demand.purchaseOrders.map(po => po.reference).join(', ')}`,
-      );
-    }
-
-    // 2. Grouper les lignes par fournisseur
-    const linesBySupplier = new Map<number | null, typeof demand.lignes>();
-    
-    for (const ligne of demand.lignes) {
-      const supplierId = ligne.productMp.fournisseurPrincipalId;
-      
-      if (!supplierId) {
-        throw new BadRequestException(
-          `Le produit "${ligne.productMp.name}" (${ligne.productMp.code}) n'a pas de fournisseur principal défini`,
-        );
-      }
-
-      if (!linesBySupplier.has(supplierId)) {
-        linesBySupplier.set(supplierId, []);
-      }
-      linesBySupplier.get(supplierId)!.push(ligne);
-    }
-
-    // 3. Créer les BC dans une transaction
-    const createdPOs = await this.prisma.$transaction(async (tx) => {
-      const results: {
-        id: string;
-        reference: string;
-        supplierId: number;
-        supplierName: string;
-        totalHT: number;
-        itemsCount: number;
-      }[] = [];
-
-      for (const [supplierId, lignes] of linesBySupplier.entries()) {
-        if (!supplierId) continue;
-
-        // Récupérer le fournisseur
-        const supplier = await tx.supplier.findUnique({
-          where: { id: supplierId },
-        });
-
-        if (!supplier) {
-          throw new BadRequestException(`Fournisseur #${supplierId} non trouvé`);
-        }
-
-        // Générer la référence BC-YYYY-XXXXX
-        const reference = await this.generateReference(tx);
-
-        // Calculer les items avec prix
-        const items: {
-          productMpId: number;
-          quantity: number;
-          unitPrice: number;
-          totalHT: number;
-          tvaRate: number;
-        }[] = [];
-
-        let totalHT = 0;
-
-        for (const ligne of lignes) {
-          // Quantité: validée si disponible, sinon demandée
-          const quantity = ligne.quantiteValidee ?? ligne.quantiteDemandee;
-
-          // Prix: override manuel > dernier prix réception > 0
-          let unitPrice = 0;
-
-          // Chercher dans les overrides
-          const override = dto.priceOverrides?.find(
-            (p) => p.productMpId === ligne.productMpId,
-          );
-          if (override) {
-            unitPrice = override.unitPrice;
-          } else {
-            // Chercher le dernier prix de ce fournisseur pour ce produit
-            const lastReceptionLine = await tx.receptionMpLine.findFirst({
-              where: {
-                productMpId: ligne.productMpId,
-                reception: {
-                  supplierId: supplierId,
-                  status: 'VALIDATED',
-                },
-                unitCost: { not: null },
-              },
-              orderBy: { createdAt: 'desc' },
-            });
-
-            if (lastReceptionLine?.unitCost) {
-              // Convertir centimes en DA
-              unitPrice = lastReceptionLine.unitCost / 100;
-            }
-          }
-
-          const lineTotalHT = quantity * unitPrice;
-          totalHT += lineTotalHT;
-
-          items.push({
-            productMpId: ligne.productMpId,
-            quantity,
-            unitPrice,
-            totalHT: lineTotalHT,
-            tvaRate: ligne.productMp.defaultTvaRate,
-          });
-        }
-
-        // Créer le BC
-        const po = await tx.purchaseOrder.create({
-          data: {
-            reference,
-            supplierId,
-            linkedDemandId: demandId,
-            status: PurchaseOrderStatus.DRAFT,
-            totalHT,
-            currency: 'DZD',
-            expectedDelivery: dto.expectedDelivery
-              ? new Date(dto.expectedDelivery)
-              : null,
-            deliveryAddress: dto.deliveryAddress,
-            notes: dto.notes,
-            createdById: userId,
-            items: {
-              create: items.map((item) => ({
-                productMpId: item.productMpId,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                totalHT: item.totalHT,
-                tvaRate: item.tvaRate,
-              })),
-            },
-          },
-        });
-
-        // P1.2: Audit log pour génération BC
-        await tx.auditLog.create({
-          data: {
-            action: 'BC_GENERATED',
-            entityType: 'PURCHASE_ORDER',
-            entityId: po.id,
-            actorId: userId,
-            actorRole: 'APPRO',
-            metadata: {
-              reference: po.reference,
-              demandId,
-              demandReference: demand.reference,
-              supplierId,
-              supplierName: supplier.name,
-              totalHT,
-              itemsCount: items.length,
-              statusAfter: 'DRAFT',
-            },
-          },
-        });
-
-        results.push({
-          id: po.id,
-          reference: po.reference,
-          supplierId,
-          supplierName: supplier.name,
-          totalHT,
-          itemsCount: items.length,
-        });
-
-        this.logger.log(
-          `BC ${po.reference} généré pour fournisseur ${supplier.name} (${items.length} lignes, ${totalHT.toFixed(2)} DA)`,
-        );
-      }
-
-      return results;
-    });
-
-    return {
-      count: createdPOs.length,
-      purchaseOrders: createdPOs,
-      message:
-        createdPOs.length === 1
-          ? `BC ${createdPOs[0].reference} généré avec succès`
-          : `${createdPOs.length} BC générés (split par fournisseur)`,
-    };
-  }
-
-  /**
-   * ═══════════════════════════════════════════════════════════════════════════════
-   * V1: CRÉATION BC DIRECTE (sans Demande)
-   * ═══════════════════════════════════════════════════════════════════════════════
-   * L'APPRO peut créer un BC librement pour répondre aux urgences
+   * L'APPRO peut créer un BC librement
    */
   async createDirect(
     dto: {
@@ -622,7 +387,7 @@ export class PurchaseOrderService {
     }
 
     // 4. Vérifier qu'aucune réception partielle n'a été effectuée
-    const hasPartialReceived = po.items.some((item) => item.quantityReceived > 0);
+    const hasPartialReceived = po.items.some((item) => Number(item.quantityReceived) > 0);
     if (hasPartialReceived) {
       throw new BadRequestException(
         `Impossible d'annuler: une réception partielle a déjà été effectuée. Utilisez le processus de litige/avoir.`,
@@ -707,12 +472,11 @@ export class PurchaseOrderService {
    * RÉCEPTION D'UN BC
    * ═══════════════════════════════════════════════════════════════════════════════
    * TRANSITION: SENT/CONFIRMED → PARTIAL/RECEIVED
-   * 
+   *
    * ACTIONS:
    * 1. Créer une ReceptionMp
    * 2. Créer les StockMovements (IN)
    * 3. Mettre à jour le stock des MP
-   * 4. Clôturer la Demande source si tous les BC sont reçus
    */
   async receivePurchaseOrder(
     poId: string,
@@ -726,11 +490,6 @@ export class PurchaseOrderService {
         items: {
           include: {
             productMp: true,
-          },
-        },
-        linkedDemand: {
-          include: {
-            purchaseOrders: true,
           },
         },
       },
@@ -785,7 +544,10 @@ export class PurchaseOrderService {
       // 3. Traiter chaque ligne
       for (const line of dto.lines) {
         const item = po.items.find((i) => i.id === line.itemId)!;
-        const newQtyReceived = item.quantityReceived + line.quantityReceived;
+        const currentQtyReceived = Number(item.quantityReceived);
+        const itemQuantity = Number(item.quantity);
+        const itemUnitPrice = Number(item.unitPrice);
+        const newQtyReceived = currentQtyReceived + line.quantityReceived;
 
         // Mettre à jour la ligne du BC
         await tx.purchaseOrderItem.update({
@@ -794,7 +556,7 @@ export class PurchaseOrderService {
         });
 
         // Vérifier si pas totalement reçu
-        if (newQtyReceived < item.quantity) {
+        if (newQtyReceived < itemQuantity) {
           allFullyReceived = false;
         }
 
@@ -805,16 +567,16 @@ export class PurchaseOrderService {
               receptionId: reception.id,
               productMpId: item.productMpId,
               quantity: Math.round(line.quantityReceived),
-              unitCost: Math.round(item.unitPrice * 100), // Convertir DA en centimes
+              unitCost: Math.round(itemUnitPrice * 100), // Convertir DA en centimes
               lotNumber: line.lotNumber,
               expiryDate: line.expiryDate ? new Date(line.expiryDate) : null,
               tvaRate: item.tvaRate,
-              totalHT: Math.round(line.quantityReceived * item.unitPrice * 100),
+              totalHT: Math.round(line.quantityReceived * itemUnitPrice * 100),
               tvaAmount: Math.round(
-                line.quantityReceived * item.unitPrice * (item.tvaRate / 100) * 100,
+                line.quantityReceived * itemUnitPrice * (item.tvaRate / 100) * 100,
               ),
               totalTTC: Math.round(
-                line.quantityReceived * item.unitPrice * (1 + item.tvaRate / 100) * 100,
+                line.quantityReceived * itemUnitPrice * (1 + item.tvaRate / 100) * 100,
               ),
             },
           });
@@ -833,7 +595,7 @@ export class PurchaseOrderService {
               expiryDate: line.expiryDate ? new Date(line.expiryDate) : null,
               supplierId: po.supplierId,
               receptionId: reception.id,
-              unitCost: Math.round(item.unitPrice * 100),
+              unitCost: Math.round(itemUnitPrice * 100),
               isActive: true,
             },
           });
@@ -847,7 +609,7 @@ export class PurchaseOrderService {
               productMpId: item.productMpId,
               lotMpId: lot.id,
               quantity: Math.round(line.quantityReceived),
-              unitCost: Math.round(item.unitPrice * 100),
+              unitCost: Math.round(itemUnitPrice * 100),
               referenceType: 'RECEPTION',
               referenceId: reception.id,
               reference: reception.reference,
@@ -887,30 +649,6 @@ export class PurchaseOrderService {
         },
       });
 
-      // 5. Vérifier si tous les BC de la demande sont reçus
-      let demandClosed = false;
-      
-      // V1: Ne fermer la demande que si le BC est lié à une demande
-      if (po.linkedDemand && po.linkedDemandId) {
-        const allPOsReceived = po.linkedDemand.purchaseOrders.every(
-          (linkedPo: any) =>
-            linkedPo.id === poId
-              ? newStatus === PurchaseOrderStatus.RECEIVED
-              : linkedPo.status === PurchaseOrderStatus.RECEIVED,
-        );
-
-        if (allPOsReceived) {
-          await tx.demandeApprovisionnementMp.update({
-            where: { id: po.linkedDemandId },
-            data: {
-              status: DemandeApproStatus.TRANSFORMEE,
-              receptionId: reception.id,
-            },
-          });
-          demandClosed = true;
-        }
-      }
-
       // P1.2: Audit log pour réception BC
       await tx.auditLog.create({
         data: {
@@ -927,7 +665,6 @@ export class PurchaseOrderService {
             receptionMpReference: reception.reference,
             stockMovementsCreated,
             linesReceived: dto.lines.length,
-            demandClosed,
             statusBefore: po.status,
             statusAfter: newStatus,
           },
@@ -941,18 +678,17 @@ export class PurchaseOrderService {
         receptionMpId: reception.id,
         receptionMpReference: reception.reference,
         stockMovementsCreated,
-        demandClosed,
       };
     });
 
     this.logger.log(
-      `BC ${po.reference} réceptionné: ${result.stockMovementsCreated} mouvements créés, demande clôturée: ${result.demandClosed}`,
+      `BC ${po.reference} réceptionné: ${result.stockMovementsCreated} mouvements créés`,
     );
 
     return {
       ...result,
-      message: result.demandClosed
-        ? `BC ${result.reference} entièrement reçu, demande clôturée`
+      message: result.status === PurchaseOrderStatus.RECEIVED
+        ? `BC ${result.reference} entièrement reçu`
         : `BC ${result.reference} partiellement reçu`,
     };
   }
@@ -967,13 +703,6 @@ export class PurchaseOrderService {
       where: { id: poId },
       include: {
         supplier: true,
-        linkedDemand: {
-          include: {
-            createdBy: {
-              select: { firstName: true, lastName: true },
-            },
-          },
-        },
         items: {
           include: {
             productMp: true,
@@ -1003,26 +732,6 @@ export class PurchaseOrderService {
 
   /**
    * ═══════════════════════════════════════════════════════════════════════════════
-   * LISTE DES BC D'UNE DEMANDE
-   * ═══════════════════════════════════════════════════════════════════════════════
-   */
-  async getByDemandId(demandId: number) {
-    return this.prisma.purchaseOrder.findMany({
-      where: { linkedDemandId: demandId },
-      include: {
-        supplier: true,
-        items: {
-          include: {
-            productMp: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  /**
-   * ═══════════════════════════════════════════════════════════════════════════════
    * LISTE DE TOUS LES BC (avec filtres)
    * ═══════════════════════════════════════════════════════════════════════════════
    */
@@ -1038,7 +747,6 @@ export class PurchaseOrderService {
       },
       include: {
         supplier: true,
-        linkedDemand: true,
         items: {
           include: {
             productMp: {
@@ -1400,13 +1108,13 @@ export class PurchaseOrderService {
         { text: item.productMp.name, style: 'tableCell' },
         { text: item.productMp.unit, style: 'tableCell' },
         { text: item.quantity.toString(), style: 'tableCell', alignment: 'right' },
-        { text: formatAmount(item.unitPrice), style: 'tableCell', alignment: 'right' },
-        { text: formatAmount(item.totalHT), style: 'tableCell', alignment: 'right' },
+        { text: formatAmount(Number(item.unitPrice)), style: 'tableCell', alignment: 'right' },
+        { text: formatAmount(Number(item.totalHT)), style: 'tableCell', alignment: 'right' },
       ]);
     }
 
     // Totaux
-    const totalHT = po.totalHT;
+    const totalHT = Number(po.totalHT);
     const tva = Math.round(totalHT * 0.19);
     const totalTTC = totalHT + tva;
 

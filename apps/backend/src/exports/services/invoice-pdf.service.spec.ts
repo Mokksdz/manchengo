@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { InvoicePdfService } from './invoice-pdf.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { PdfGeneratorService } from './pdf-generator.service';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INVOICE PDF SERVICE TESTS — Fiscal Compliance (DGI Algérien)
@@ -12,9 +14,8 @@ describe('InvoicePdfService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InvoicePdfService,
-        // Mock dependencies as needed
-        { provide: 'PrismaService', useValue: {} },
-        { provide: 'PdfGeneratorService', useValue: { formatAmount: (v: number) => `${v} DA`, generatePdf: jest.fn() } },
+        { provide: PrismaService, useValue: {} },
+        { provide: PdfGeneratorService, useValue: { formatAmount: (v: number) => `${v} DA`, generatePdf: jest.fn() } },
       ],
     }).compile();
 

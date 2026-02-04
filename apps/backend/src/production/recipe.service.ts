@@ -445,7 +445,7 @@ export class RecipeService {
       productMpId: item.productMpId,
       productMp: item.productMp,
       quantityPerBatch: item.quantity,
-      totalQuantity: item.quantity * batchCount,
+      totalQuantity: Number(item.quantity) * batchCount,
       unit: item.unit,
       isMandatory: item.isMandatory,
     }));

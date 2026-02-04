@@ -17,9 +17,9 @@
  * @version 2.0.0 - Industrial Pro
  */
 
-import { Injectable, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { MpCriticite, SupplierGrade, DemandeApproPriority } from '@prisma/client';
+import { MpCriticite, SupplierGrade } from '@prisma/client';
 import { ApproAlertService } from './appro-alert.service';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -101,8 +101,7 @@ export interface ApproDashboard {
     bloquantProduction: number;
   };
   alertesActives: number;
-  demandesEnAttente: number;
-  receptionsAttendues: number;
+  bcEnAttente: number;
 }
 
 /**
@@ -202,14 +201,9 @@ export class ApproService {
       },
     });
 
-    // Compter les demandes en attente
-    const demandesEnAttente = await this.prisma.demandeApprovisionnementMp.count({
-      where: { status: 'ENVOYEE' },
-    });
-
-    // Compter les réceptions attendues (demandes validées non transformées)
-    const receptionsAttendues = await this.prisma.demandeApprovisionnementMp.count({
-      where: { status: 'VALIDEE', receptionId: null },
+    // Compter les BC en attente (DRAFT ou SENT)
+    const bcEnAttente = await this.prisma.purchaseOrder.count({
+      where: { status: { in: ['DRAFT', 'SENT'] } },
     });
 
     return {
@@ -217,8 +211,7 @@ export class ApproService {
       mpCritiquesProduction,
       stockStats,
       alertesActives,
-      demandesEnAttente,
-      receptionsAttendues,
+      bcEnAttente,
     };
   }
 
@@ -826,12 +819,21 @@ export class ApproService {
 
     const blockers: { productMpId: number; name: string; required: number; available: number; shortage: number }[] = [];
 
-    // Vérifier chaque ingrédient
+    // OPTIMISATION: Batch toutes les requêtes stock en une seule (évite N+1)
+    const mpIdsToCheck = recipe.items
+      .filter(item => item.productMpId && item.affectsStock)
+      .map(item => item.productMpId as number);
+
+    // Une seule requête pour tous les stocks
+    const stockMap = mpIdsToCheck.length > 0
+      ? await this.calculateCurrentStocks(mpIdsToCheck)
+      : new Map<number, number>();
+
+    // Vérifier chaque ingrédient avec le cache local
     for (const item of recipe.items) {
       if (!item.productMpId || !item.affectsStock) continue;
 
-      const required = Math.ceil(item.quantity * batchCount);
-      const stockMap = await this.calculateCurrentStocks([item.productMpId]);
+      const required = Math.ceil(Number(item.quantity) * batchCount);
       const available = stockMap.get(item.productMpId) ?? 0;
 
       if (available < required) {
@@ -864,50 +866,6 @@ export class ApproService {
       canStart: blockers.length === 0,
       blockers,
     };
-  }
-
-  /**
-   * Vérifie les alertes à générer pour les MP critiques
-   * @deprecated Utiliser ApproAlertService.scanAndCreateAlerts() à la place
-   */
-  async checkAndCreateAlerts(): Promise<{ created: number }> {
-    const criticalMp = await this.getCriticalMp();
-    let created = 0;
-
-    for (const mp of criticalMp) {
-      // Vérifier si une alerte existe déjà
-      const existingAlert = await this.prisma.alert.findFirst({
-        where: {
-          type: 'LOW_STOCK_MP',
-          entityType: 'PRODUCT_MP',
-          entityId: String(mp.id),
-          status: 'OPEN',
-        },
-      });
-
-      if (!existingAlert) {
-        // Créer une nouvelle alerte
-        await this.prisma.alert.create({
-          data: {
-            type: 'LOW_STOCK_MP',
-            severity: mp.state === StockState.BLOQUANT_PRODUCTION ? 'CRITICAL' : 'WARNING' as const,
-            title: `Stock critique: ${mp.name}`,
-            message: `${mp.name} (${mp.code}) - Stock: ${mp.currentStock} ${mp.unit}. ${mp.state === StockState.BLOQUANT_PRODUCTION ? 'BLOQUE LA PRODUCTION' : 'Réapprovisionnement urgent requis'}`,
-            entityType: 'PRODUCT_MP',
-            entityId: String(mp.id),
-            metadata: {
-              currentStock: mp.currentStock,
-              minStock: mp.minStock,
-              state: mp.state,
-              joursCouverture: mp.joursCouverture,
-            },
-          },
-        });
-        created++;
-      }
-    }
-
-    return { created };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════

@@ -65,6 +65,7 @@ export class ProductionController {
       productPfId: number;
       batchCount: number;
       notes?: string;
+      scheduledDate?: string;
     },
     @CurrentUser() user: { id: string },
   ) {
@@ -218,6 +219,59 @@ export class ProductionController {
     @Query('type') type?: 'MP' | 'PF',
   ) {
     return this.productionService.searchLots(query || '', type);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // PLANIFICATION HEBDOMADAIRE
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  /**
+   * GET /api/production/planning/week
+   * Récupère le planning de production pour une semaine
+   */
+  @Get('planning/week')
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION)
+  async getWeeklyPlan(@Query('startDate') startDate?: string) {
+    const start = startDate ? new Date(startDate) : this.getWeekStart(new Date());
+    return this.productionService.getWeeklyPlan(start);
+  }
+
+  /**
+   * POST /api/production/planning/check-stock
+   * Vérifie la disponibilité du stock pour le planning
+   */
+  @Post('planning/check-stock')
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION)
+  async checkPlanningStock(
+    @Body() dto: { items: Array<{ recipeId: number; batchCount: number }> },
+  ) {
+    return this.productionService.checkPlanningStockAvailability(dto.items || []);
+  }
+
+  /**
+   * PUT /api/production/:id/schedule
+   * Met à jour la date planifiée d'un ordre de production
+   */
+  @Put(':id/schedule')
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION)
+  async updateSchedule(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: { scheduledDate: string | null },
+    @CurrentUser() user: { id: string },
+  ) {
+    return this.productionService.updateScheduledDate(id, dto.scheduledDate, user.id);
+  }
+
+  /**
+   * Helper: Obtenir le début de la semaine (lundi)
+   */
+  private getWeekStart(date: Date): Date {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Lundi = début de semaine
+    d.setDate(diff);
+    return d;
   }
 
   /**

@@ -2,19 +2,14 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  * PURCHASE ORDER CONTROLLER — Endpoints BC (Bons de Commande)
  * ═══════════════════════════════════════════════════════════════════════════════
- * 
- * ENDPOINTS AUTORISÉS (et seulement ceux-là):
- * - POST /appro/demands/:id/generate-bc    → Générer BC depuis Demande validée
+ *
+ * ENDPOINTS:
+ * - POST /appro/purchase-orders/create-direct → Créer BC directement
  * - GET  /appro/purchase-orders/:id        → Détail d'un BC
  * - POST /appro/purchase-orders/:id/send   → Envoyer au fournisseur
  * - POST /appro/purchase-orders/:id/confirm → Confirmer réception fournisseur
  * - POST /appro/purchase-orders/:id/receive → Réceptionner les MP
- * 
- * ❌ INTERDICTION ABSOLUE:
- * - /purchase-orders/create
- * - /purchase-orders/update
- * - /purchase-orders/delete
- * 
+ *
  * RBAC:
  * - ADMIN / APPRO: Toutes les actions
  * - PRODUCTION: Lecture seule
@@ -29,7 +24,6 @@ import {
   Query,
   UseGuards,
   Request,
-  ParseIntPipe,
   HttpCode,
   HttpStatus,
   Res,
@@ -49,8 +43,6 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { PurchaseOrderService } from './purchase-order.service';
 import {
-  GenerateBcDto,
-  GenerateBcResponseDto,
   SendBcDto,
   SendBcResponseDto,
   ReceiveBcDto,
@@ -69,20 +61,11 @@ export class PurchaseOrderController {
 
   /**
    * ═══════════════════════════════════════════════════════════════════════════════
-   * GÉNÉRATION DE BC DEPUIS UNE DEMANDE VALIDÉE
-   * ═══════════════════════════════════════════════════════════════════════════════
-   * POST /appro/demands/:id/generate-bc
-   * 
-   * RÈGLE MÉTIER: Le BC est TOUJOURS généré depuis une Demande APPRO validée
-   * Split automatique si multi-fournisseurs
-   */
-  /**
-   * ═══════════════════════════════════════════════════════════════════════════════
-   * V1: CRÉATION BC DIRECTE (sans Demande)
+   * CRÉATION BC DIRECTE
    * ═══════════════════════════════════════════════════════════════════════════════
    * POST /appro/purchase-orders/create-direct
-   * 
-   * RÈGLE V1: L'APPRO peut créer un BC librement pour répondre aux urgences
+   *
+   * L'APPRO peut créer un BC librement
    */
   @Post('purchase-orders/create-direct')
   @Roles('ADMIN', 'APPRO')
@@ -101,40 +84,6 @@ export class PurchaseOrderController {
     @Request() req: any,
   ) {
     return this.poService.createDirect(dto, req.user.id);
-  }
-
-  @Post('demands/:id/generate-bc')
-  @Roles('ADMIN', 'APPRO')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({
-    summary: 'Générer BC depuis une Demande validée',
-    description: `
-      Génère un ou plusieurs Bons de Commande à partir d'une Demande APPRO validée.
-      
-      **RÈGLES MÉTIER:**
-      - La Demande DOIT être au statut VALIDÉE
-      - Split automatique par fournisseur si multi-fournisseurs
-      - Les quantités sont pré-remplies depuis la Demande
-      - Les prix sont récupérés du dernier achat ou fournis manuellement
-    `,
-  })
-  @ApiParam({ name: 'id', description: 'ID de la Demande APPRO' })
-  @ApiResponse({
-    status: 201,
-    description: 'BC généré(s) avec succès',
-    type: GenerateBcResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Demande non validée ou BC déjà générés',
-  })
-  @ApiResponse({ status: 404, description: 'Demande non trouvée' })
-  async generateFromDemand(
-    @Param('id', ParseIntPipe) demandId: number,
-    @Body() dto: GenerateBcDto,
-    @Request() req: any,
-  ): Promise<GenerateBcResponseDto> {
-    return this.poService.generateFromDemand(demandId, dto, req.user.id);
   }
 
   /**
@@ -285,24 +234,6 @@ export class PurchaseOrderController {
 
   /**
    * ═══════════════════════════════════════════════════════════════════════════════
-   * BC D'UNE DEMANDE
-   * ═══════════════════════════════════════════════════════════════════════════════
-   * GET /appro/demands/:id/purchase-orders
-   */
-  @Get('demands/:id/purchase-orders')
-  @Roles('ADMIN', 'APPRO', 'PRODUCTION')
-  @ApiOperation({
-    summary: 'BC générés pour une Demande',
-    description: 'Liste les BC générés à partir d\'une Demande spécifique',
-  })
-  @ApiParam({ name: 'id', description: 'ID de la Demande APPRO' })
-  @ApiResponse({ status: 200, description: 'Liste des BC de la Demande' })
-  async getByDemandId(@Param('id', ParseIntPipe) demandId: number) {
-    return this.poService.getByDemandId(demandId);
-  }
-
-  /**
-   * ═══════════════════════════════════════════════════════════════════════════════
    * ENVOI D'UN BC AU FOURNISSEUR
    * ═══════════════════════════════════════════════════════════════════════════════
    * POST /appro/purchase-orders/:id/send
@@ -373,12 +304,11 @@ export class PurchaseOrderController {
    * ═══════════════════════════════════════════════════════════════════════════════
    * POST /appro/purchase-orders/:id/receive
    * TRANSITION: SENT/CONFIRMED/PARTIAL → PARTIAL/RECEIVED
-   * 
+   *
    * ACTIONS:
    * - Crée une ReceptionMp
    * - Crée les StockMovements (IN)
    * - Met à jour le stock des MP
-   * - Clôture la Demande source si tous les BC sont reçus
    */
   @Post('purchase-orders/:id/receive')
   @Roles('ADMIN', 'APPRO')
@@ -396,7 +326,6 @@ export class PurchaseOrderController {
       1. Création d'une ReceptionMp
       2. Création des lots MP
       3. Création des StockMovements (IN)
-      4. Clôture de la Demande source si tous les BC sont reçus
     `,
   })
   @ApiParam({ name: 'id', description: 'ID du BC (UUID)' })

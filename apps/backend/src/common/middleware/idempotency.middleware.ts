@@ -13,7 +13,7 @@ import * as crypto from 'crypto';
  * Interface pour les entités vérifiables (P1.1-C)
  */
 interface EntityStatusCheck {
-  entityType: 'DEMANDE' | 'PURCHASE_ORDER';
+  entityType: 'PURCHASE_ORDER';
   entityId: string;
   getCurrentStatus: () => Promise<string | null>;
 }
@@ -32,25 +32,19 @@ interface EntityStatusCheck {
  * 4. Si non → exécute l'action et stocke la réponse
  * 
  * ACTIONS PROTÉGÉES:
- * - POST /appro/demands/:id/generate-bc
+ * - POST /appro/purchase-orders/create-direct
  * - POST /appro/purchase-orders/:id/send
  * - POST /appro/purchase-orders/:id/confirm
  * - POST /appro/purchase-orders/:id/receive
- * - POST /demandes-mp/:id/envoyer
- * - POST /demandes-mp/:id/valider
- * - POST /demandes-mp/:id/rejeter
  * 
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 const CRITICAL_ENDPOINTS = [
-  { method: 'POST', pattern: /\/appro\/demands\/\d+\/generate-bc/ },
+  { method: 'POST', pattern: /\/appro\/purchase-orders\/create-direct/ },
   { method: 'POST', pattern: /\/appro\/purchase-orders\/[\w-]+\/send/ },
   { method: 'POST', pattern: /\/appro\/purchase-orders\/[\w-]+\/confirm/ },
   { method: 'POST', pattern: /\/appro\/purchase-orders\/[\w-]+\/receive/ },
-  { method: 'POST', pattern: /\/demandes-mp\/\d+\/envoyer/ },
-  { method: 'POST', pattern: /\/demandes-mp\/\d+\/valider/ },
-  { method: 'POST', pattern: /\/demandes-mp\/\d+\/rejeter/ },
 ];
 
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000; // 24 heures
@@ -184,14 +178,6 @@ export class IdempotencyMiddleware implements NestMiddleware {
     entityId: string,
   ): Promise<string | null> {
     try {
-      if (entityType === 'DEMANDE') {
-        const demande = await this.prisma.demandeApprovisionnementMp.findUnique({
-          where: { id: parseInt(entityId, 10) },
-          select: { status: true },
-        });
-        return demande?.status || null;
-      }
-
       if (entityType === 'PURCHASE_ORDER') {
         const po = await this.prisma.purchaseOrder.findUnique({
           where: { id: entityId },

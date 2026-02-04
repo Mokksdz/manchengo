@@ -493,7 +493,7 @@ export class StockService {
         for (const consumption of order.consumptions) {
           const stockMp = batchStockMap.get(consumption.productMpId) || 0;
 
-          if (stockMp < consumption.quantityPlanned) {
+          if (stockMp < Number(consumption.quantityPlanned)) {
             throw new BadRequestException(
               `Stock MP insuffisant pour ${consumption.productMp.name}: ` +
               `disponible ${stockMp}, requis ${consumption.quantityPlanned}`,
@@ -501,7 +501,7 @@ export class StockService {
           }
 
           const mpUnitCost = lastCostMap.get(consumption.productMpId) || 0;
-          totalMpCost += mpUnitCost * consumption.quantityPlanned;
+          totalMpCost += mpUnitCost * Number(consumption.quantityPlanned);
         }
 
         // 3. Créer mouvements OUT pour chaque MP consommée
@@ -512,7 +512,7 @@ export class StockService {
               productType: 'MP',
               origin: 'PRODUCTION_OUT',
               productMpId: consumption.productMpId,
-              quantity: consumption.quantityPlanned,
+              quantity: Number(consumption.quantityPlanned),
               referenceType: 'PRODUCTION',
               referenceId: order.id,
               reference: order.reference,

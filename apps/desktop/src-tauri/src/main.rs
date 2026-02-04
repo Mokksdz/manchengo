@@ -11,7 +11,7 @@ use manchengo_database::{Database, DatabaseConfig};
 use manchengo_database::migrations::initialize_database;
 use state::AppState;
 use std::sync::Arc;
-use tracing::{info, Level};
+use tracing::{info, error, Level};
 use tracing_subscriber::FmtSubscriber;
 
 fn main() {
@@ -26,17 +26,39 @@ fn main() {
 
     // Initialize database
     let db_path = get_database_path();
+
+    // Ensure parent directory exists
+    if let Some(parent) = std::path::Path::new(&db_path).parent() {
+        if !parent.exists() {
+            info!("Creating database directory: {}", parent.display());
+            if let Err(e) = std::fs::create_dir_all(parent) {
+                error!("Failed to create database directory: {}", e);
+                eprintln!("Error: Could not create data directory at {}: {}", parent.display(), e);
+                std::process::exit(1);
+            }
+        }
+    }
+
     let db_config = DatabaseConfig {
         path: db_path.clone(),
         ..Default::default()
     };
 
-    let db = Database::open(db_config).expect("Failed to open database");
+    let db = match Database::open(db_config) {
+        Ok(db) => db,
+        Err(e) => {
+            error!("Failed to open database at {}: {}", db_path, e);
+            eprintln!("Error: Could not open database at {}: {}", db_path, e);
+            std::process::exit(1);
+        }
+    };
 
     // Run migrations
-    db.with_connection(|conn| {
-        initialize_database(conn)
-    }).expect("Failed to run migrations");
+    if let Err(e) = db.with_connection(|conn| initialize_database(conn)) {
+        error!("Failed to run database migrations: {}", e);
+        eprintln!("Error: Database migration failed: {}", e);
+        std::process::exit(1);
+    }
 
     info!("Database initialized at: {}", db_path);
 
@@ -71,8 +93,6 @@ fn main() {
 }
 
 fn get_database_path() -> String {
-    // In production, use app data directory
-    // For now, use current directory
     if cfg!(debug_assertions) {
         "manchengo_dev.db".to_string()
     } else {

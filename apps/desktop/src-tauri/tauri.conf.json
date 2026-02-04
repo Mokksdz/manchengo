@@ -10,7 +10,20 @@
   },
 
   "app": {
-    "withGlobalTauri": true
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Manchengo Smart ERP",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true
+      }
+    ]
   },
 
   "bundle": {

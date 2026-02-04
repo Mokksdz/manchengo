@@ -17,6 +17,7 @@ interface CreateProductionOrderDto {
   productPfId: number;
   batchCount: number;
   notes?: string;
+  scheduledDate?: string; // Date ISO planifiée
 }
 
 interface CompleteProductionDto {
@@ -250,6 +251,7 @@ export class ProductionService {
         recipeId: recipe.id,
         batchCount: dto.batchCount,
         targetQuantity,
+        scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : null,
         status: 'PENDING',
         userId,
       },
@@ -296,7 +298,7 @@ export class ProductionService {
     for (const item of order.recipe.items) {
       if (!item.productMpId || !item.affectsStock) continue;
 
-      const requiredQty = Math.ceil(item.quantity * order.batchCount);
+      const requiredQty = Math.ceil(Number(item.quantity) * order.batchCount);
       const preview = await this.lotConsumption.previewFIFO(
         item.productMpId,
         requiredQty,
@@ -460,7 +462,7 @@ export class ProductionService {
 
     // Vérifier la tolérance de perte
     if (order.recipe) {
-      const minAcceptable = order.targetQuantity * (1 - order.recipe.lossTolerance);
+      const minAcceptable = order.targetQuantity * (1 - Number(order.recipe.lossTolerance));
       if (dto.quantityProduced < minAcceptable) {
         // Juste un warning, on ne bloque pas
         this.logger.businessWarn(
@@ -488,7 +490,7 @@ export class ProductionService {
 
     // Calculer le coût de revient (somme des consommations)
     const totalCost = order.consumptions.reduce((sum, c) => {
-      return sum + (c.quantityConsumed * (c.unitCost || 0));
+      return sum + (Number(c.quantityConsumed) * (c.unitCost || 0));
     }, 0);
     const unitCost = dto.quantityProduced > 0 
       ? Math.round(totalCost / dto.quantityProduced) 
@@ -594,7 +596,7 @@ export class ProductionService {
 
           if (!lot) continue;
 
-          const newQty = (lot.quantityRemaining || 0) + consumption.quantityConsumed;
+          const newQty = Number(lot.quantityRemaining || 0) + Number(consumption.quantityConsumed);
 
           await tx.lotMp.update({
             where: { id: consumption.lotMpId },
@@ -616,7 +618,7 @@ export class ProductionService {
               origin: 'PRODUCTION_CANCEL',
               productMpId: consumption.productMpId,
               lotMpId: consumption.lotMpId,
-              quantity: consumption.quantityConsumed,
+              quantity: Number(consumption.quantityConsumed),
               referenceType: 'PRODUCTION',
               referenceId: order.id,
               reference: `ANNUL-${order.reference}`,
@@ -741,7 +743,7 @@ export class ProductionService {
       week: {
         completed: weekStats._count,
         totalProduced: weekStats._sum.quantityProduced || 0,
-        avgYield: Math.round((weekStats._avg.yieldPercentage || 0) * 10) / 10,
+        avgYield: Math.round((Number(weekStats._avg.yieldPercentage) || 0) * 10) / 10,
         lowYieldCount,
       },
       month: {
@@ -820,9 +822,9 @@ export class ProductionService {
       alerts.push({
         id: `yield-${order.id}`,
         type: 'RENDEMENT_FAIBLE',
-        severity: (order.yieldPercentage || 0) < 80 ? 'critical' : 'warning',
+        severity: (Number(order.yieldPercentage) || 0) < 80 ? 'critical' : 'warning',
         title: `Rendement faible: ${order.reference}`,
-        description: `${order.productPf.name} - Rendement ${(order.yieldPercentage || 0).toFixed(1)}% (cible: 100%)`,
+        description: `${order.productPf.name} - Rendement ${(Number(order.yieldPercentage) || 0).toFixed(1)}% (cible: 100%)`,
         link: `/dashboard/production/order/${order.id}`,
         data: { orderId: order.id, yield: order.yieldPercentage },
         createdAt: order.completedAt!,
@@ -1185,7 +1187,7 @@ export class ProductionService {
       productionByDate[dateKey].quantity += order.quantityProduced || 0;
       productionByDate[dateKey].orders += 1;
       if (order.yieldPercentage) {
-        productionByDate[dateKey].yields.push(order.yieldPercentage);
+        productionByDate[dateKey].yields.push(Number(order.yieldPercentage));
       }
 
       if (!productionByProduct[order.productPfId]) {
@@ -1209,7 +1211,7 @@ export class ProductionService {
     // Totals
     const totalProduced = orders.reduce((sum, o) => sum + (o.quantityProduced || 0), 0);
     const avgYield = orders.length > 0
-      ? orders.reduce((sum, o) => sum + (o.yieldPercentage || 0), 0) / orders.length
+      ? orders.reduce((sum, o) => sum + (Number(o.yieldPercentage) || 0), 0) / orders.length
       : 0;
 
     return {
@@ -1516,5 +1518,155 @@ export class ProductionService {
       pdfDoc.on('error', reject);
       pdfDoc.end();
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // PLANIFICATION HEBDOMADAIRE
+  // ═══════════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Obtenir le planning de production pour une semaine
+   */
+  async getWeeklyPlan(startDate: Date) {
+    // Normaliser à minuit
+    const weekStart = new Date(startDate);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    // Récupérer les ordres planifiés pour cette semaine + les non planifiés en PENDING
+    const orders = await this.prisma.productionOrder.findMany({
+      where: {
+        OR: [
+          // Ordres planifiés dans cette semaine
+          { scheduledDate: { gte: weekStart, lt: weekEnd } },
+          // Ordres PENDING non planifiés (pour section "non planifiés")
+          { scheduledDate: null, status: 'PENDING' },
+        ],
+      },
+      include: {
+        productPf: { select: { id: true, code: true, name: true, unit: true } },
+        recipe: { select: { id: true, name: true, outputQuantity: true, batchWeight: true } },
+        user: { select: { firstName: true, lastName: true } },
+      },
+      orderBy: [{ scheduledDate: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    // Construire les 7 jours de la semaine
+    const days: Array<{
+      date: string;
+      dayName: string;
+      dayNumber: number;
+      isToday: boolean;
+      orders: typeof orders;
+    }> = [];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(weekStart);
+      date.setDate(date.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+
+      days.push({
+        date: dateStr,
+        dayName: date.toLocaleDateString('fr-FR', { weekday: 'long' }),
+        dayNumber: date.getDate(),
+        isToday: date.getTime() === today.getTime(),
+        orders: orders.filter(o =>
+          o.scheduledDate && o.scheduledDate.toISOString().split('T')[0] === dateStr
+        ),
+      });
+    }
+
+    // Ordres non planifiés
+    const unscheduled = orders.filter(o => !o.scheduledDate);
+
+    return {
+      weekStart: weekStart.toISOString(),
+      weekEnd: weekEnd.toISOString(),
+      days,
+      unscheduled,
+      stats: {
+        totalPlanned: orders.length - unscheduled.length,
+        totalUnscheduled: unscheduled.length,
+        pending: orders.filter(o => o.status === 'PENDING').length,
+        inProgress: orders.filter(o => o.status === 'IN_PROGRESS').length,
+        completed: orders.filter(o => o.status === 'COMPLETED').length,
+      },
+    };
+  }
+
+  /**
+   * Mettre à jour la date planifiée d'un ordre de production
+   */
+  async updateScheduledDate(id: number, scheduledDate: string | null, userId: string) {
+    const order = await this.findById(id);
+
+    // Seuls les ordres PENDING peuvent être replanifiés
+    if (order.status !== 'PENDING') {
+      throw new BadRequestException(
+        `Seuls les ordres en attente peuvent être replanifiés (statut actuel: ${order.status})`
+      );
+    }
+
+    const updated = await this.prisma.productionOrder.update({
+      where: { id },
+      data: {
+        scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
+      },
+      include: {
+        productPf: { select: { id: true, code: true, name: true, unit: true } },
+        recipe: { select: { id: true, name: true, outputQuantity: true } },
+      },
+    });
+
+    this.logger.log(
+      `Ordre ${order.reference} replanifié: ${scheduledDate || 'non planifié'}`,
+      'ProductionService',
+    );
+
+    return updated;
+  }
+
+  /**
+   * Vérifier la disponibilité du stock pour le planning
+   */
+  async checkPlanningStockAvailability(items: Array<{ recipeId: number; batchCount: number }>) {
+    const results = await Promise.all(
+      items.map(async (item) => {
+        try {
+          const check = await this.recipeService.checkStockAvailability(item.recipeId, item.batchCount);
+          return {
+            recipeId: item.recipeId,
+            batchCount: item.batchCount,
+            canProduce: check.canProduce,
+            status: check.canProduce ? 'available' : 'shortage',
+            shortages: check.availability
+              .filter((a: any) => !a.isAvailable && a.isMandatory)
+              .map((a: any) => ({
+                productMpId: a.productMp.id,
+                code: a.productMp.code,
+                name: a.productMp.name,
+                required: a.required,
+                available: a.available,
+                shortage: a.shortage,
+              })),
+          };
+        } catch (error) {
+          return {
+            recipeId: item.recipeId,
+            batchCount: item.batchCount,
+            canProduce: false,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Erreur inconnue',
+          };
+        }
+      })
+    );
+
+    return results;
   }
 }

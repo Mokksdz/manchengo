@@ -1,0 +1,297 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# GitHub Actions - Manchengo Smart ERP Desktop Release
+# ═══════════════════════════════════════════════════════════════════════════════
+# Builds native desktop installers for Windows (.msi), macOS (.dmg), Linux (.AppImage)
+# Triggered on version tags (v*) or manual dispatch
+
+name: Desktop Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+env:
+  TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+jobs:
+  # ─── Build Frontend UI ──────────────────────────────────────────────────
+  build-ui:
+    name: Build Frontend UI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Build static frontend for Tauri
+        working-directory: apps/web
+        run: npx next build
+        env:
+          NEXT_OUTPUT: export
+          NEXT_PUBLIC_API_URL: ''
+          NEXT_PUBLIC_DESKTOP_MODE: 'true'
+
+      - name: Export static files
+        working-directory: apps/web
+        run: |
+          # If output is 'export', files are in 'out/'
+          # If output is 'standalone', we need to copy from .next/static
+          if [ -d "out" ]; then
+            echo "Using static export output"
+          else
+            echo "Creating static export from standalone build"
+            mkdir -p out
+            cp -r .next/static out/_next/static 2>/dev/null || true
+            cp -r public/* out/ 2>/dev/null || true
+            # Create minimal index.html that redirects to the app
+            cat > out/index.html << 'HTMLEOF'
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manchengo Smart ERP</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #0f172a; color: #e2e8f0; }
+    .loader { text-align: center; }
+    .loader h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .loader p { color: #94a3b8; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #334155; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 1rem auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="loader">
+    <h1>Manchengo Smart ERP</h1>
+    <div class="spinner"></div>
+    <p>Chargement...</p>
+  </div>
+</body>
+</html>
+HTMLEOF
+          fi
+
+      - name: Upload UI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-ui
+          path: apps/web/out/
+          retention-days: 1
+
+  # ─── Build Desktop Apps ─────────────────────────────────────────────────
+  build-desktop:
+    name: Build Desktop (${{ matrix.platform }})
+    needs: build-ui
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundle: msi
+            label: Windows
+
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            bundle: dmg
+            label: macOS ARM
+
+          - platform: macos-13
+            target: x86_64-apple-darwin
+            bundle: dmg
+            label: macOS Intel
+
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundle: appimage
+            label: Linux
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            javascriptcoregtk-4.1 \
+            libssl-dev
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: '.-> target'
+          key: ${{ matrix.target }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2.0" --locked
+
+      - name: Download UI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-ui
+          path: apps/desktop/src-tauri/ui/
+
+      - name: Verify UI files
+        run: ls -la apps/desktop/src-tauri/ui/
+
+      - name: Update version in tauri.conf.json
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          cd apps/desktop/src-tauri
+          # Update version using sed
+          sed -i.bak 's/"version": "[^"]*"/"version": "${{ github.event.inputs.version }}"/' tauri.conf.json
+          rm -f tauri.conf.json.bak
+          cat tauri.conf.json
+
+      - name: Build Tauri app
+        working-directory: apps/desktop/src-tauri
+        run: cargo tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundle }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+
+      - name: List build artifacts
+        shell: bash
+        run: |
+          echo "=== Build output ==="
+          find apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle -type f \( -name "*.msi" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.app" \) 2>/dev/null || echo "No artifacts found in bundle/"
+
+      - name: Upload Windows installer
+        if: matrix.bundle == 'msi'
+        uses: actions/upload-artifact@v4
+        with:
+          name: manchengo-erp-windows-${{ matrix.target }}
+          path: apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
+
+      - name: Upload macOS installer
+        if: matrix.bundle == 'dmg'
+        uses: actions/upload-artifact@v4
+        with:
+          name: manchengo-erp-macos-${{ matrix.target }}
+          path: apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+
+      - name: Upload Linux installer
+        if: matrix.bundle == 'appimage'
+        uses: actions/upload-artifact@v4
+        with:
+          name: manchengo-erp-linux-${{ matrix.target }}
+          path: apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
+
+  # ─── Create GitHub Release ──────────────────────────────────────────────
+  create-release:
+    name: Create Release
+    needs: build-desktop
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: false
+
+      - name: List all artifacts
+        run: find artifacts/ -type f | sort
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "tag=v${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "prerelease=${{ github.event.inputs.prerelease }}" >> $GITHUB_OUTPUT
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Manchengo Smart ERP ${{ steps.version.outputs.version }}
+          prerelease: ${{ steps.version.outputs.prerelease }}
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.msi
+            artifacts/**/*.dmg
+            artifacts/**/*.AppImage
+          body: |
+            ## Manchengo Smart ERP ${{ steps.version.outputs.version }}
+
+            ### Installateurs disponibles
+
+            | Plateforme | Fichier | Architecture |
+            |-----------|---------|-------------|
+            | Windows | `.msi` | x86_64 |
+            | macOS | `.dmg` | ARM (Apple Silicon) |
+            | macOS | `.dmg` | Intel x86_64 |
+            | Linux | `.AppImage` | x86_64 |
+
+            ### Installation
+
+            **Windows :**
+            1. Telecharger le fichier `.msi`
+            2. Double-cliquer pour lancer l'installation
+            3. Suivre les instructions de l'assistant
+
+            **macOS :**
+            1. Telecharger le fichier `.dmg`
+            2. Ouvrir le fichier et glisser l'application dans Applications
+            3. Au premier lancement: Clic droit > Ouvrir (autorisation Gatekeeper)
+
+            **Linux :**
+            1. Telecharger le fichier `.AppImage`
+            2. `chmod +x Manchengo*.AppImage`
+            3. `./Manchengo*.AppImage`
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

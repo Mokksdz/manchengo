@@ -299,7 +299,6 @@ export class DashboardService {
       productionStats,
       mpAlerts,
       recettesNonConfigurees,
-      demandesStats,
     ] = await Promise.all([
       // Ordres aujourd'hui
       this.prisma.productionOrder.count({
@@ -326,8 +325,6 @@ export class DashboardService {
       this.getMpAlerts(),
       // Recettes non configurées
       this.getRecettesNonConfigurees(),
-      // Stats demandes MP
-      this.getDemandesStats(userId),
     ]);
 
     return {
@@ -342,8 +339,6 @@ export class DashboardService {
       approvisionnement: {
         mpSousSeuil: mpAlerts.sousSeuil,
         mpCritiques: mpAlerts.critiques,
-        demandesEnvoyees: demandesStats.envoyees,
-        demandesEnAttente: demandesStats.brouillons,
       },
       alertes: {
         recettesNonConfigurees,
@@ -449,19 +444,4 @@ export class DashboardService {
     });
   }
 
-  private async getDemandesStats(userId: string) {
-    const [brouillons, envoyees, validees] = await Promise.all([
-      this.prisma.demandeApprovisionnementMp.count({
-        where: { createdById: userId, status: 'BROUILLON' },
-      }),
-      this.prisma.demandeApprovisionnementMp.count({
-        where: { createdById: userId, status: 'ENVOYEE' },
-      }),
-      this.prisma.demandeApprovisionnementMp.count({
-        where: { createdById: userId, status: 'VALIDEE' },
-      }),
-    ]);
-
-    return { brouillons, envoyees, validees };
-  }
 }
