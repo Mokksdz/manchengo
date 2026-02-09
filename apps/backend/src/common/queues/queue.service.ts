@@ -132,33 +132,53 @@ export class QueueService implements OnModuleDestroy {
       host: redisHost,
       port: redisPort,
       password: redisPassword || undefined,
+      maxRetriesPerRequest: 3,
+      retryStrategy: (times: number) => {
+        if (times > 3) return null;
+        return Math.min(times * 500, 3000);
+      },
     };
 
-    // Créer les queues
-    for (const queueName of Object.values(QueueName)) {
-      const queue = new Queue(queueName, {
-        connection,
-        defaultJobOptions: this.getDefaultJobOptions(queueName),
-      });
+    try {
+      // Test Redis connection first
+      const IORedis = require('ioredis');
+      const testConn = new IORedis({ ...connection, lazyConnect: true, connectTimeout: 5000 });
+      await testConn.connect();
+      await testConn.ping();
+      await testConn.quit();
 
-      const queueEvents = new QueueEvents(queueName, { connection });
+      // Créer les queues
+      for (const queueName of Object.values(QueueName)) {
+        const queue = new Queue(queueName, {
+          connection,
+          defaultJobOptions: this.getDefaultJobOptions(queueName),
+        });
 
-      // Event listeners pour monitoring
-      queueEvents.on('completed', ({ jobId }) => {
-        this.logger.debug(`Job ${jobId} completed in queue ${queueName}`, 'QueueService');
-      });
+        const queueEvents = new QueueEvents(queueName, { connection });
 
-      queueEvents.on('failed', ({ jobId, failedReason }) => {
-        this.logger.error(`Job ${jobId} failed in queue ${queueName}: ${failedReason}`, undefined, 'QueueService');
-      });
+        // Event listeners pour monitoring
+        queueEvents.on('completed', ({ jobId }) => {
+          this.logger.debug(`Job ${jobId} completed in queue ${queueName}`, 'QueueService');
+        });
 
-      this.queues.set(queueName, queue);
-      this.queueEvents.set(queueName, queueEvents);
+        queueEvents.on('failed', ({ jobId, failedReason }) => {
+          this.logger.error(`Job ${jobId} failed in queue ${queueName}: ${failedReason}`, undefined, 'QueueService');
+        });
 
-      this.logger.info(`Queue "${queueName}" initialized`, 'QueueService');
+        this.queues.set(queueName, queue);
+        this.queueEvents.set(queueName, queueEvents);
+
+        this.logger.info(`Queue "${queueName}" initialized`, 'QueueService');
+      }
+
+      this.isInitialized = true;
+    } catch (error) {
+      this.logger.warn(
+        `Redis not available, BullMQ queues disabled: ${error instanceof Error ? error.message : 'Connection failed'}`,
+        'QueueService',
+      );
+      this.isInitialized = false;
     }
-
-    this.isInitialized = true;
   }
 
   /**
@@ -322,7 +342,8 @@ export class QueueService implements OnModuleDestroy {
   ): Promise<Job<T>> {
     const queue = this.queues.get(queueName);
     if (!queue) {
-      throw new Error(`Queue "${queueName}" not found`);
+      this.logger.warn(`Queue "${queueName}" not available (Redis disabled), job skipped`, 'QueueService');
+      return { id: 'skipped' } as Job<T>;
     }
 
     const jobOptions: JobsOptions = {

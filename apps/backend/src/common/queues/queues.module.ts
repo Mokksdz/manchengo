@@ -52,8 +52,15 @@ export class QueuesModule implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.logger.info('Initializing BullMQ queues...', 'QueuesModule');
-    await this.queueService.initialize();
-    this.logger.info('BullMQ queues initialized successfully', 'QueuesModule');
+    try {
+      await this.queueService.initialize();
+      this.logger.info('BullMQ queues initialized successfully', 'QueuesModule');
+    } catch (error) {
+      this.logger.warn(
+        `BullMQ queues disabled (Redis unavailable): ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'QueuesModule',
+      );
+    }
   }
 
   async onModuleDestroy() {
