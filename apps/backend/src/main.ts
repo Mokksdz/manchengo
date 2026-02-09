@@ -215,7 +215,7 @@ Les tokens sont aussi envoyés via cookies httpOnly.
   });
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   
   logger.info(`Manchengo API running on http://localhost:${port}`, 'Bootstrap');
   logger.info(`Swagger docs at http://localhost:${port}/docs`, 'Bootstrap');
