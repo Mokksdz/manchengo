@@ -6,8 +6,8 @@
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-COPY prisma ./prisma/
+COPY apps/backend/package.json apps/backend/package-lock.json ./
+COPY apps/backend/prisma ./prisma/
 RUN npm ci --ignore-scripts && npx prisma generate
 
 # Stage 2: Build
@@ -15,7 +15,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
-COPY . .
+COPY apps/backend/ .
 RUN npm run build
 
 # Stage 3: Production
