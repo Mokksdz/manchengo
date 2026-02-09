@@ -46,4 +46,4 @@ USER manchengo
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/src/main"]
