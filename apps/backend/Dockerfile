@@ -3,6 +3,7 @@
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
+RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY apps/backend/package.json apps/backend/package-lock.json ./
 COPY apps/backend/prisma ./prisma/
