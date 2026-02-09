@@ -21,5 +21,6 @@
     "paths": {
       "@/*": ["src/*"]
     }
-  }
+  },
+  "exclude": ["node_modules", "dist", "test", "tests", "**/*.spec.ts", "**/*.e2e-spec.ts"]
 }
