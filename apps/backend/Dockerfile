@@ -46,4 +46,4 @@ USER manchengo
 
 EXPOSE 3000
 
-CMD ["node", "dist/src/main"]
+CMD ["sh", "-c", "echo '=== Starting app ===' && ls -la dist/src/main.js 2>&1 && echo '=== ENV CHECK ===' && echo PORT=$PORT NODE_ENV=$NODE_ENV && echo '=== Launching node ===' && node dist/src/main"]
