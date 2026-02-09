@@ -1,0 +1,4 @@
+-- Manchengo ERP - Sample Products Migration
+-- Version: 3
+-- Description: No sample data — client will create their own products
+-- Note: This migration is intentionally empty for client demo

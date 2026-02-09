@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
 // Redirection par rôle après connexion
@@ -23,7 +22,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
   const { login, user, isAuthenticated, isLoading: authLoading } = useAuth();
 
   // Redirect if already authenticated - use window.location for reliable redirect
@@ -54,10 +52,14 @@ export default function LoginPage() {
 
     try {
       const loggedUser = await login(email, password);
-      // Use window.location for reliable redirect after login (cookie needs full page reload)
-      window.location.href = getDefaultRoute(loggedUser.role);
+      if (loggedUser?.role) {
+        window.location.href = getDefaultRoute(loggedUser.role);
+      } else {
+        window.location.href = '/dashboard';
+      }
     } catch (err: unknown) {
-      setError((err as Error).message || 'Erreur de connexion');
+      const message = err instanceof Error ? err.message : 'Erreur de connexion';
+      setError(message);
       setIsLoading(false);
     }
   };

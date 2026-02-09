@@ -122,3 +122,7 @@ INSERT OR IGNORE INTO warehouses (id, code, name, is_default) VALUES
 
 INSERT OR IGNORE INTO users (id, username, password_hash, full_name, role) VALUES
     ('user-admin', 'admin', '$argon2id$v=19$m=65536,t=3,p=4$DISABLED_CHANGE_VIA_APP$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', 'Administrateur', 'ADMIN');
+
+-- ============================================================================
+-- NO SAMPLE DATA — Client will create their own MP and PF
+-- ============================================================================

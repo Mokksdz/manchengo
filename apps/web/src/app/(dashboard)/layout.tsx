@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
@@ -32,11 +32,10 @@ import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
-import { Toaster } from 'sonner';
 
 const CommandPalette = dynamic(
   () => import('@/components/ui/command-palette').then(mod => ({ default: mod.CommandPalette })),
-  { loading: () => <div className="animate-pulse p-8">Chargement...</div> }
+  { ssr: false, loading: () => null }
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -80,7 +79,6 @@ const navSections: NavSection[] = [
     items: [
       { name: 'Dashboard', href: '/dashboard/production', icon: LayoutDashboard, roles: ['ADMIN', 'PRODUCTION'] },
       { name: 'Recettes', href: '/dashboard/production/recettes', icon: BookOpen, roles: ['ADMIN', 'PRODUCTION'] },
-      { name: 'Demandes MP', href: '/dashboard/demandes-mp', icon: ShoppingCart, roles: ['ADMIN', 'PRODUCTION'] },
     ],
   },
   {
@@ -100,7 +98,6 @@ const navSections: NavSection[] = [
     roles: ['ADMIN', 'APPRO'],
     items: [
       { name: 'Cockpit', href: '/dashboard/appro', icon: LayoutDashboard, roles: ['ADMIN', 'APPRO'] },
-      { name: 'Demandes', href: '/dashboard/appro/demandes', icon: ShoppingCart, roles: ['ADMIN', 'APPRO'] },
       { name: 'Bons de Commande', href: '/dashboard/appro/bons', icon: FileText, roles: ['ADMIN', 'APPRO'] },
       { name: 'Fournisseurs', href: '/dashboard/appro/fournisseurs', icon: Truck, roles: ['ADMIN', 'APPRO'] },
     ],
@@ -179,7 +176,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F5F5F7]">
+      <div className="min-h-screen flex items-center justify-center silicon-shell">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-[3px] border-[#E5E5EA] border-t-[#1D1D1F] rounded-full animate-spin" />
           <p className="text-[#8E8E93] text-[13px]">Chargement...</p>
@@ -189,16 +186,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7]">
+    <div className="silicon-shell">
       <OfflineBanner />
 
       {/* Mobile Header — Glassmorphism */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-12 flex items-center px-4" style={{
-        background: 'rgba(255, 255, 255, 0.72)',
-        backdropFilter: 'blur(40px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-        borderBottom: '0.5px solid rgba(0, 0, 0, 0.06)',
-      }}>
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 h-12 flex items-center px-4 silicon-mobile-header">
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label={isMobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
@@ -206,7 +198,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         >
           {isMobileMenuOpen ? <X className="w-5 h-5 text-[#1D1D1F]" /> : <Menu className="w-5 h-5 text-[#1D1D1F]" />}
         </button>
-        <span className="ml-3 font-semibold text-[#1D1D1F] text-[15px] tracking-[-0.01em]">Manchengo</span>
+        <span className="ml-3 font-display font-semibold text-[#1D1D1F] text-[15px] tracking-[-0.01em]">Manchengo</span>
       </header>
 
       {/* Mobile overlay */}
@@ -222,17 +214,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         role="navigation"
         aria-label="Navigation principale"
         className={cn(
-          'fixed inset-y-0 left-0 w-[264px] flex flex-col z-50 transition-transform duration-300 ease-out',
+          'fixed inset-y-0 left-0 w-[264px] flex flex-col z-50 transition-transform duration-300 ease-out silicon-sidebar',
           'lg:translate-x-0',
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
-        style={{
-          background: 'rgba(255, 255, 255, 0.65)',
-          backdropFilter: 'blur(60px) saturate(200%)',
-          WebkitBackdropFilter: 'blur(60px) saturate(200%)',
-          borderRight: '0.5px solid rgba(0, 0, 0, 0.06)',
-          boxShadow: '1px 0 40px rgba(0, 0, 0, 0.03)',
-        }}
       >
         {/* ─── Logo ─── */}
         <div className="h-[60px] flex items-center px-5 flex-shrink-0">
@@ -244,7 +229,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
               <span className="text-white font-bold text-[14px] relative z-10">M</span>
             </div>
             <div>
-              <p className="font-semibold text-[15px] text-[#1D1D1F] leading-tight tracking-[-0.01em]">Manchengo</p>
+              <p className="font-display font-semibold text-[15px] text-[#1D1D1F] leading-tight tracking-[-0.01em]">Manchengo</p>
               <p className="text-[10px] text-[#AEAEB2] uppercase tracking-[0.1em] leading-tight font-medium">Smart ERP</p>
             </div>
           </div>
@@ -257,11 +242,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         <div className="px-3 pt-3 pb-1">
           <button
             onClick={() => setShowCommandPalette(true)}
-            className="w-full flex items-center gap-2.5 px-3 py-[8px] rounded-[10px] text-[13px] text-[#AEAEB2] transition-all duration-200 hover:bg-black/[0.03]"
-            style={{
-              background: 'rgba(0, 0, 0, 0.02)',
-              border: '0.5px solid rgba(0, 0, 0, 0.04)',
-            }}
+            className="w-full flex items-center gap-2.5 px-3 py-[8px] rounded-[10px] text-[13px] text-[#AEAEB2] transition-all duration-200 hover:bg-black/[0.03] silicon-panel"
           >
             <Search className="w-[14px] h-[14px] text-[#C7C7CC]" />
             <span className="flex-1 text-left tracking-[-0.005em]">Rechercher...</span>
@@ -395,33 +376,18 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main id="main-content" role="main" aria-label="Contenu principal" className="lg:pl-[264px]">
+      <main id="main-content" role="main" aria-label="Contenu principal" className="silicon-main">
         <div className="min-h-screen">
-          <div className="pt-12 lg:pt-0 p-5 lg:p-8">{children}</div>
+          <div className="silicon-content">{children}</div>
         </div>
       </main>
 
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: 'rgba(255, 255, 255, 0.85)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '0.5px solid rgba(255, 255, 255, 0.8)',
-            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.02)',
-            borderRadius: '16px',
-          },
-        }}
-        richColors
-        closeButton
-        duration={4000}
-      />
-
-      <CommandPalette
-        open={showCommandPalette}
-        onClose={() => setShowCommandPalette(false)}
-      />
+      {showCommandPalette && (
+        <CommandPalette
+          open={showCommandPalette}
+          onClose={() => setShowCommandPalette(false)}
+        />
+      )}
     </div>
   );
 }
