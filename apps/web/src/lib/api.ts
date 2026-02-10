@@ -7,11 +7,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const API_BASE = (() => {
-  const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_API_URL) {
-    console.error('[MANCHENGO] NEXT_PUBLIC_API_URL is not set in production! API calls will fail.');
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
   }
-  return url;
+  // In browser production: use relative /api path (works with Vercel rewrites)
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    return '/api';
+  }
+  // Server-side or development: use localhost
+  return 'http://localhost:3000/api';
 })();
 
 /**

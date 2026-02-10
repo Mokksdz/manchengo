@@ -1,9 +1,9 @@
 # Manchengo Smart ERP - Backend Dockerfile
-# Simplified for Railway deployment
+# For Railway deployment (context = repo root)
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ openssl
 WORKDIR /app
 COPY apps/backend/package.json apps/backend/package-lock.json ./
 COPY apps/backend/prisma ./prisma/
@@ -19,6 +19,7 @@ RUN npm run build
 
 # Stage 3: Production
 FROM node:20-alpine
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 ENV NODE_ENV=production
