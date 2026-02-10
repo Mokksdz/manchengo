@@ -43,7 +43,7 @@ interface ReceptionModalProps {
   isAdmin: boolean;
 }
 
-export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, onSuccess, suppliers, products, onSupplierCreated, isAdmin }: ReceptionModalProps) {
+export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, onSuccess, suppliers, products, onSupplierCreated, isAdmin: _isAdmin }: ReceptionModalProps) {
   const [supplierId, setSupplierId] = useState<number | ''>('');
   const [blNumber, setBlNumber] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -104,13 +104,12 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
   }, [isOpen, products]);
 
   const addLine = () => {
-    if (products.length === 0) return;
-    const firstProduct = products[0];
+    const firstProduct = localProducts[0];
     setLines([...lines, {
       id: crypto.randomUUID(),
-      productMpId: firstProduct.productId || firstProduct.id || 0,
-      productName: firstProduct.name,
-      productUnit: firstProduct.unit,
+      productMpId: firstProduct?.productId || firstProduct?.id || 0,
+      productName: firstProduct?.name || '',
+      productUnit: firstProduct?.unit || 'kg',
       quantity: 1,
       unitCost: 0,
       tvaRate: 19,
@@ -140,8 +139,8 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
     setLines(lines.filter(line => line.id !== id));
   };
 
-  const canSubmit = supplierId !== '' && lines.length > 0 && 
-    lines.every(l => l.quantity > 0 && l.unitCost > 0);
+  const canSubmit = supplierId !== '' && lines.length > 0 &&
+    lines.every(l => l.productMpId > 0 && l.quantity > 0 && l.unitCost > 0);
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -187,8 +186,8 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="reception-modal-title">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-white rounded-[16px] shadow-apple-elevated w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5E5] bg-white">
+      <div className="relative glass-card rounded-[18px] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/70 bg-white/70 backdrop-blur-[18px]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
               <Truck className="w-5 h-5 text-white" />
@@ -227,16 +226,14 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
                     <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
                   ))}
                 </select>
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => setShowSupplierModal(true)}
-                    className="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
-                    title="Créer un fournisseur"
-                  >
-                    <Plus className="w-5 h-5" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setShowSupplierModal(true)}
+                  className="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
+                  title="Nouveau fournisseur"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
               </div>
             </div>
             <div>
@@ -265,15 +262,27 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-medium text-[#1D1D1F]">Lignes de réception</h3>
-              <button
-                type="button"
-                onClick={addLine}
-                disabled={localProducts.length === 0}
-                className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200 disabled:opacity-50"
-              >
-                <Plus className="w-4 h-4" />
-                Ajouter ligne
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingLineId(null);
+                    setShowCreateMpModal(true);
+                  }}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-sm hover:bg-emerald-200"
+                >
+                  <Plus className="w-4 h-4" />
+                  Nouveau produit MP
+                </button>
+                <button
+                  type="button"
+                  onClick={addLine}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm hover:bg-blue-200"
+                >
+                  <Plus className="w-4 h-4" />
+                  Ajouter ligne
+                </button>
+              </div>
             </div>
 
             {lines.length === 0 ? (
