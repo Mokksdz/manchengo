@@ -61,7 +61,7 @@ export const queryKeys = {
   // Appro
   approDashboard: ['appro', 'dashboard'] as const,
   approStockMp: (params?: { state?: string; criticite?: string; supplierId?: number }) =>
-    ['appro', 'stock-mp', params] as const,
+    ['appro', 'stock-mp', params?.state, params?.criticite, params?.supplierId] as const,
   approCriticalMp: ['appro', 'critical-mp'] as const,
   approSuggestions: ['appro', 'suggestions'] as const,
   approSupplierPerformance: ['appro', 'supplier-performance'] as const,
@@ -237,12 +237,13 @@ export function useApproSuggestions() {
   });
 }
 
-export function useApproAlertCounts() {
+export function useApproAlertCounts(enabled = true) {
   return useQuery({
     queryKey: queryKeys.approAlertCounts,
     queryFn: () => appro.getAlertCounts(),
     ...defaultQueryOptions,
-    refetchInterval: POLL_INTERVALS.ALERT_COUNTS,
+    refetchInterval: enabled ? POLL_INTERVALS.ALERT_COUNTS : false,
+    enabled,
   });
 }
 

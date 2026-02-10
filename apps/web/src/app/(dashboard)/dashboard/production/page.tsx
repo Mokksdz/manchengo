@@ -3,9 +3,9 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { authFetch } from '@/lib/api';
+import { toast } from 'sonner';
 import { Factory, Clock, Package, Search, Zap, Calendar, RefreshCw, Activity, BarChart3 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
 import {
   NewProductModal,
@@ -179,6 +179,7 @@ export default function ProductionPage() {
   // Production Wizard (extracted to ProductionWizardModal)
   const [showWizard, setShowWizard] = useState(false);
   const [wizardInitialProduct, setWizardInitialProduct] = useState<ProductPf | null>(null);
+  const [wizardInitialDate, setWizardInitialDate] = useState<string | null>(null);
 
   // ═══════════════════════════════════════════════════════════════════════════════
   // DATA LOADING
@@ -253,12 +254,15 @@ export default function ProductionPage() {
         authFetch('/production/dashboard/calendar', { credentials: 'include' }),
       ]);
       if (kpisRes.ok) setKpis(await kpisRes.json());
+      else toast.error('Erreur chargement KPIs production');
       if (alertsRes.ok) setAlertsData(await alertsRes.json());
+      else toast.error('Erreur chargement alertes');
       if (stockPfRes.ok) setStockPf(await stockPfRes.json());
+      else toast.error('Erreur chargement stock produits finis');
       if (calendarRes.ok) {
         const data = await calendarRes.json();
         setCalendarData(data.days || []);
-      }
+      } else toast.error('Erreur chargement calendrier');
     } catch (error: unknown) {
       console.error('Failed to load dashboard data:', (error as Error)?.message || error);
     }
@@ -298,10 +302,11 @@ export default function ProductionPage() {
   // ERP Premium: Charger le responsable Appro (lecture seule)
   const loadApproManager = useCallback(async () => {
     try {
-      const res = await authFetch('/users?role=APPRO_MANAGER', { credentials: 'include' });
+      const res = await authFetch('/admin/users?role=APPRO', { credentials: 'include' });
       if (res.ok) {
-        const users = await res.json();
-        if (users && users.length > 0) {
+        const data = await res.json();
+        const users = data.users || [];
+        if (users.length > 0) {
           const manager = users[0];
           setApproManager({ 
             id: manager.id, 
@@ -382,8 +387,15 @@ export default function ProductionPage() {
 
   // Product creation is handled by NewProductModal component
 
-  const openWizard = (product?: ProductPf) => {
+  const openWizard = (product?: ProductPf, date?: string | null) => {
     setWizardInitialProduct(product || null);
+    setWizardInitialDate(date || null);
+    setShowWizard(true);
+  };
+
+  const openWizardForDate = (date: string | null) => {
+    setWizardInitialProduct(null);
+    setWizardInitialDate(date);
     setShowWizard(true);
   };
 
@@ -541,7 +553,14 @@ export default function ProductionPage() {
         )}
 
         {/* TAB: CALENDAR (extracted component) */}
-        {mainTab === 'calendar' && <div role="tabpanel" id="panel-calendar" aria-labelledby="tab-calendar"><ProductionCalendarTab calendarData={calendarData} /></div>}
+        {mainTab === 'calendar' && (
+          <div role="tabpanel" id="panel-calendar" aria-labelledby="tab-calendar">
+            <ProductionCalendarTab
+              products={products}
+              onOpenWizard={openWizardForDate}
+            />
+          </div>
+        )}
 
         {/* TAB: TRACEABILITY (extracted component) */}
         {mainTab === 'traceability' && (
@@ -578,7 +597,8 @@ export default function ProductionPage() {
         onClose={() => setShowWizard(false)}
         products={products}
         initialProduct={wizardInitialProduct}
-        onSuccess={loadOrders}
+        initialDate={wizardInitialDate}
+        onSuccess={() => { loadOrders(); loadDashboardData(); }}
       />
     </div>
   );

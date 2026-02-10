@@ -11,7 +11,7 @@ interface ClientsTableProps {
   clients: Client[];
   isLoading: boolean;
   onEdit: (client: Client) => void;
-  onDelete: (client: Client) => void;
+  onDelete?: (client: Client) => void;
   onHistory: (client: Client) => void;
 }
 
@@ -128,13 +128,15 @@ export function ClientsTable({
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => onDelete(client)}
-                      className="p-2 rounded-xl text-[#86868B] hover:text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-all"
-                      title="Supprimer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {onDelete && (
+                      <button
+                        onClick={() => onDelete(client)}
+                        className="p-2 rounded-xl text-[#86868B] hover:text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-all"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

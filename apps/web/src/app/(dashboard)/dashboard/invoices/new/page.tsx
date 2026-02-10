@@ -101,7 +101,7 @@ function CreateInvoiceSkeleton() {
 // SUCCESS SCREEN
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function SuccessScreen({ reference, invoiceId, onViewInvoice, onCreateAnother }: {
+function SuccessScreen({ reference, invoiceId: _invoiceId, onViewInvoice, onCreateAnother }: {
   reference: string;
   invoiceId: number;
   onViewInvoice: () => void;
@@ -242,6 +242,11 @@ export default function CreateInvoicePage() {
     e.preventDefault();
     if (!selectedClient || lines.length === 0) {
       setError('Sélectionnez un client et ajoutez au moins une ligne');
+      return;
+    }
+    const invalidLine = lines.find(l => l.quantity <= 0 || l.unitPriceHt <= 0);
+    if (invalidLine) {
+      setError('Chaque ligne doit avoir une quantité > 0 et un prix unitaire HT > 0');
       return;
     }
     setSaving(true);

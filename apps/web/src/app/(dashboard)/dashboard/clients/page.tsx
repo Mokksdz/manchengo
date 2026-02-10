@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Users, Plus } from 'lucide-react';
 import { KeyboardHint } from '@/components/ui/keyboard-hint';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
+import { useAuth } from '@/lib/auth-context';
 import {
   type Client,
   type ClientFormData,
@@ -18,6 +19,7 @@ import { ClientFilters, type TabKey } from '@/components/clients/ClientFilters';
 
 export default function ClientsPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [isLoading, setIsLoading] = useState(true);
@@ -147,7 +149,7 @@ export default function ClientsPage() {
         clients={filteredClients}
         isLoading={isLoading}
         onEdit={openEditModal}
-        onDelete={handleDelete}
+        onDelete={user?.role === 'ADMIN' ? handleDelete : undefined}
         onHistory={openHistoryPage}
       />
 

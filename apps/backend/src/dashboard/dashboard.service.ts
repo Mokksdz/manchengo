@@ -25,7 +25,18 @@ export class DashboardService {
 
   async getKpis(role?: string) {
     const key = this.cacheService.buildKpiKey(role);
-    return this.cacheService.getOrSet(key, () => this.computeKpis(), CacheTTL.KPI);
+    try {
+      return await this.cacheService.getOrSet(key, () => this.computeKpis(), CacheTTL.KPI);
+    } catch (error) {
+      this.logger.error(`Failed to compute KPIs: ${error.message}`, error.stack);
+      // Return empty KPIs instead of crashing
+      return {
+        stock: { mp: { total: 0, lowStock: 0 }, pf: { total: 0, lowStock: 0 } },
+        sales: { todayAmount: 0, todayInvoices: 0 },
+        sync: { devicesOffline: 0, pendingEvents: 0 },
+        _meta: { cachedAt: new Date().toISOString(), error: error.message },
+      };
+    }
   }
 
   private async computeKpis() {
@@ -39,12 +50,12 @@ export class DashboardService {
       devicesOffline,
       pendingEvents,
     ] = await Promise.all([
-      this.getTotalStockMp(),
-      this.getTotalStockPf(),
-      this.getTodaySalesAmount(),
-      this.getTodayInvoicesCount(),
-      this.getOfflineDevicesCount(),
-      this.syncService.getPendingEventsCount(),
+      this.getTotalStockMp().catch(() => ({ total: 0, lowStock: 0 })),
+      this.getTotalStockPf().catch(() => ({ total: 0, lowStock: 0 })),
+      this.getTodaySalesAmount().catch(() => 0),
+      this.getTodayInvoicesCount().catch(() => 0),
+      this.getOfflineDevicesCount().catch(() => 0),
+      this.syncService.getPendingEventsCount().catch(() => 0),
     ]);
 
     return {
@@ -299,6 +310,8 @@ export class DashboardService {
       productionStats,
       mpAlerts,
       recettesNonConfigurees,
+      demandesEnvoyees,
+      demandesEnAttente,
     ] = await Promise.all([
       // Ordres aujourd'hui
       this.prisma.productionOrder.count({
@@ -325,6 +338,14 @@ export class DashboardService {
       this.getMpAlerts(),
       // Recettes non configurées
       this.getRecettesNonConfigurees(),
+      // Demandes appro envoyées (SENT status)
+      this.prisma.purchaseOrder.count({
+        where: { status: 'SENT' },
+      }).catch(() => 0),
+      // Demandes appro en attente (DRAFT status)
+      this.prisma.purchaseOrder.count({
+        where: { status: 'DRAFT' },
+      }).catch(() => 0),
     ]);
 
     return {
@@ -339,6 +360,8 @@ export class DashboardService {
       approvisionnement: {
         mpSousSeuil: mpAlerts.sousSeuil,
         mpCritiques: mpAlerts.critiques,
+        demandesEnvoyees,
+        demandesEnAttente,
       },
       alertes: {
         recettesNonConfigurees,

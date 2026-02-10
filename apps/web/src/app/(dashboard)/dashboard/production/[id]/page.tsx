@@ -204,7 +204,8 @@ export default function ProductionDetailPage() {
       });
       if (recipeRes.ok) {
         const text = await recipeRes.text();
-        const recipeData = text ? JSON.parse(text) : null;
+        let recipeData = null;
+        try { recipeData = text ? JSON.parse(text) : null; } catch { recipeData = null; }
         setRecipe(recipeData);
         if (recipeData) {
           setRecipeForm({
@@ -639,7 +640,7 @@ export default function ProductionDetailPage() {
       {isEditingRecipe && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsEditingRecipe(false)} />
-          <div className="relative glass-card rounded-[20px] shadow-apple-elevated w-full max-w-lg p-6 animate-slide-up">
+          <div className="relative glass-card rounded-[20px] w-full max-w-lg p-6 animate-slide-up">
             <h2 className="text-lg font-semibold text-[#1D1D1F] mb-4">
               {recipe ? 'Modifier la recette' : 'Créer une recette'}
             </h2>
@@ -736,7 +737,7 @@ export default function ProductionDetailPage() {
       {showAddComponent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddComponent(false)} />
-          <div className="relative glass-card rounded-[20px] shadow-apple-elevated w-full max-w-lg overflow-hidden animate-slide-up">
+          <div className="relative glass-card rounded-[20px] w-full max-w-lg overflow-hidden animate-slide-up">
             <div className="border-b border-black/[0.04] px-6 py-4">
               <h2 className="text-lg font-semibold text-[#1D1D1F] flex items-center gap-2">
                 <div className="w-8 h-8 bg-gradient-to-br from-[#AF52DE] to-[#8B3CB5] rounded-[10px] flex items-center justify-center">

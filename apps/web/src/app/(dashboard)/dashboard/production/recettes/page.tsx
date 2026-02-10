@@ -248,7 +248,7 @@ function RecipeCTA({ status, recipeId }: { status: RecipeStatus; recipeId: numbe
         <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
         <h3 className="text-lg font-semibold text-amber-900 mb-1">Stock insuffisant</h3>
         <p className="text-amber-700 mb-4">R\u00e9approvisionnez les mati\u00e8res premi\u00e8res pour lancer la production</p>
-        <Link href="/dashboard/demandes-mp" className="glass-btn px-4 py-2 rounded-full text-[13px] text-[#6E6E73]">Cr\u00e9er une demande MP</Link>
+        <Link href="/dashboard/appro/bons/new" className="glass-btn px-4 py-2 rounded-full text-[13px] text-[#6E6E73]">Cr\u00e9er un bon de commande</Link>
       </div>
     );
   }
@@ -313,18 +313,25 @@ export default function RecettesPage() {
           ingredients: r.items || r.ingredients || [],
         }));
         setRecipes(normalizedRecipes);
+      } else {
+        toast.error('Erreur lors du chargement des recettes');
       }
       if (stockRes.ok) {
         const data = await stockRes.json();
         setStockMp(data || []);
+      } else {
+        toast.error('Erreur lors du chargement du stock MP');
       }
       if (pfRes.ok) {
         const data = await pfRes.json();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setProductsPf((data || []).map((pf: any) => ({ ...pf, id: pf.id || pf.productId })));
+      } else {
+        toast.error('Erreur lors du chargement des produits finis');
       }
     } catch (error) {
       console.error('Failed to load data:', error);
+      toast.error('Erreur de connexion au serveur');
     } finally {
       setIsLoading(false);
     }

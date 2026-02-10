@@ -232,18 +232,15 @@ export default function ApproDashboardPage() {
   // Metrics
   const mpBloquantes = dashboard?.stockStats?.bloquantProduction ?? 0;
   const mpRupture = dashboard?.stockStats?.rupture ?? 0;
-  const bcEnRetard = dashboard?.bcEnRetard ?? 0;
+  const bcEnAttente = dashboard?.bcEnAttente ?? 0;
   const alertesCritiques = dashboard?.alertesActives ?? 0;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const blockingMpName = (dashboard as any)?.blockingMpName as string | undefined;
+  const blockingMpName = dashboard?.mpCritiquesProduction?.[0]?.name;
   const productionBlocked = mpBloquantes > 0;
-  const toutVaBien = mpBloquantes === 0 && mpRupture === 0 && bcEnRetard === 0 && alertesCritiques === 0;
+  const toutVaBien = mpBloquantes === 0 && mpRupture === 0 && bcEnAttente === 0 && alertesCritiques === 0;
 
   // IRS
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const irsValue = (dashboard as any)?.irs?.value ?? 0;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const irsStatus = (dashboard as any)?.irs?.status ?? 'SAIN';
+  const irsValue = dashboard?.irs?.value ?? 0;
+  const irsStatus = dashboard?.irs?.status ?? 'SAIN';
 
   // Role-based actions
   const isAdmin = userRole === 'ADMIN';
@@ -270,10 +267,10 @@ export default function ApproDashboardPage() {
       context: 'Production à l\'arrêt',
     });
   }
-  if (bcEnRetard > 0) {
+  if (bcEnAttente > 0) {
     priorityActions.push({
       id: 'bc-retard',
-      label: `Relancer fournisseur — ${bcEnRetard} BC en retard`,
+      label: `Relancer fournisseur — ${bcEnAttente} BC en retard`,
       severity: 'CRITICAL',
       actionLabel: 'Relancer',
       href: '/dashboard/appro/bons?filter=retard',
@@ -388,7 +385,7 @@ export default function ApproDashboardPage() {
             </div>
             <div className="w-[1px] h-8 bg-black/[0.04]" />
             <div className="text-center">
-              <p className={cn('text-[20px] font-semibold text-[#1D1D1F] tabular-nums', bcEnRetard > 0 && 'animate-number-pop')}>{bcEnRetard}</p>
+              <p className={cn('text-[20px] font-semibold text-[#1D1D1F] tabular-nums', bcEnAttente > 0 && 'animate-number-pop')}>{bcEnAttente}</p>
               <p className="text-[11px] text-[#AEAEB2] mt-0.5">BC en retard</p>
             </div>
             <div className="w-[1px] h-8 bg-black/[0.04]" />
@@ -426,12 +423,12 @@ export default function ApproDashboardPage() {
         />
         <ActionableKpiCard
           title="BC en retard"
-          value={bcEnRetard}
+          value={bcEnAttente}
           icon={FileText}
-          severity={getSeverity(bcEnRetard, 'critical')}
-          actionLabel={bcEnRetard > 0 ? 'Relancer' : 'À jour'}
+          severity={getSeverity(bcEnAttente, 'critical')}
+          actionLabel={bcEnAttente > 0 ? 'Relancer' : 'À jour'}
           href="/dashboard/appro/bons?filter=retard"
-          subtitle={bcEnRetard > 0 ? 'Livraison dépassée' : 'Livraisons à jour'}
+          subtitle={bcEnAttente > 0 ? 'Livraison dépassée' : 'Livraisons à jour'}
         />
         <ActionableKpiCard
           title="Stock critique"

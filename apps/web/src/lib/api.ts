@@ -461,11 +461,7 @@ export interface ApproDashboard {
   };
   mpCritiquesProduction: StockMpWithState[];
   alertesActives: number;
-  demandesEnAttente: number;
-  receptionsAttendues: number;
-  // V1 SAFE: Donnees BC reelles
-  bcActifs: number;
-  bcEnRetard: number;
+  bcEnAttente: number;
 }
 
 export interface StockMpWithState {

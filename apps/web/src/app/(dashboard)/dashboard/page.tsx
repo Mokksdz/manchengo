@@ -86,9 +86,9 @@ export default function DashboardPage() {
           subtitle="Suivi de la production et approvisionnement"
           icon={<Factory className="w-6 h-6" />}
           actions={
-            <Link href="/dashboard/demandes-mp" className="btn-amber">
+            <Link href="/dashboard/appro/bons/new" className="btn-amber">
               <ShoppingCart className="w-4 h-4" />
-              Nouvelle demande MP
+              Nouveau bon de commande
             </Link>
           }
         />
@@ -177,8 +177,8 @@ export default function DashboardPage() {
                 </div>
                 <h3 className="font-semibold text-[#1D1D1F]">Approvisionnement MP</h3>
               </div>
-              <Link href="/dashboard/demandes-mp" className="text-sm text-[#EC7620] hover:text-[#DD5C16] font-medium">
-                Voir demandes →
+              <Link href="/dashboard/appro" className="text-sm text-[#EC7620] hover:text-[#DD5C16] font-medium">
+                Voir cockpit →
               </Link>
             </div>
             <div className="p-6">
@@ -192,11 +192,11 @@ export default function DashboardPage() {
                   <p className="text-[11px] text-[#86868B]">MP critiques</p>
                 </div>
                 <div className="text-center p-3 bg-[#E3F2FD] rounded-[12px]">
-                  <p className="text-[22px] font-semibold text-[#1565C0]">{pd.approvisionnement.demandesEnvoyees}</p>
+                  <p className="text-[22px] font-semibold text-[#1565C0]">{pd.approvisionnement.demandesEnvoyees ?? 0}</p>
                   <p className="text-[11px] text-[#86868B]">Demandes envoyées</p>
                 </div>
                 <div className="text-center p-3 bg-[#FAFAFA] rounded-[12px]">
-                  <p className="text-[22px] font-semibold text-[#6E6E73]">{pd.approvisionnement.demandesEnAttente}</p>
+                  <p className="text-[22px] font-semibold text-[#6E6E73]">{pd.approvisionnement.demandesEnAttente ?? 0}</p>
                   <p className="text-[11px] text-[#86868B]">Brouillons</p>
                 </div>
               </div>
@@ -420,7 +420,7 @@ export default function DashboardPage() {
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center">
                       <div
-                        className="w-full bg-[#EC7620] rounded-t-lg"
+                        className="w-full rounded-t-lg bg-gradient-to-t from-[#DD5C16] via-[#EC7620] to-[#F5A159]"
                         style={{ height: `${Math.max(height, 4)}%` }}
                       />
                       <span className="text-[11px] text-[#86868B] mt-2 font-medium">
@@ -447,7 +447,7 @@ export default function DashboardPage() {
                 {syncStatus.slice(0, 5).map((device) => (
                   <div
                     key={device.id}
-                    className="flex items-center justify-between p-3 rounded-[12px] hover:bg-[#FAFAFA] transition-colors"
+                    className="flex items-center justify-between p-3 rounded-[12px] bg-white/55 hover:bg-white/72 border border-white/65 transition-all backdrop-blur-[14px]"
                   >
                     <div className="flex items-center gap-3">
                       <div

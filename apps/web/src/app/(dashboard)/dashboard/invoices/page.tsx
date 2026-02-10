@@ -53,14 +53,21 @@ const invoiceStatuses = [
 
 /**
  * Calcule le taux de timbre fiscal selon la législation algérienne
- * - TTC <= 30 000 DA -> 1%
- * - 30 000 < TTC <= 100 000 DA -> 1.5%
+ * Les montants sont en centimes (1 DA = 100 centimes)
+ * - TTC <= 30 000 DA (3 000 000 centimes) -> 1%
+ * - 30 000 < TTC <= 100 000 DA (10 000 000 centimes) -> 1.5%
  * - TTC > 100 000 DA -> 2%
  */
+const TIMBRE_SEUIL_BAS = 3_000_000;  // 30 000 DA en centimes
+const TIMBRE_SEUIL_HAUT = 10_000_000; // 100 000 DA en centimes
+const TIMBRE_TAUX_BAS = 1;       // 1%
+const TIMBRE_TAUX_MOYEN = 1.5;   // 1.5%
+const TIMBRE_TAUX_HAUT = 2;      // 2%
+
 function calculateTimbreRate(totalTtc: number): number {
-  if (totalTtc <= 3000000) return 1;
-  if (totalTtc <= 10000000) return 1.5;
-  return 2;
+  if (totalTtc <= TIMBRE_SEUIL_BAS) return TIMBRE_TAUX_BAS;
+  if (totalTtc <= TIMBRE_SEUIL_HAUT) return TIMBRE_TAUX_MOYEN;
+  return TIMBRE_TAUX_HAUT;
 }
 
 function getStatusStyle(status: string): string {

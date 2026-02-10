@@ -295,28 +295,28 @@ export default function ClientHistoriquePage() {
       </div>
 
       {/* Totals Summary */}
-      {historyData && (
+      {historyData?.totals && (
         <div className="glass-card p-4 bg-[#007AFF]/[0.03] border border-[#007AFF]/10 animate-fade-in">
           <div className="flex flex-wrap items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-[#6E6E73]">Factures:</span>
-              <span className="font-semibold text-[#1D1D1F] bg-white/60 px-2 py-0.5 rounded-lg">{historyData.totals.invoices}</span>
+              <span className="font-semibold text-[#1D1D1F] bg-white/60 px-2 py-0.5 rounded-lg">{historyData.totals.invoices ?? 0}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[#6E6E73]">Quantité:</span>
-              <span className="font-semibold text-[#1D1D1F] bg-white/60 px-2 py-0.5 rounded-lg">{historyData.totals.totalQuantity.toLocaleString()}</span>
+              <span className="font-semibold text-[#1D1D1F] bg-white/60 px-2 py-0.5 rounded-lg">{(historyData.totals.totalQuantity ?? 0).toLocaleString()}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[#6E6E73]">Total HT:</span>
-              <span className="font-semibold text-[#1D1D1F] bg-white/60 px-2 py-0.5 rounded-lg">{formatPrice(historyData.totals.totalHt)}</span>
+              <span className="font-semibold text-[#1D1D1F] bg-white/60 px-2 py-0.5 rounded-lg">{formatPrice(historyData.totals.totalHt ?? 0)}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[#6E6E73]">TVA:</span>
-              <span className="font-semibold text-[#1D1D1F] bg-white/60 px-2 py-0.5 rounded-lg">{formatPrice(historyData.totals.totalTva)}</span>
+              <span className="font-semibold text-[#1D1D1F] bg-white/60 px-2 py-0.5 rounded-lg">{formatPrice(historyData.totals.totalTva ?? 0)}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[#6E6E73]">Net à payer:</span>
-              <span className="font-bold text-[#007AFF] bg-[#007AFF]/10 px-2.5 py-0.5 rounded-lg">{formatPrice(historyData.totals.netToPay)}</span>
+              <span className="font-bold text-[#007AFF] bg-[#007AFF]/10 px-2.5 py-0.5 rounded-lg">{formatPrice(historyData.totals.netToPay ?? 0)}</span>
             </div>
           </div>
         </div>
