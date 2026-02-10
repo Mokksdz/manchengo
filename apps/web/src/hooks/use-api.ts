@@ -70,14 +70,14 @@ export const queryKeys = {
   approCriticalAlerts: ['appro', 'alerts', 'critical'] as const,
   approAlertCounts: ['appro', 'alert-counts'] as const,
   approPurchaseOrders: (params?: { status?: PurchaseOrderStatus; supplierId?: number; limit?: number }) =>
-    ['appro', 'purchase-orders', params] as const,
+    ['appro', 'purchase-orders', params?.status, params?.supplierId, params?.limit] as const,
   approPurchaseOrder: (id: string) => ['appro', 'purchase-order', id] as const,
 
   // Suppliers
   suppliers: (includeInactive?: boolean) => ['suppliers', includeInactive] as const,
   supplier: (id: number) => ['supplier', id] as const,
   supplierHistory: (id: number, params?: { year?: number; month?: number }) =>
-    ['supplier', id, 'history', params] as const,
+    ['supplier', id, 'history', params?.year, params?.month] as const,
   supplierImpacts: ['suppliers', 'impacts'] as const,
   supplierImpactChain: (id: number) => ['supplier', id, 'impact-chain'] as const,
 } as const;

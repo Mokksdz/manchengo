@@ -107,7 +107,7 @@ export default function StockDashboardPage() {
   const criticalCount = data.summary.criticalCount;
   const warningCount = data.aTraiter.totalCount;
   const healthScore = data.summary.healthScore;
-  const totalProducts = (data.summary as unknown as Record<string, number>).totalProducts ?? 0;
+  const totalProducts = data.summary.totalProducts ?? 0;
 
   /* ──── Quick nav items ──── */
   const navLinks = [

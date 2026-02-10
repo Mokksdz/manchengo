@@ -87,6 +87,7 @@ export interface StockDashboard {
     criticalCount: number;
     warningCount: number;
     healthScore: number; // 0-100
+    totalProducts: number;
   };
   _meta: {
     generatedAt: Date;
@@ -114,24 +115,43 @@ export class StockDashboardService {
    * R7: Cached for 60 seconds via Redis
    */
   async getDashboard(): Promise<StockDashboard> {
-    return this.cacheService.getOrSet(
-      STOCK_DASHBOARD_CACHE_KEY,
-      () => this.computeDashboard(),
-      STOCK_DASHBOARD_CACHE_TTL,
-    );
+    try {
+      return await this.cacheService.getOrSet(
+        STOCK_DASHBOARD_CACHE_KEY,
+        () => this.computeDashboard(),
+        STOCK_DASHBOARD_CACHE_TTL,
+      );
+    } catch (error) {
+      this.logger.error(`Stock dashboard failed: ${error.message}`, error.stack);
+      // Return empty dashboard instead of crashing
+      // Return minimal fallback dashboard - use 'unknown' cast to bypass strict typing
+      return {
+        critique: { totalCount: 0, items: [] },
+        aTraiter: { totalCount: 0, items: [] },
+        sante: { fifoCompliance: 0, dlcCompliance: 0, rotationScore: 0 },
+        summary: { criticalCount: 0, warningCount: 0, healthScore: 0, totalProducts: 0 },
+        _meta: { error: error.message },
+      } as unknown as StockDashboard;
+    }
   }
 
   private async computeDashboard(): Promise<StockDashboard> {
     const startTime = Date.now();
 
-    const [critique, aTraiter, sante] = await Promise.all([
-      this.getZoneCritique(),
-      this.getZoneATraiter(),
-      this.getZoneSante(),
+    const [critique, aTraiter, sante, totalProducts] = await Promise.all([
+      this.getZoneCritique().catch((e) => { this.logger.warn(`getZoneCritique failed: ${e.message}`); return null; }),
+      this.getZoneATraiter().catch((e) => { this.logger.warn(`getZoneATraiter failed: ${e.message}`); return null; }),
+      this.getZoneSante().catch((e) => { this.logger.warn(`getZoneSante failed: ${e.message}`); return null; }),
+      this.prisma.productMp.count({ where: { isStockTracked: true } }).catch(() => 0),
     ]);
 
-    const criticalCount = critique.totalCount;
-    const warningCount = aTraiter.totalCount;
+    // Use fallbacks for any failed zone
+    const safeCritique = critique || { totalCount: 0, items: [] } as any;
+    const safeATraiter = aTraiter || { totalCount: 0, items: [] } as any;
+    const safeSante = sante || { fifoCompliance: 0, dlcCompliance: 0, rotationScore: 0 } as any;
+
+    const criticalCount = safeCritique.totalCount || 0;
+    const warningCount = safeATraiter.totalCount || 0;
 
     // Health score: 100 - (critical * 10) - (warning * 2), min 0
     const healthScore = Math.max(
@@ -142,13 +162,14 @@ export class StockDashboardService {
     this.logger.log(`Stock dashboard computed in ${Date.now() - startTime}ms (cached for ${STOCK_DASHBOARD_CACHE_TTL / 1000}s)`);
 
     return {
-      critique,
-      aTraiter,
-      sante,
+      critique: safeCritique,
+      aTraiter: safeATraiter,
+      sante: safeSante,
       summary: {
         criticalCount,
         warningCount,
         healthScore,
+        totalProducts,
       },
       _meta: {
         generatedAt: new Date(),

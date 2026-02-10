@@ -276,6 +276,7 @@ export interface StockDashboardSummary {
   healthScore: number;
   criticalCount: number;
   warningCount: number;
+  totalProducts: number;
   lastUpdated: string;
 }
 
