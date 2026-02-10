@@ -21,7 +21,10 @@ export function middleware(request: NextRequest) {
   }
 
   // Check for auth cookie existence
-  const accessToken = request.cookies.get('access_token');
+  // In production, cookie name has __Host- prefix for security hardening
+  const accessToken =
+    request.cookies.get('__Host-access_token') ||
+    request.cookies.get('access_token');
   if (!accessToken) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
