@@ -246,7 +246,7 @@ export default function ApproDashboardPage() {
   const isAdmin = userRole === 'ADMIN';
   const primaryAction = isAdmin
     ? { label: 'Voir et débloquer', href: '/dashboard/appro/stock?filter=bloquant' }
-    : { label: 'Créer un bon de commande', href: '/dashboard/appro/bons/nouveau?urgent=true' };
+    : { label: 'Créer un bon de commande', href: '/dashboard/appro/bons/new?urgent=true' };
   const secondaryAction = isAdmin
     ? { label: 'Historique interventions', href: '#alertes-actives' }
     : { label: 'Voir la matière bloquante', href: '/dashboard/appro/stock?filter=bloquant' };
@@ -263,7 +263,7 @@ export default function ApproDashboardPage() {
       actionLabel: isAdmin ? 'Intervenir' : 'Créer BC',
       href: isAdmin
         ? '/dashboard/appro/stock?filter=bloquant'
-        : '/dashboard/appro/bons/nouveau?urgent=true',
+        : '/dashboard/appro/bons/new?urgent=true',
       context: 'Production à l\'arrêt',
     });
   }
