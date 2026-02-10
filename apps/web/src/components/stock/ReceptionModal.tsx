@@ -215,26 +215,24 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
               <label className="block text-sm font-medium text-[#1D1D1F] mb-1">
                 Fournisseur <span className="text-red-500">*</span>
               </label>
-              <div className="flex gap-2">
-                <select
-                  value={supplierId}
-                  onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')}
-                  className="flex-1 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#007AFF]"
-                >
-                  <option value="">Sélectionner...</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => setShowSupplierModal(true)}
-                  className="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
-                  title="Nouveau fournisseur"
-                >
-                  <Plus className="w-5 h-5" />
-                </button>
-              </div>
+              <select
+                value={supplierId}
+                onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')}
+                className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#007AFF]"
+              >
+                <option value="">Sélectionner...</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowSupplierModal(true)}
+                className="flex items-center gap-1 mt-1.5 text-sm text-emerald-700 hover:text-emerald-800 font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Nouveau fournisseur
+              </button>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#1D1D1F] mb-1">N° BL</label>
