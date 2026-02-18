@@ -4,6 +4,8 @@ import { ReactNode, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AuthProvider } from '@/lib/auth-context';
+import { PWAProvider } from '@/components/pwa/PWAProvider';
+import { Toaster } from 'sonner';
 
 /**
  * R12: React Query Devtools en dev
@@ -26,7 +28,10 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>{children}</AuthProvider>
+      <AuthProvider>
+        <PWAProvider>{children}</PWAProvider>
+      </AuthProvider>
+      <Toaster position="top-right" richColors />
       {process.env.NODE_ENV === 'development' && (
         <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
       )}

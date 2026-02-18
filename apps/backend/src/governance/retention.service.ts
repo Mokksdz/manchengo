@@ -238,6 +238,30 @@ export class RetentionService {
    * Schedule automatic purge for eligible entities (runs weekly)
    * Only purges entities with canAutoPurge = true AND after archiving
    */
+  /**
+   * Cleanup expired idempotency keys daily (prevents unbounded table growth)
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async cleanupIdempotencyKeys(): Promise<void> {
+    try {
+      const result = await this.prisma.idempotencyKey.deleteMany({
+        where: { expiresAt: { lt: new Date() } },
+      });
+      if (result.count > 0) {
+        this.logger.info(
+          `Cleaned up ${result.count} expired idempotency keys`,
+          'RetentionService',
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to cleanup idempotency keys: ${error}`,
+        error instanceof Error ? error.stack : undefined,
+        'RetentionService',
+      );
+    }
+  }
+
   @Cron(CronExpression.EVERY_WEEK)
   async runScheduledPurge(): Promise<void> {
     this.logger.info('Starting scheduled retention purge', 'RetentionService');
@@ -266,7 +290,7 @@ export class RetentionService {
     actorId: string,
     actorRole: UserRole,
     dryRun = false,
-  ): Promise<{ purged: number; archived: number }> {
+  ): Promise<{ purged: number; archived: number; entityType?: string; error?: string }> {
     const policy = this.getPolicy(entityType);
     if (!policy) {
       throw new Error(`No retention policy for ${entityType}`);
@@ -279,6 +303,15 @@ export class RetentionService {
     let archived = 0;
     if (policy.archiveRequired && !dryRun) {
       archived = await this.archiveRecords(entityType, cutoffDate);
+    }
+
+    // Block purge if archive was required but returned 0 records
+    if (policy.archiveRequired && archived === 0 && !dryRun) {
+      this.logger.warn(
+        `Purge bloquée: archivage obligatoire mais 0 enregistrements archivés pour ${entityType}`,
+        'RetentionService',
+      );
+      return { entityType, archived: 0, purged: 0, error: 'Archive required but returned 0' };
     }
 
     // Step 2: Purge

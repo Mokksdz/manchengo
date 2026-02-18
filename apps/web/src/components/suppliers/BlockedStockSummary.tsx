@@ -57,7 +57,7 @@ export function BlockedStockSummary({ blockedMps, onViewMp }: BlockedStockSummar
   }
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E5E5] p-4">
+    <div className="glass-card rounded-xl p-4">
       <div className="flex items-center gap-2 mb-3">
         <Package className="w-5 h-5 text-red-500" />
         <h4 className="font-bold text-[#1D1D1F]">Matières premières bloquées</h4>

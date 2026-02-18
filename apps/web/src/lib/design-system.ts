@@ -54,22 +54,22 @@ export const colors = {
 // Use these instead of writing raw Tailwind to ensure consistency
 
 /** Card container */
-export const cardClass = 'bg-white rounded-2xl border border-[#E5E5E5] shadow-apple-card';
+export const cardClass = 'rounded-[18px] border border-white/70 bg-white/70 shadow-[0_16px_36px_rgba(18,22,33,0.08),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-[26px]';
 
 /** Card with hover */
-export const cardHoverClass = 'bg-white rounded-2xl border border-[#E5E5E5] shadow-apple-card hover:shadow-apple-hover transition-shadow';
+export const cardHoverClass = 'rounded-[18px] border border-white/70 bg-white/70 shadow-[0_16px_36px_rgba(18,22,33,0.08),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-[26px] transition-all hover:-translate-y-[1px] hover:shadow-[0_22px_44px_rgba(18,22,33,0.12),inset_0_1px_0_rgba(255,255,255,0.6)]';
 
 /** Card header section (inside card) */
-export const cardHeaderClass = 'px-6 py-4 border-b border-[#F0F0F0]';
+export const cardHeaderClass = 'px-6 py-4 border-b border-white/70';
 
 /** Card body section (inside card) */
 export const cardBodyClass = 'p-6';
 
 /** Table container */
-export const tableContainerClass = 'bg-white rounded-2xl border border-[#E5E5E5] shadow-apple-card overflow-hidden';
+export const tableContainerClass = 'rounded-[18px] border border-white/75 bg-white/80 shadow-[0_16px_38px_rgba(18,22,33,0.08),inset_0_1px_0_rgba(255,255,255,0.52)] backdrop-blur-[24px] overflow-hidden';
 
 /** Table header row */
-export const tableHeaderClass = 'bg-[#FAFAFA] border-b border-[#F0F0F0]';
+export const tableHeaderClass = 'bg-white/70 border-b border-white/70';
 
 /** Table header cell — standardized */
 export const thClass = 'px-5 py-3.5 text-left text-[11px] font-semibold text-[#86868B] uppercase tracking-wider';
@@ -96,16 +96,16 @@ export const kpiValueClass = 'text-[28px] font-semibold text-[#1D1D1F]';
 export const kpiLabelClass = 'text-[13px] font-medium text-[#86868B]';
 
 /** Primary button (dark) */
-export const btnPrimaryClass = 'inline-flex items-center gap-2 bg-[#1D1D1F] hover:bg-[#333336] text-white font-medium py-2.5 px-5 rounded-[10px] transition-all text-[15px]';
+export const btnPrimaryClass = 'inline-flex items-center gap-2 rounded-[11px] bg-[linear-gradient(135deg,#191c26_0%,#2d313f_46%,#1a1d28_100%)] px-5 py-2.5 text-[15px] font-semibold text-white shadow-[0_12px_28px_rgba(18,22,33,0.18),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all hover:-translate-y-[1px] hover:shadow-[0_16px_34px_rgba(18,22,33,0.22),inset_0_1px_0_rgba(255,255,255,0.16)]';
 
 /** Secondary button (outlined) */
-export const btnSecondaryClass = 'inline-flex items-center gap-2 bg-white hover:bg-[#F5F5F5] text-[#1D1D1F] font-medium py-2.5 px-5 rounded-[10px] border border-[#E5E5E5] transition-all text-[15px]';
+export const btnSecondaryClass = 'inline-flex items-center gap-2 rounded-[11px] border border-white/85 bg-white/75 px-5 py-2.5 text-[15px] font-semibold text-[#1D1D1F] shadow-[0_8px_20px_rgba(18,22,33,0.08),inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-[22px] transition-all hover:-translate-y-[1px] hover:bg-white/85';
 
 /** Brand button (orange) */
-export const btnBrandClass = 'inline-flex items-center gap-2 bg-[#EC7620] hover:bg-[#DD5C16] text-white font-medium py-2.5 px-5 rounded-[10px] transition-all text-[15px]';
+export const btnBrandClass = 'inline-flex items-center gap-2 rounded-[11px] bg-[linear-gradient(135deg,#ec7620_0%,#f58b34_50%,#dd5c16_100%)] px-5 py-2.5 text-[15px] font-semibold text-white shadow-[0_10px_26px_rgba(236,118,32,0.28),inset_0_1px_0_rgba(255,255,255,0.22)] transition-all hover:-translate-y-[1px] hover:shadow-[0_14px_30px_rgba(236,118,32,0.34),inset_0_1px_0_rgba(255,255,255,0.28)]';
 
 /** Ghost button */
-export const btnGhostClass = 'inline-flex items-center gap-2 text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-[#F5F5F5] font-medium py-2 px-3 rounded-[10px] transition-all text-[15px]';
+export const btnGhostClass = 'inline-flex items-center gap-2 rounded-[11px] px-3 py-2 text-[15px] font-semibold text-[#6E6E73] transition-all hover:bg-white/55 hover:text-[#1D1D1F]';
 
 /** Small pill button (filter chips) */
 export const filterChipActiveClass = 'px-3 py-1.5 text-xs font-medium rounded-[8px] bg-[#1D1D1F] text-white transition-colors';
@@ -121,8 +121,8 @@ export const iconBtnInfoClass = 'p-1.5 text-[#AEAEB2] hover:text-[#1565C0] hover
 export const refreshBtnClass = 'p-2.5 bg-[#F5F5F5] rounded-[10px] hover:bg-[#E5E5E5] transition-all text-[#6E6E73]';
 
 /** Icon container (header icons, stat card icons) */
-export const iconBoxClass = 'w-12 h-12 rounded-[12px] bg-[#F5F5F5] flex items-center justify-center text-[#6E6E73]';
-export const iconBoxSmClass = 'w-9 h-9 rounded-[10px] bg-[#F5F5F5] flex items-center justify-center text-[#6E6E73]';
+export const iconBoxClass = 'w-12 h-12 rounded-[13px] border border-white/70 bg-white/70 shadow-[0_8px_16px_rgba(18,22,33,0.08),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-[16px] flex items-center justify-center text-[#6E6E73]';
+export const iconBoxSmClass = 'w-9 h-9 rounded-[10px] border border-white/70 bg-white/70 shadow-[0_6px_12px_rgba(18,22,33,0.08),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-[16px] flex items-center justify-center text-[#6E6E73]';
 export const iconBoxBrandClass = 'w-12 h-12 rounded-[12px] bg-[#EC7620] flex items-center justify-center text-white';
 
 /** Search input */
@@ -162,7 +162,7 @@ export const emptyTitleClass = 'font-medium text-[#6E6E73]';
 export const emptySubtitleClass = 'text-[13px] text-[#AEAEB2] mt-1';
 
 /** Pagination container */
-export const paginationClass = 'flex items-center justify-between bg-white rounded-2xl border border-[#E5E5E5] shadow-apple-card px-6 py-4';
+export const paginationClass = 'flex items-center justify-between rounded-[18px] border border-white/75 bg-white/75 shadow-[0_16px_36px_rgba(18,22,33,0.08),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-[22px] px-6 py-4';
 export const paginationTextClass = 'text-sm text-[#6E6E73]';
 export const paginationBtnClass = 'p-2 border border-[#E5E5E5] rounded-[10px] hover:bg-[#FAFAFA] disabled:opacity-40 transition-all';
 

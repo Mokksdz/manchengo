@@ -189,7 +189,7 @@ export class ApproAlertService {
   ): Promise<ApproAlert | null> {
     return this.createAlert({
       type: ApproAlertType.FOURNISSEUR_RETARD,
-      niveau: tauxRetard > 30 ? ApproAlertLevel.CRITICAL : ApproAlertLevel.WARNING,
+      niveau: tauxRetard > 0.30 ? ApproAlertLevel.CRITICAL : ApproAlertLevel.WARNING,
       entityType: ApproAlertEntity.SUPPLIER,
       entityId: supplierId,
       message: `FOURNISSEUR DÉGRADÉ: ${supplierName} (${supplierCode}) - Taux retard: ${(tauxRetard * 100).toFixed(1)}%. Grade: ${oldGrade} → ${newGrade}`,
@@ -391,12 +391,15 @@ export class ApproAlertService {
    * Scan les MP critiques (BLOQUANTE avec stock = 0)
    */
   private async scanMpCritiques(): Promise<number> {
-    // Récupérer les MP BLOQUANTES
+    // Récupérer les MP BLOQUANTES + MP utilisées dans des recettes actives (mandatory)
     const mpBloquantes = await this.prisma.productMp.findMany({
       where: {
         isActive: true,
         isStockTracked: true,
-        criticite: 'BLOQUANTE',
+        OR: [
+          { criticite: 'BLOQUANTE' },
+          { recipeItems: { some: { recipe: { isActive: true }, isMandatory: true } } },
+        ],
       },
       select: {
         id: true,
@@ -512,6 +515,11 @@ export class ApproAlertService {
 
   /**
    * Calcule le grade d'un fournisseur basé sur son taux de retard
+   *
+   * SEUILS ALIGNÉS avec les alertes:
+   * - A: ≤10% retard (excellent)
+   * - B: ≤20% retard (acceptable) → WARNING déclenché à >20%
+   * - C: >20% retard (dégradé)   → CRITICAL déclenché à >30%
    */
   private calculateGrade(tauxRetard: number): string {
     if (tauxRetard <= 0.1) return 'A';
@@ -636,24 +644,33 @@ export class ApproAlertService {
       },
     });
 
-    // Mettre à jour les alertes existantes pour cette MP
-    await this.prisma.approAlert.updateMany({
+    // Fetch existing alerts to preserve metadata
+    const existingAlerts = await this.prisma.approAlert.findMany({
       where: {
         entityType: 'MP',
         entityId: mpId,
         acknowledgedAt: null,
       },
-      data: {
-        acknowledgedAt: new Date(),
-        acknowledgedBy: userId,
-        metadata: {
-          postponed: true,
-          postponeReason: reason.trim(),
-          postponeDuration: duration,
-          postponeExpiresAt: expiresAt.toISOString(),
-        },
-      },
+      select: { id: true, metadata: true },
     });
+
+    for (const alert of existingAlerts) {
+      const existingMetadata = (alert.metadata as Record<string, unknown>) || {};
+      await this.prisma.approAlert.update({
+        where: { id: alert.id },
+        data: {
+          metadata: {
+            ...existingMetadata,
+            postponed: true,
+            postponeReason: reason.trim(),
+            postponeDuration: duration,
+            postponeExpiresAt: expiresAt.toISOString(),
+            postponedAt: new Date().toISOString(),
+            postponedBy: userId,
+          },
+        },
+      });
+    }
 
     return {
       success: true,

@@ -1,11 +1,10 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "identifier": "dz.manchengo.smart.erp",
-  "productName": "Manchengo Smart ERP",
+  "productName": "ManchengoERP",
   "version": "1.0.0",
 
   "build": {
-    "devUrl": "http://localhost:3001",
     "frontendDist": "./ui"
   },
 
@@ -15,6 +14,7 @@
       {
         "label": "main",
         "title": "Manchengo Smart ERP",
+        "url": "tauri://localhost/",
         "width": 1280,
         "height": 800,
         "minWidth": 900,
@@ -28,9 +28,15 @@
 
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg", "msi"],
+    "targets": ["app", "dmg"],
     "icon": [
+      "icons/icon.icns",
       "icons/icon.png"
-    ]
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "exceptionDomain": "",
+      "signingIdentity": null
+    }
   }
 }

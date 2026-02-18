@@ -33,7 +33,7 @@ export function CreateRecipeModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="glass-card rounded-[20px] shadow-apple-elevated w-full max-w-lg">
+      <div className="glass-card rounded-[20px] w-full max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
           <h2 className="text-lg font-semibold text-[#1D1D1F]">Nouvelle recette</h2>
           <button onClick={onClose} className="p-1 hover:bg-black/5 rounded-lg transition-colors">
@@ -101,7 +101,14 @@ export function CreateRecipeModal({
           <button onClick={onClose} className="glass-btn px-4 py-2 rounded-full text-[13px] text-[#6E6E73]">
             Annuler
           </button>
-          <button onClick={onSubmit} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1D1D1F] text-white rounded-full hover:bg-[#333336] transition-all font-medium text-[13px]">
+          <button
+            onClick={onSubmit}
+            disabled={!formData.productPfId || !formData.name.trim() || formData.batchWeight <= 0}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full transition-all font-medium text-[13px] ${
+              !formData.productPfId || !formData.name.trim() || formData.batchWeight <= 0
+                ? 'bg-black/[0.03] text-[#C7C7CC] cursor-not-allowed'
+                : 'bg-[#1D1D1F] text-white hover:bg-[#333336]'
+            }`}>
             <Save className="w-4 h-4" />
             Cr\u00e9er la recette
           </button>
@@ -136,7 +143,7 @@ export function AddIngredientModal({
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="glass-card rounded-[20px] shadow-apple-elevated w-full max-w-lg">
+      <div className="glass-card rounded-[20px] w-full max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
           <h2 className="text-lg font-semibold text-[#1D1D1F]">Ajouter un ingr\u00e9dient</h2>
           <button onClick={onClose} className="p-1 hover:bg-black/5 rounded-lg transition-colors">

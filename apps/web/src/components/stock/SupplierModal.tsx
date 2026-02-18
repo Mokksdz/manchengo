@@ -103,15 +103,15 @@ export const SupplierModal = memo(function SupplierModal({ isOpen, onClose, onSu
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       
-      <div className="relative bg-white rounded-[16px] shadow-apple-elevated w-full max-w-lg overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5E5] bg-white">
+      <div className="relative glass-card rounded-[18px] w-full max-w-lg overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/70 bg-white/70 backdrop-blur-[18px]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-[#1D1D1F]">Nouveau Fournisseur</h2>
-              <p className="text-sm text-emerald-100">Créer un fournisseur rapidement</p>
+              <p className="text-sm text-[#86868B]">Créer un fournisseur rapidement</p>
             </div>
           </div>
           <button onClick={onClose} className="text-[#86868B] hover:text-[#1D1D1F] transition-colors">

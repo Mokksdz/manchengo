@@ -135,15 +135,15 @@ export class StockCalculationService {
       return 'RUPTURE';
     }
 
-    if (currentStock <= effectiveSeuilCommande) {
-      if (criticite === 'BLOQUANTE' && currentStock < effectiveSeuilSecurite) {
+    if (currentStock <= effectiveSeuilSecurite) {
+      if (criticite === 'BLOQUANTE') {
         return 'BLOQUANT_PRODUCTION';
       }
-      return 'A_COMMANDER';
+      return 'SOUS_SEUIL';
     }
 
-    if (currentStock <= effectiveSeuilSecurite) {
-      return 'SOUS_SEUIL';
+    if (currentStock <= effectiveSeuilCommande) {
+      return 'A_COMMANDER';
     }
 
     return 'SAIN';

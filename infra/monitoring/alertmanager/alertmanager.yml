@@ -1,0 +1,82 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Alertmanager Configuration - Manchengo Smart ERP
+# ═══════════════════════════════════════════════════════════════════════════════
+
+global:
+  resolve_timeout: 5m
+  # SMTP settings (configure for your environment)
+  # smtp_smarthost: 'smtp.gmail.com:587'
+  # smtp_from: 'alerts@manchengo.dz'
+  # smtp_auth_username: 'alerts@manchengo.dz'
+  # smtp_auth_password: 'your-app-password'
+
+route:
+  group_by: ['alertname', 'service']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'default'
+
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical'
+      group_wait: 10s
+      repeat_interval: 1h
+
+    # Warning alerts - grouped
+    - match:
+        severity: warning
+      receiver: 'warnings'
+      group_wait: 1m
+
+receivers:
+  - name: 'default'
+    # Webhook to backend (optional)
+    # webhook_configs:
+    #   - url: 'http://backend:3000/api/webhooks/alerts'
+
+  - name: 'critical'
+    # Email for critical alerts
+    # email_configs:
+    #   - to: 'admin@manchengo.dz'
+    #     send_resolved: true
+    #     headers:
+    #       Subject: '[CRITICAL] Manchengo ERP Alert: {{ .GroupLabels.alertname }}'
+
+    # Slack webhook (optional)
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/xxx'
+    #     channel: '#alerts-critical'
+    #     send_resolved: true
+    #     title: '{{ .Status | toUpper }}: {{ .GroupLabels.alertname }}'
+    #     text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+  - name: 'warnings'
+    # Email for warning alerts
+    # email_configs:
+    #   - to: 'ops@manchengo.dz'
+    #     send_resolved: true
+
+inhibit_rules:
+  # If API is down, don't fire other API alerts
+  - source_match:
+      alertname: 'APIDown'
+    target_match:
+      service: 'backend'
+    equal: ['service']
+
+  # If database is down, don't fire query alerts
+  - source_match:
+      alertname: 'PostgreSQLDown'
+    target_match:
+      service: 'database'
+    equal: ['service']
+
+  # If Redis is down, don't fire memory alerts
+  - source_match:
+      alertname: 'RedisDown'
+    target_match:
+      service: 'cache'
+    equal: ['service']

@@ -376,9 +376,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <main id="main-content" role="main" aria-label="Contenu principal" className="silicon-main">
+      <main id="main-content" role="main" aria-label="Contenu principal" className="silicon-main dashboard-root">
         <div className="min-h-screen">
-          <div className="silicon-content">{children}</div>
+          <div className="silicon-content">
+            <div className="dashboard-page-frame">{children}</div>
+          </div>
         </div>
       </main>
 

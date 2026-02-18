@@ -14,6 +14,8 @@ import {
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 export default function StockDashboardPage() {
   const { user } = useAuth();
@@ -122,30 +124,29 @@ export default function StockDashboardPage() {
 
   return (
     <div className="glass-bg space-y-8">
-      {/* ═══════════════════════════════════════════════
-          HEADER
-      ═══════════════════════════════════════════════ */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1D1D1F] leading-tight">
-            Stock
-          </h1>
-          <p className="text-[13px] text-[#86868B] mt-0.5">
-            Vue d&apos;ensemble temps réel
-          </p>
-        </div>
-        <button
-          onClick={() => loadDashboard(true)}
-          disabled={isRefreshing}
-          className={cn(
-            'p-2.5 rounded-full transition-all active:scale-95',
-            'glass-card-hover',
-            'text-[#86868B] hover:text-[#1D1D1F] disabled:opacity-40'
-          )}
-        >
-          <RefreshCw className={cn('h-[18px] w-[18px]', isRefreshing && 'animate-spin')} />
-        </button>
-      </div>
+      <PageHeader
+        title="Stock"
+        subtitle="Vue d'ensemble temps réel"
+        icon={<Package className="w-5 h-5" />}
+        badge={
+          criticalCount > 0
+            ? { text: `${criticalCount} critique(s)`, variant: 'error' }
+            : warningCount > 0
+              ? { text: `${warningCount} à traiter`, variant: 'warning' }
+              : { text: 'Stock stable', variant: 'success' }
+        }
+        actions={
+          <Button
+            onClick={() => loadDashboard(true)}
+            disabled={isRefreshing}
+            variant="outline"
+            size="icon"
+            className="rounded-full"
+          >
+            <RefreshCw className={cn('h-[18px] w-[18px]', isRefreshing && 'animate-spin')} />
+          </Button>
+        }
+      />
 
       {/* ═══════════════════════════════════════════════
           SUMMARY KPI STRIP

@@ -33,7 +33,7 @@ export function ZoneCritique({ data, onAction }: ZoneCritiqueProps) {
 
   return (
     <div className={cn(
-      'bg-white rounded-2xl border overflow-hidden transition-shadow h-full flex flex-col',
+      'glass-card rounded-2xl overflow-hidden transition-all h-full flex flex-col',
       hasItems ? 'border-[#FF3B30]/20 shadow-[0_0_0_1px_rgba(255,59,48,0.05)]' : 'border-[#E5E5E5]'
     )}>
       {/* Accent bar */}

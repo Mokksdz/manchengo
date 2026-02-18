@@ -1,6 +1,7 @@
 import { Injectable, NestMiddleware, ForbiddenException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { randomBytes } from 'crypto';
+import { COOKIE_NAMES } from '../../auth/config/cookie.config';
 
 /**
  * CSRF Protection Middleware
@@ -42,7 +43,7 @@ export class CsrfMiddleware implements NestMiddleware {
     }
 
     // Skip if no cookies (API-only clients with Bearer tokens)
-    const hasCookieAuth = req.cookies?.access_token;
+    const hasCookieAuth = req.cookies?.[COOKIE_NAMES.ACCESS_TOKEN];
     if (!hasCookieAuth) {
       return next();
     }

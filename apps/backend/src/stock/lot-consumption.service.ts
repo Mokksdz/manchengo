@@ -72,6 +72,7 @@ export class LotConsumptionService {
       reference?: string;
       idempotencyKey?: string;
     },
+    userRole?: UserRole,
   ): Promise<ConsumptionResult> {
     // Vérifier idempotence si clé fournie
     if (options?.idempotencyKey) {
@@ -197,7 +198,7 @@ export class LotConsumptionService {
               productType: 'MP',
               productMpId,
               lotMpId: consumption.lotId,
-              quantity: -consumption.quantity, // Négatif = sortie
+              quantity: consumption.quantity,
               userId,
               referenceType: options?.referenceType,
               referenceId: options?.referenceId,
@@ -218,7 +219,7 @@ export class LotConsumptionService {
 
         // 5. Audit consolidé
         await this.audit.log({
-          actor: { id: userId, role: 'PRODUCTION' as UserRole },
+          actor: { id: userId, role: userRole || ('PRODUCTION' as UserRole) },
           action: 'STOCK_MOVEMENT_CREATED' as any,
           entityType: 'ProductMp',
           entityId: String(productMpId),

@@ -18,6 +18,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { appro, PurchaseOrder } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import {
   Truck,
   ArrowLeft,
@@ -104,6 +106,13 @@ export default function ReceiveBcPage() {
     const linesToSubmit = lines.filter((l) => l.quantityToReceive > 0);
     if (linesToSubmit.length === 0) {
       setError('Veuillez saisir au moins une quantité à réceptionner');
+      return;
+    }
+
+    // Validation DLC et N° Lot obligatoires (traçabilité alimentaire)
+    const missingFields = linesToSubmit.filter((l) => !l.lotNumber || !l.expiryDate);
+    if (missingFields.length > 0) {
+      setError('Le N° de lot et la date d\'expiration (DLC) sont obligatoires pour chaque ligne réceptionnée');
       return;
     }
 
@@ -215,30 +224,19 @@ export default function ReceiveBcPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* ── Page Header ── */}
-      <div className="glass-card rounded-2xl p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href={`/dashboard/appro/bons/${bc.id}`}
-              className="p-2.5 rounded-full text-[#86868B] bg-black/5 hover:bg-black/10 transition-all"
-            >
-              <ArrowLeft className="w-5 h-5" />
+      <PageHeader
+        title={`Réception BC ${bc.reference}`}
+        subtitle={`Fournisseur: ${bc.supplier.name}`}
+        icon={<Truck className="w-5 h-5" />}
+        actions={(
+          <Button asChild variant="outline">
+            <Link href={`/dashboard/appro/bons/${bc.id}`}>
+              <ArrowLeft className="w-4 h-4" />
+              Retour au BC
             </Link>
-            <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#34C759] to-[#30B350] flex items-center justify-center shadow-lg shadow-[#34C759]/25">
-              <Truck className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-[#1D1D1F]">
-                Réception BC {bc.reference}
-              </h1>
-              <p className="text-[#86868B] text-sm">
-                Fournisseur: {bc.supplier.name}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+          </Button>
+        )}
+      />
 
       {/* ── Error alert ── */}
       {error && (
@@ -312,8 +310,8 @@ export default function ReceiveBcPage() {
                   <th className="text-right p-4 text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Commandé</th>
                   <th className="text-right p-4 text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Déjà reçu</th>
                   <th className="text-center p-4 text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Qté à recevoir</th>
-                  <th className="text-center p-4 text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">N° Lot</th>
-                  <th className="text-center p-4 text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Date exp.</th>
+                  <th className="text-center p-4 text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">N° Lot <span className="text-[#FF3B30]">*</span></th>
+                  <th className="text-center p-4 text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Date exp. <span className="text-[#FF3B30]">*</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/[0.04]">
@@ -365,8 +363,12 @@ export default function ReceiveBcPage() {
                           value={line.lotNumber}
                           onChange={(e) => updateLine(line.itemId, 'lotNumber', e.target.value)}
                           placeholder="LOT-XXX"
+                          required={line.quantityToReceive > 0}
                           disabled={isComplete || line.quantityToReceive === 0}
-                          className="w-28 px-3 py-2 border border-black/[0.06] rounded-[10px] text-center text-[#1D1D1F] bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] disabled:bg-[#F5F5F7] disabled:text-[#AEAEB2] transition-all placeholder:text-[#AEAEB2]"
+                          className={cn(
+                            "w-28 px-3 py-2 border rounded-[10px] text-center text-[#1D1D1F] bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] disabled:bg-[#F5F5F7] disabled:text-[#AEAEB2] transition-all placeholder:text-[#AEAEB2]",
+                            line.quantityToReceive > 0 && !line.lotNumber ? 'border-[#FF3B30]/50' : 'border-black/[0.06]'
+                          )}
                         />
                       </td>
                       <td className="p-4">
@@ -374,8 +376,12 @@ export default function ReceiveBcPage() {
                           type="date"
                           value={line.expiryDate}
                           onChange={(e) => updateLine(line.itemId, 'expiryDate', e.target.value)}
+                          required={line.quantityToReceive > 0}
                           disabled={isComplete || line.quantityToReceive === 0}
-                          className="w-36 px-3 py-2 border border-black/[0.06] rounded-[10px] text-[#1D1D1F] bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] disabled:bg-[#F5F5F7] disabled:text-[#AEAEB2] transition-all"
+                          className={cn(
+                            "w-36 px-3 py-2 border rounded-[10px] text-[#1D1D1F] bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] disabled:bg-[#F5F5F7] disabled:text-[#AEAEB2] transition-all",
+                            line.quantityToReceive > 0 && !line.expiryDate ? 'border-[#FF3B30]/50' : 'border-black/[0.06]'
+                          )}
                         />
                       </td>
                     </tr>

@@ -12,6 +12,8 @@ import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
 import { KeyboardHint } from '@/components/ui/keyboard-hint';
 import { ConfirmDialog } from '@/components/ui/modal';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 interface Invoice {
   id: number;
@@ -58,17 +60,7 @@ const invoiceStatuses = [
  * - 30 000 < TTC <= 100 000 DA (10 000 000 centimes) -> 1.5%
  * - TTC > 100 000 DA -> 2%
  */
-const TIMBRE_SEUIL_BAS = 3_000_000;  // 30 000 DA en centimes
-const TIMBRE_SEUIL_HAUT = 10_000_000; // 100 000 DA en centimes
-const TIMBRE_TAUX_BAS = 1;       // 1%
-const TIMBRE_TAUX_MOYEN = 1.5;   // 1.5%
-const TIMBRE_TAUX_HAUT = 2;      // 2%
-
-function calculateTimbreRate(totalTtc: number): number {
-  if (totalTtc <= TIMBRE_SEUIL_BAS) return TIMBRE_TAUX_BAS;
-  if (totalTtc <= TIMBRE_SEUIL_HAUT) return TIMBRE_TAUX_MOYEN;
-  return TIMBRE_TAUX_HAUT;
-}
+import { calculateTimbreRatePercent } from '@/lib/fiscal-rules';
 
 function getStatusStyle(status: string): string {
   return invoiceStatuses.find(s => s.value === status)?.color || 'bg-black/5 text-[#86868B]';
@@ -214,24 +206,18 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#007AFF]/20 to-[#007AFF]/10 flex items-center justify-center shadow-lg shadow-[#007AFF]/10">
-              <FileText className="w-6 h-6 text-[#007AFF]" />
-            </div>
-            <div>
-              <h1 className="text-[22px] font-bold text-[#1D1D1F] tracking-tight">Factures</h1>
-              <p className="text-[13px] text-[#86868B]">{meta.total} facture{meta.total !== 1 ? 's' : ''} au total</p>
-            </div>
-          </div>
-          <button onClick={() => router.push('/dashboard/invoices/new')} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#007AFF] text-white text-sm font-semibold rounded-full hover:bg-[#0056D6] shadow-lg shadow-[#007AFF]/25 transition-all active:scale-[0.97]">
+      <PageHeader
+        title="Factures"
+        subtitle={`${meta.total} facture${meta.total !== 1 ? 's' : ''} au total`}
+        icon={<FileText className="w-5 h-5" />}
+        actions={
+          <Button onClick={() => router.push('/dashboard/invoices/new')} variant="amber">
             <Plus className="w-4 h-4" />
             Nouvelle facture
             <KeyboardHint shortcut="N" />
-          </button>
-        </div>
-      </div>
+          </Button>
+        }
+      />
 
       {/* Table */}
       {isLoading ? (
@@ -445,7 +431,7 @@ export default function InvoicesPage() {
                 </div>
                 {selectedInvoice.timbreFiscal > 0 && (
                   <div className="flex justify-between text-sm mb-1 text-[#FF9500]">
-                    <span>Timbre fiscal ({selectedInvoice.timbreRatePercent || calculateTimbreRate(selectedInvoice.totalTtc)}%)</span>
+                    <span>Timbre fiscal ({selectedInvoice.timbreRatePercent || calculateTimbreRatePercent(selectedInvoice.totalTtc)}%)</span>
                     <span>{formatCurrency(selectedInvoice.timbreFiscal)}</span>
                   </div>
                 )}

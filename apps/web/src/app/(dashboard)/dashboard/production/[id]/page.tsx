@@ -9,6 +9,8 @@ import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import { Factory, Settings, History, ArrowLeft, AlertTriangle, Beaker, Layers, Save, Plus } from 'lucide-react';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import {
   ProductParamsTab,
   ProductRecipeTab,
@@ -534,30 +536,18 @@ export default function ProductionDetailPage() {
 
   return (
     <div className="glass-bg space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between animate-slide-up">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push('/dashboard/production')}
-            className="glass-card-hover p-2.5 rounded-full"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#1D1D1F]" />
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#AF52DE] to-[#8B3CB5] rounded-[14px] flex items-center justify-center shadow-lg">
-              <Factory className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-[24px] font-semibold text-[#1D1D1F]">{product.name}</h1>
-              <div className="flex items-center gap-2 text-sm text-[#86868B]">
-                <span className="font-mono">{product.code}</span>
-                <span>•</span>
-                <span>{formatPrice(product.priceHt)} HT</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={product.name}
+        subtitle={`${product.code} • ${formatPrice(product.priceHt)} HT`}
+        icon={<Factory className="w-5 h-5" />}
+        className="animate-slide-up"
+        actions={(
+          <Button onClick={() => router.push('/dashboard/production')} variant="outline">
+            <ArrowLeft className="w-4 h-4" />
+            Retour
+          </Button>
+        )}
+      />
 
       {/* Tabs */}
       <div className="border-b border-black/[0.04]">

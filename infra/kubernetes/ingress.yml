@@ -1,0 +1,96 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Kubernetes Ingress - Manchengo Smart ERP
+# ═══════════════════════════════════════════════════════════════════════════════
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: manchengo-ingress
+  namespace: manchengo
+  labels:
+    app: manchengo-erp
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "50"
+    nginx.ingress.kubernetes.io/limit-connections: "10"
+spec:
+  tls:
+    - hosts:
+        - erp.manchengo.dz
+        - api.manchengo.dz
+      secretName: manchengo-tls
+
+  rules:
+    # Frontend
+    - host: erp.manchengo.dz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: manchengo-web
+                port:
+                  number: 80
+
+    # Backend API
+    - host: api.manchengo.dz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: manchengo-backend
+                port:
+                  number: 80
+
+---
+# NetworkPolicy - Restrict traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: manchengo-network-policy
+  namespace: manchengo
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # Allow from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+
+    # Allow internal communication
+    - from:
+        - podSelector: {}
+
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+
+    # Allow internal communication
+    - to:
+        - podSelector: {}
+
+    # Allow external HTTPS
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443

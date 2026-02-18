@@ -26,6 +26,12 @@ pub const MIGRATIONS: &[Migration] = &[
         up: include_str!("../migrations/002_reference_data.sql"),
         down: "DELETE FROM ref_units; DELETE FROM ref_wilayas;",
     },
+    Migration {
+        version: 3,
+        name: "sample_products",
+        up: include_str!("../migrations/003_sample_products.sql"),
+        down: "DELETE FROM products_mp WHERE created_by = 'system'; DELETE FROM products_pf WHERE created_by = 'system';",
+    },
 ];
 
 /// Migration manager

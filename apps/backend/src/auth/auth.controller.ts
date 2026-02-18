@@ -25,6 +25,7 @@ import { Roles } from './decorators/roles.decorator';
 import {
   LoginDto,
   CreateUserDto,
+  ChangePasswordDto,
   UserRole,
 } from './dto/auth.dto';
 import {
@@ -34,6 +35,7 @@ import {
   CLEAR_REFRESH_COOKIE_OPTIONS,
   COOKIE_NAMES,
 } from './config/cookie.config';
+import { CsrfMiddleware } from '../common/middleware/csrf.middleware';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -52,9 +54,12 @@ export class AuthController {
   @ApiResponse({ status: 429, description: 'Too many login attempts' })
   async login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.login(dto);
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    const result = await this.authService.login(dto, ipAddress, userAgent);
 
     // Set httpOnly cookies for tokens
     res.cookie(
@@ -68,9 +73,14 @@ export class AuthController {
       REFRESH_TOKEN_COOKIE_OPTIONS,
     );
 
-    // Return user info only (tokens are in httpOnly cookies)
+    // Generate CSRF token for web clients
+    CsrfMiddleware.generateToken(res);
+
+    // Return user info + access token in body
+    // (httpOnly cookies for web, body token for desktop/mobile clients)
     return {
       message: 'Login successful',
+      access_token: result.accessToken,
       user: result.user,
     };
   }
@@ -114,7 +124,13 @@ export class AuthController {
       REFRESH_TOKEN_COOKIE_OPTIONS,
     );
 
-    return { message: 'Token refreshed successfully' };
+    // Renew CSRF token with new session
+    CsrfMiddleware.generateToken(res);
+
+    return {
+      message: 'Token refreshed successfully',
+      access_token: result.accessToken,
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -153,11 +169,24 @@ export class AuthController {
     return this.authService.createUser(dto);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CSRF TOKEN - Generate/refresh CSRF token for web clients
+  // ═══════════════════════════════════════════════════════════════════════════
+  @Get('csrf-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a fresh CSRF token (set as cookie + returned in body)' })
+  @ApiResponse({ status: 200, description: 'CSRF token generated' })
+  async getCsrfToken(@Res({ passthrough: true }) res: Response) {
+    const token = CsrfMiddleware.generateToken(res);
+    return { csrfToken: token };
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user info' })
-  async getMe(@Req() req: Request & { user: Record<string, unknown> }) {
+  async getMe(@Req() req: Request & { user: { passwordHash: string; [key: string]: unknown } }) {
     const { passwordHash, ...user } = req.user;
     return user;
   }
@@ -174,14 +203,14 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   @ApiResponse({ status: 400, description: 'Invalid current password or weak new password' })
   async changePassword(
-    @Body() body: { currentPassword: string; newPassword: string },
-    @Req() req: Request & { user: { sub?: string; id?: string } },
+    @Body() body: ChangePasswordDto,
+    @Req() req: Request & { user: { id: string } },
   ) {
-    const userId = req.user.sub || req.user.id;
+    const userId = req.user.id;
     if (!userId) throw new UnauthorizedException('Utilisateur non identifié');
 
     return this.authService.changePassword(
-      userId as string,
+      userId,
       body.currentPassword,
       body.newPassword,
     );

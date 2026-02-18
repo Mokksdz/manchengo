@@ -8,6 +8,8 @@ import {
   AlertTriangle, AlertCircle, Info, Eye, CheckCircle, Loader2, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import {
   CriticalActionBanner,
   ActionableKpiCard,
@@ -180,8 +182,9 @@ export default function ApproDashboardPage() {
       if (userData?.role) {
         setUserRole(userData.role as UserRole);
       }
-    } catch {
-      // Error handled silently
+    } catch (err) {
+      console.error('Failed to load dashboard:', err);
+      toast.error('Impossible de charger le tableau de bord');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -341,37 +344,27 @@ export default function ApproDashboardPage() {
 
   return (
     <div className="glass-bg space-y-8">
-      {/* ─── Header ─── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[24px] font-semibold text-[#1D1D1F] tracking-[-0.02em]">
-            Approvisionnement
-          </h1>
-          <p className="text-[13px] text-[#86868B] mt-1 flex items-center gap-2">
-            {isAdmin ? 'Vue stratégique' : 'Vue opérationnelle'}
-            {productionBlocked && (
-              <span className="inline-flex items-center gap-1.5 ml-1">
-                <span className="w-[6px] h-[6px] rounded-full bg-[#FF3B30] animate-pulse" />
-                <span className="text-[#FF3B30] font-medium text-[12px]">Action requise</span>
-              </span>
-            )}
-            {!productionBlocked && toutVaBien && (
-              <span className="inline-flex items-center gap-1.5 ml-1">
-                <span className="w-[6px] h-[6px] rounded-full bg-[#34C759]" />
-                <span className="text-[#34C759] font-medium text-[12px]">Sous contrôle</span>
-              </span>
-            )}
-          </p>
-        </div>
-        <button
-          onClick={() => loadData(true)}
-          disabled={isRefreshing}
-          className="glass-card-hover p-2.5 text-[#86868B] hover:text-[#1D1D1F] disabled:opacity-50"
-          style={{ borderRadius: '14px' }}
-        >
-          <RefreshCw className={`w-[18px] h-[18px] ${isRefreshing ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
+      <PageHeader
+        title="Approvisionnement"
+        subtitle={isAdmin ? 'Vue stratégique' : 'Vue opérationnelle'}
+        icon={<Package className="w-5 h-5" />}
+        badge={productionBlocked
+          ? { text: 'Action requise', variant: 'error' }
+          : toutVaBien
+            ? { text: 'Sous contrôle', variant: 'success' }
+            : undefined}
+        actions={(
+          <Button
+            onClick={() => loadData(true)}
+            disabled={isRefreshing}
+            variant="outline"
+            size="icon"
+            aria-label="Actualiser les données"
+          >
+            <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
+          </Button>
+        )}
+      />
 
       {/* ─── IRS Gauge Panel ─── */}
       <div className="glass-card p-6">

@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { useRequireRole } from '@/lib/hooks/use-require-role';
 import { Skeleton } from '@/components/ui/skeleton-loader';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 /**
  * Monitoring Dashboard Page
@@ -227,32 +229,18 @@ export default function MonitoringPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF3B30]/20 to-[#FF3B30]/10 flex items-center justify-center shadow-lg shadow-[#FF3B30]/10">
-              <Activity className="w-6 h-6 text-[#FF3B30]" />
-            </div>
-            <div>
-              <h1 className="text-[22px] font-bold text-[#1D1D1F] tracking-tight">Monitoring</h1>
-              <p className="text-[13px] text-[#86868B]">{kpis ? `Dernière mise à jour: ${formatDate(kpis.generatedAt)}` : 'Chargement...'}</p>
-            </div>
-            {criticalCount > 0 && (
-              <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-[#FF3B30]/10 text-[#FF3B30] animate-pulse">
-                {criticalCount} critique{criticalCount > 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FF3B30] text-white text-sm font-semibold rounded-full hover:bg-[#D62D22] shadow-lg shadow-[#FF3B30]/25 transition-all active:scale-[0.97] disabled:opacity-50"
-          >
+      <PageHeader
+        title="Monitoring"
+        subtitle={kpis ? `Dernière mise à jour: ${formatDate(kpis.generatedAt)}` : 'Chargement...'}
+        icon={<Activity className="w-5 h-5" />}
+        badge={criticalCount > 0 ? { text: `${criticalCount} critique${criticalCount > 1 ? 's' : ''}`, variant: 'error' } : undefined}
+        actions={
+          <Button onClick={fetchData} disabled={loading} variant="outline">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
-          </button>
-        </div>
-      </div>
+          </Button>
+        }
+      />
 
       {/* Error */}
       {error && (

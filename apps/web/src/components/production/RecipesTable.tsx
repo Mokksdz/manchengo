@@ -5,9 +5,6 @@ import {
   BookOpen,
   Plus,
   ChevronRight,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
 } from 'lucide-react';
 import { type Recipe, type RecipeStatus, getRecipeStatus, getStatusBadge } from './recettes-types';
 
@@ -15,15 +12,8 @@ import { type Recipe, type RecipeStatus, getRecipeStatus, getStatusBadge } from 
 // RecipeCard (individual item in the list)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const iconMap = {
-  XCircle,
-  AlertTriangle,
-  CheckCircle,
-} as const;
-
 function RecipeCard({ recipe, status, onClick }: { recipe: Recipe; status: RecipeStatus; onClick: () => void }) {
   const badge = getStatusBadge(status);
-  const BadgeIcon = iconMap[badge.icon];
 
   return (
     <div

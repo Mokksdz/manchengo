@@ -1,7 +1,10 @@
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get, Logger, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService } from '../../cache/cache.service';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -77,9 +80,12 @@ export class HealthController {
 
   /**
    * GET /api/health/detailed — Full diagnostic (for admin dashboards)
+   * Protected: exposes sensitive data (version, memory, cache metrics)
    */
   @Get('detailed')
-  @ApiOperation({ summary: 'Detailed health check with metrics' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Detailed health check with metrics (ADMIN only)' })
   async detailed() {
     const [dbCheck, cacheCheck] = await Promise.allSettled([
       this.checkDatabase(),

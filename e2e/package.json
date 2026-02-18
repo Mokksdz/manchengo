@@ -1,0 +1,20 @@
+{
+  "name": "manchengo-e2e",
+  "version": "1.0.0",
+  "description": "E2E tests for Manchengo Smart ERP",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:mobile": "playwright test --project='Mobile Chrome'",
+    "report": "playwright show-report",
+    "codegen": "playwright codegen http://localhost:3001"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.42.0",
+    "@types/node": "^20.11.0"
+  }
+}

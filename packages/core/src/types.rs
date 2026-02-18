@@ -44,6 +44,15 @@ impl std::fmt::Display for EntityId {
     }
 }
 
+impl std::str::FromStr for EntityId {
+    type Err = uuid::Error;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        let uuid = Uuid::parse_str(s)?;
+        Ok(Self(uuid))
+    }
+}
+
 // ============================================================================
 // MONEY & QUANTITIES
 // ============================================================================

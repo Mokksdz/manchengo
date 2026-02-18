@@ -6,6 +6,8 @@ import { FileText, ArrowLeft, Plus, Trash2, CheckCircle, ShoppingCart } from 'lu
 import { authFetch } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import { Skeleton } from '@/components/ui/skeleton-loader';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -45,17 +47,7 @@ const paymentMethods = [
   { value: 'VIREMENT', label: 'Virement' },
 ];
 
-/**
- * Calcule le taux de timbre fiscal selon la législation algérienne
- * - TTC <= 30 000 DA -> 1%
- * - 30 000 < TTC <= 100 000 DA -> 1.5%
- * - TTC > 100 000 DA -> 2%
- */
-function calculateTimbreRate(totalTtc: number): number {
-  if (totalTtc <= 3000000) return 1;       // <= 30,000 DA (centimes) -> 1%
-  if (totalTtc <= 10000000) return 1.5;    // <= 100,000 DA (centimes) -> 1.5%
-  return 2;                                 // > 100,000 DA -> 2%
-}
+import { calculateTimbreRate } from '@/lib/fiscal-rules';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SKELETON LOADING STATE
@@ -188,16 +180,17 @@ export default function CreateInvoicePage() {
     loadData();
   }, [loadData]);
 
-  // Line management
+  // Line management — sélectionne le premier produit non encore utilisé
   const addLine = () => {
     if (products.length === 0) return;
-    const product = products[0];
+    const usedIds = new Set(lines.map(l => l.productPfId));
+    const availableProduct = products.find(p => !usedIds.has(p.id)) || products[0];
     setLines([...lines, {
-      productPfId: product.id,
-      productName: product.name,
+      productPfId: availableProduct.id,
+      productName: availableProduct.name,
       quantity: 1,
-      unitPriceHt: product.priceHt,
-      lineHt: product.priceHt,
+      unitPriceHt: availableProduct.priceHt,
+      lineHt: availableProduct.priceHt,
     }]);
   };
 
@@ -216,11 +209,13 @@ export default function CreateInvoicePage() {
         };
       }
     } else if (field === 'quantity') {
-      newLines[index].quantity = value;
-      newLines[index].lineHt = newLines[index].unitPriceHt * value;
+      const qty = Math.max(1, Math.round(value)); // Force entier >= 1
+      newLines[index].quantity = qty;
+      newLines[index].lineHt = newLines[index].unitPriceHt * qty;
     } else if (field === 'unitPriceHt') {
-      newLines[index].unitPriceHt = value;
-      newLines[index].lineHt = value * newLines[index].quantity;
+      const price = Math.max(0, value); // Force >= 0
+      newLines[index].unitPriceHt = price;
+      newLines[index].lineHt = price * newLines[index].quantity;
     }
     setLines(newLines);
   };
@@ -234,7 +229,7 @@ export default function CreateInvoicePage() {
   const totalTva = Math.round(totalHt * 0.19); // TVA 19%
   const totalTtc = totalHt + totalTva;
   const timbreRate = (applyTimbre && paymentMethod === 'ESPECES') ? calculateTimbreRate(totalTtc) : 0;
-  const timbreFiscal = Math.round(totalTtc * timbreRate / 100);
+  const timbreFiscal = Math.round(totalTtc * timbreRate);
   const netToPay = totalTtc + timbreFiscal;
 
   // Submit
@@ -320,27 +315,17 @@ export default function CreateInvoicePage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Back Button */}
-      <button
-        onClick={() => router.push('/dashboard/invoices')}
-        className="inline-flex items-center gap-2 text-sm font-medium text-[#86868B] hover:text-[#007AFF] transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Retour aux factures
-      </button>
-
-      {/* Page Header */}
-      <div className="glass-card p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#007AFF]/20 to-[#007AFF]/10 flex items-center justify-center shadow-lg shadow-[#007AFF]/10">
-            <FileText className="w-6 h-6 text-[#007AFF]" />
-          </div>
-          <div>
-            <h1 className="text-[22px] font-bold text-[#1D1D1F] tracking-tight">Nouvelle facture</h1>
-            <p className="text-[13px] text-[#86868B]">Créer une nouvelle facture de vente</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Nouvelle facture"
+        subtitle="Créer une nouvelle facture de vente"
+        icon={<FileText className="w-5 h-5" />}
+        actions={(
+          <Button onClick={() => router.push('/dashboard/invoices')} variant="outline">
+            <ArrowLeft className="w-4 h-4" />
+            Retour aux factures
+          </Button>
+        )}
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Error */}
@@ -397,7 +382,7 @@ export default function CreateInvoicePage() {
                 className="w-4 h-4 rounded border-[#E5E5E5] text-[#007AFF] focus:ring-[#007AFF]/20"
               />
               <span className="text-sm text-[#1D1D1F]">
-                Appliquer le timbre fiscal <span className="font-medium text-[#FF9500]">({timbreRate}%)</span>
+                Appliquer le timbre fiscal <span className="font-medium text-[#FF9500]">({timbreRate * 100}%)</span>
               </span>
             </label>
           )}
@@ -509,7 +494,7 @@ export default function CreateInvoicePage() {
             </div>
             {timbreFiscal > 0 && (
               <div className="flex justify-between text-sm py-1 text-[#FF9500]">
-                <span>Timbre fiscal ({timbreRate}%)</span>
+                <span>Timbre fiscal ({timbreRate * 100}%)</span>
                 <span className="font-medium">{formatPrice(timbreFiscal)}</span>
               </div>
             )}

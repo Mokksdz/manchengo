@@ -16,6 +16,18 @@ import {
 import { ClientFormModal } from '@/components/clients/ClientFormModal';
 import { ClientsTable } from '@/components/clients/ClientsTable';
 import { ClientFilters, type TabKey } from '@/components/clients/ClientFilters';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -28,6 +40,7 @@ export default function ClientsPage() {
   const [formData, setFormData] = useState<ClientFormData>({ ...EMPTY_FORM_DATA });
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -78,11 +91,15 @@ export default function ClientsPage() {
     router.push(`/dashboard/clients/${client.id}/historique`);
   };
 
-  const handleDelete = async (client: Client) => {
-    if (!confirm(`Supprimer le client "${client.name}" ?`)) return;
+  const handleDelete = (client: Client) => {
+    setDeleteTarget(client);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
 
     try {
-      const res = await authFetch(`/admin/clients/${client.id}`, {
+      const res = await authFetch(`/admin/clients/${deleteTarget.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -96,6 +113,8 @@ export default function ClientsPage() {
       loadData();
     } catch {
       toast.error('Erreur lors de la suppression');
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -111,28 +130,18 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Glass Page Header */}
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#007AFF]/20 to-[#007AFF]/10 flex items-center justify-center shadow-lg shadow-[#007AFF]/10">
-              <Users className="w-6 h-6 text-[#007AFF]" />
-            </div>
-            <div>
-              <h1 className="text-[22px] font-bold text-[#1D1D1F] tracking-tight">Clients</h1>
-              <p className="text-[13px] text-[#86868B]">Gestion des clients et leurs informations fiscales</p>
-            </div>
-          </div>
-          <button
-            onClick={openCreateModal}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#007AFF] text-white text-sm font-semibold rounded-full hover:bg-[#0056D6] shadow-lg shadow-[#007AFF]/25 transition-all active:scale-[0.97]"
-          >
+      <PageHeader
+        title="Clients"
+        subtitle="Gestion des clients et leurs informations fiscales"
+        icon={<Users className="w-5 h-5" />}
+        actions={
+          <Button onClick={openCreateModal} variant="amber">
             <Plus className="w-4 h-4" />
             Ajouter un client
             <KeyboardHint shortcut="N" />
-          </button>
-        </div>
-      </div>
+          </Button>
+        }
+      />
 
       {/* Filters (stats + tabs + search) */}
       <ClientFilters
@@ -162,6 +171,24 @@ export default function ClientsPage() {
         onFormChange={setFormData}
         onSuccess={loadData}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer le client</AlertDialogTitle>
+            <AlertDialogDescription>
+              Supprimer le client &laquo; {deleteTarget?.name} &raquo; ? Cette action est irr&eacute;versible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -15,13 +15,10 @@ import {
   RefreshCw,
   Download,
   Shield,
-  Activity,
   BookOpen,
-  ShoppingCart,
   BarChart3,
   LayoutDashboard,
   Calendar,
-  Settings,
   Plus,
   ArrowRight,
   CornerDownLeft,
@@ -70,7 +67,6 @@ const navigationItems: CommandItem[] = [
 
   // Approvisionnement
   { id: 'nav-appro-cockpit', label: 'Cockpit Appro', description: 'Approvisionnement > Cockpit', icon: <LayoutDashboard className="w-4 h-4" />, category: 'navigation', href: '/dashboard/appro', keywords: ['approvisionnement', 'cockpit', 'appro', 'supply'], roles: ['ADMIN', 'APPRO'] },
-  { id: 'nav-appro-demandes', label: 'Demandes', description: 'Approvisionnement > Demandes', icon: <ShoppingCart className="w-4 h-4" />, category: 'navigation', href: '/dashboard/appro/demandes', keywords: ['approvisionnement', 'demande', 'request'], roles: ['ADMIN', 'APPRO'] },
   { id: 'nav-appro-bons', label: 'Bons de Commande', description: 'Approvisionnement > Bons de Commande', icon: <FileText className="w-4 h-4" />, category: 'navigation', href: '/dashboard/appro/bons', keywords: ['approvisionnement', 'bon', 'commande', 'purchase order', 'po'], roles: ['ADMIN', 'APPRO'] },
   { id: 'nav-appro-fourn', label: 'Fournisseurs', description: 'Approvisionnement > Fournisseurs', icon: <Truck className="w-4 h-4" />, category: 'navigation', href: '/dashboard/appro/fournisseurs', keywords: ['approvisionnement', 'fournisseur', 'supplier', 'vendor'], roles: ['ADMIN', 'APPRO'] },
 

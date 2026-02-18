@@ -55,7 +55,7 @@ export function ProductionImpactMiniList({ productions, onViewProduction }: Prod
   const atRiskCount = productions.filter(p => p.status === 'AT_RISK').length;
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E5E5] p-4">
+    <div className="glass-card rounded-xl p-4">
       <div className="flex items-center gap-2 mb-3">
         <Factory className="w-5 h-5 text-purple-500" />
         <h4 className="font-bold text-[#1D1D1F]">Productions impactées</h4>

@@ -1,11 +1,15 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { authFetch } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import {
   Package, Clock, Calendar,
   Droplets, Box, RefreshCw
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -67,6 +71,8 @@ function StockBar({ current, total }: { current: number; total: number }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function LotsPage() {
+  const { user } = useAuth();
+  const canSeePF = user?.role === 'ADMIN' || user?.role === 'PRODUCTION';
   const [activeTab, setActiveTab] = useState<TabType>('MP');
   const [lots, setLots] = useState<LotInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,12 +87,11 @@ export default function LotsPage() {
   const loadLots = useCallback(async () => {
     setIsLoading(true);
     try {
-      const endpoint = activeTab === 'MP' ? '/api/lots/mp' : '/api/lots/pf';
+      const endpoint = activeTab === 'MP' ? '/lots/mp' : '/lots/pf';
       const includeInactive = filter === 'ALL' || filter === 'EXPIRED';
 
-      const res = await fetch(
+      const res = await authFetch(
         `${endpoint}?includeInactive=${includeInactive}`,
-        { credentials: 'include' }
       );
 
       if (res.ok) {
@@ -117,36 +122,23 @@ export default function LotsPage() {
 
   return (
     <div className="glass-bg space-y-6">
-      {/* ─── Header ─── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1D1D1F]">
-            Gestion des Lots
-          </h1>
-          <p className="text-[13px] text-[#86868B] mt-1">
-            Traçabilité, DLC et FIFO
-            {stats.expired > 0 && (
-              <span className="ml-2 inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30]" />
-                <span className="text-[#FF3B30] font-medium">{stats.expired} expiré(s)</span>
-              </span>
-            )}
-            {stats.soonExpired > 0 && stats.expired === 0 && (
-              <span className="ml-2 inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF9500]" />
-                <span className="text-[#FF9500] font-medium">{stats.soonExpired} bientôt</span>
-              </span>
-            )}
-          </p>
-        </div>
-        <button
-          onClick={loadLots}
-          className="p-2.5 glass-card-hover transition-all text-[#8E8E93] hover:text-[#1D1D1F]"
-          style={{ borderRadius: '14px' }}
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </div>
+      <PageHeader
+        title="Gestion des Lots"
+        subtitle="Traçabilité, DLC et FIFO"
+        icon={<Package className="w-5 h-5" />}
+        badge={
+          stats.expired > 0
+            ? { text: `${stats.expired} expiré(s)`, variant: 'error' }
+            : stats.soonExpired > 0
+              ? { text: `${stats.soonExpired} bientôt`, variant: 'warning' }
+              : { text: 'Lots sains', variant: 'success' }
+        }
+        actions={
+          <Button onClick={loadLots} variant="outline" size="icon" className="rounded-full">
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        }
+      />
 
       {/* ─── Tabs MP / PF ─── */}
       <div className="flex gap-1.5">
@@ -162,18 +154,20 @@ export default function LotsPage() {
           <Droplets className="w-4 h-4" />
           Matières Premières
         </button>
-        <button
-          onClick={() => setActiveTab('PF')}
-          className={cn(
-            'flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-medium transition-all',
-            activeTab === 'PF'
-              ? 'bg-[#1D1D1F] text-white shadow-sm'
-              : 'glass-card text-[#8E8E93] hover:bg-white/40'
-          )}
-        >
-          <Box className="w-4 h-4" />
-          Produits Finis
-        </button>
+        {canSeePF && (
+          <button
+            onClick={() => setActiveTab('PF')}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-medium transition-all',
+              activeTab === 'PF'
+                ? 'bg-[#1D1D1F] text-white shadow-sm'
+                : 'glass-card text-[#8E8E93] hover:bg-white/40'
+            )}
+          >
+            <Box className="w-4 h-4" />
+            Produits Finis
+          </button>
+        )}
       </div>
 
       {/* ─── KPI Strip ─── */}

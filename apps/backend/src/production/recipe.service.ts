@@ -222,7 +222,7 @@ export class RecipeService {
             quantity: item.quantity,
             unit: item.unit,
             unitCost: item.unitCost,
-            affectsStock: item.type === 'FLUID' ? false : true,
+            affectsStock: item.affectsStock ?? (item.type === 'FLUID' ? false : true),
             isMandatory: item.isMandatory ?? true,
             isSubstitutable: item.isSubstitutable ?? false,
             substituteIds: item.substituteIds ?? [],
@@ -261,6 +261,22 @@ export class RecipeService {
       throw new NotFoundException(`Recette #${id} introuvable`);
     }
 
+    // Bug #45: Validate batchWeight and outputQuantity
+    if (dto.batchWeight !== undefined && dto.batchWeight <= 0) {
+      throw new BadRequestException('Le poids du batch doit être supérieur à 0');
+    }
+    if (dto.outputQuantity !== undefined && dto.outputQuantity <= 0) {
+      throw new BadRequestException('La quantité de sortie doit être supérieure à 0');
+    }
+
+    // Bug #48: Check for active production orders before modifying recipe
+    const activeOrders = await this.prisma.productionOrder.count({
+      where: { recipeId: id, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+    });
+    if (activeOrders > 0) {
+      throw new BadRequestException(`Impossible de modifier la recette: ${activeOrders} ordre(s) de production en cours`);
+    }
+
     const updated = await this.prisma.recipe.update({
       where: { id },
       data: {
@@ -296,12 +312,25 @@ export class RecipeService {
    * Ajouter un item à une recette (MP, FLUID ou PACKAGING)
    */
   async addItem(recipeId: number, dto: CreateRecipeItemDto) {
+    // Bug #47b: Validate productMpId for MP items
+    if ((!dto.type || dto.type === 'MP') && !dto.productMpId) {
+      throw new BadRequestException('productMpId est obligatoire pour les items de type MP');
+    }
+
     const recipe = await this.prisma.recipe.findUnique({
       where: { id: recipeId },
     });
 
     if (!recipe) {
       throw new NotFoundException(`Recette #${recipeId} introuvable`);
+    }
+
+    // Bug #48: Check for active production orders before modifying recipe
+    const activeOrders = await this.prisma.productionOrder.count({
+      where: { recipeId, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+    });
+    if (activeOrders > 0) {
+      throw new BadRequestException(`Impossible de modifier la recette: ${activeOrders} ordre(s) de production en cours`);
     }
 
     const itemType = dto.type || 'MP';
@@ -344,7 +373,7 @@ export class RecipeService {
         quantity: dto.quantity,
         unit: dto.unit,
         unitCost: dto.unitCost,
-        affectsStock: itemType === 'FLUID' ? false : true,
+        affectsStock: dto.affectsStock ?? (itemType === 'FLUID' ? false : true),
         isMandatory: dto.isMandatory ?? true,
         isSubstitutable: dto.isSubstitutable ?? false,
         substituteIds: dto.substituteIds ?? [],
@@ -422,6 +451,14 @@ export class RecipeService {
       throw new NotFoundException(`Item #${itemId} introuvable dans la recette #${recipeId}`);
     }
 
+    // Bug #48: Check for active production orders before modifying recipe
+    const activeOrders = await this.prisma.productionOrder.count({
+      where: { recipeId, status: { in: ['PENDING', 'IN_PROGRESS'] } },
+    });
+    if (activeOrders > 0) {
+      throw new BadRequestException(`Impossible de modifier la recette: ${activeOrders} ordre(s) de production en cours`);
+    }
+
     await this.prisma.recipeItem.delete({
       where: { id: itemId },
     });
@@ -474,10 +511,13 @@ export class RecipeService {
       stockItems.map(async (item: any) => {
         const requiredQty = item.quantity * batchCount;
 
-        // Calculer stock disponible (somme des lots actifs non expirés)
+        // Calculer stock disponible (lots AVAILABLE, non expirés, avec quantité > 0)
+        // IMPORTANT: Aligné avec lot-consumption.service.ts qui filtre aussi par status AVAILABLE
         const lots = await this.prisma.lotMp.findMany({
           where: {
             productId: item.productMpId,
+            status: 'AVAILABLE',
+            quantityRemaining: { gt: 0 },
             OR: [
               { expiryDate: null },
               { expiryDate: { gt: new Date() } },

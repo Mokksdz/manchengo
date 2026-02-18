@@ -103,7 +103,7 @@ function MetricPill({ label, value, icon: Icon, alert }: {
 
 export function ZoneSante({ data, summary }: ZoneSanteProps) {
   return (
-    <div className="bg-white rounded-2xl border border-[#E5E5E5] overflow-hidden h-full flex flex-col">
+    <div className="glass-card rounded-2xl overflow-hidden h-full flex flex-col">
       {/* Accent bar — always green for health */}
       <div className="h-[3px] bg-gradient-to-r from-[#34C759] to-[#30D158]" />
 

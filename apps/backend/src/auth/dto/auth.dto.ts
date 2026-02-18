@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsEnum, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsEmail, IsEnum, IsOptional, MinLength, Matches } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 
@@ -11,7 +11,7 @@ export class LoginDto {
 
   @ApiProperty({ example: 'password123' })
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
   password: string;
 
   @ApiPropertyOptional({ description: 'Device UUID for mobile login' })
@@ -45,9 +45,13 @@ export class CreateUserDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123' })
+  @ApiProperty({ example: 'P@ssword1234!' })
   @IsString()
-  @MinLength(6)
+  @MinLength(12, { message: 'Le mot de passe doit contenir au moins 12 caractères' })
+  @Matches(/[A-Z]/, { message: 'Le mot de passe doit contenir au moins une majuscule' })
+  @Matches(/[a-z]/, { message: 'Le mot de passe doit contenir au moins une minuscule' })
+  @Matches(/[0-9]/, { message: 'Le mot de passe doit contenir au moins un chiffre' })
+  @Matches(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, { message: 'Le mot de passe doit contenir au moins un caractère spécial' })
   password: string;
 
   @ApiProperty({ example: 'Jean' })
@@ -80,6 +84,20 @@ export class RegisterDeviceDto {
   @IsString()
   @IsOptional()
   appVersion?: string;
+}
+
+export class ChangePasswordDto {
+  @IsString()
+  @MinLength(1, { message: 'Le mot de passe actuel est obligatoire' })
+  currentPassword: string;
+
+  @IsString()
+  @MinLength(12, { message: 'Le nouveau mot de passe doit contenir au moins 12 caractères' })
+  @Matches(/[A-Z]/, { message: 'Le mot de passe doit contenir au moins une majuscule' })
+  @Matches(/[a-z]/, { message: 'Le mot de passe doit contenir au moins une minuscule' })
+  @Matches(/[0-9]/, { message: 'Le mot de passe doit contenir au moins un chiffre' })
+  @Matches(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, { message: 'Le mot de passe doit contenir au moins un caractère spécial' })
+  newPassword: string;
 }
 
 // Response types

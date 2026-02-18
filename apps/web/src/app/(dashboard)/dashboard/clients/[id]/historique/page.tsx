@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils';
 import { authFetch } from '@/lib/api';
 import { formatPrice, formatDate } from '@/lib/format';
 import { Skeleton } from '@/components/ui/skeleton-loader';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -178,17 +180,7 @@ export default function ClientHistoriquePage() {
   // Initial loading state
   if (isLoading && !historyData) {
     return (
-      <div className="space-y-6 animate-slide-up">
-        {/* Back button */}
-        <button
-          onClick={() => router.push('/dashboard/clients')}
-          className="inline-flex items-center gap-2 text-sm font-medium text-[#86868B] hover:text-[#007AFF] transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Retour aux clients
-        </button>
-        <HistorySkeleton />
-      </div>
+      <div className="space-y-6 animate-slide-up"><HistorySkeleton /></div>
     );
   }
 
@@ -196,36 +188,18 @@ export default function ClientHistoriquePage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Back Button */}
-      <button
-        onClick={() => router.push('/dashboard/clients')}
-        className="inline-flex items-center gap-2 text-sm font-medium text-[#86868B] hover:text-[#007AFF] transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Retour aux clients
-      </button>
-
-      {/* Page Header */}
-      <div className="glass-card p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#007AFF]/20 to-[#007AFF]/10 flex items-center justify-center shadow-lg shadow-[#007AFF]/10">
-            <History className="w-6 h-6 text-[#007AFF]" />
-          </div>
-          <div>
-            <h1 className="text-[22px] font-bold text-[#1D1D1F] tracking-tight">Historique Ventes</h1>
-            <div className="flex items-center gap-2 mt-0.5">
-              <p className="text-[13px] text-[#86868B]">
-                {client?.name} ({client?.code})
-              </p>
-              {client?.type && typeConfig[client.type] && (
-                <span className={cn('inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold', typeConfig[client.type].color)}>
-                  {typeConfig[client.type].label}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Historique ventes"
+        subtitle={client ? `${client.name} (${client.code})` : 'Client'}
+        icon={<History className="w-5 h-5" />}
+        badge={client?.type && typeConfig[client.type] ? { text: typeConfig[client.type].label, variant: 'info' } : undefined}
+        actions={(
+          <Button onClick={() => router.push('/dashboard/clients')} variant="outline">
+            <ArrowLeft className="w-4 h-4" />
+            Retour aux clients
+          </Button>
+        )}
+      />
 
       {/* Filters */}
       <div className="glass-card p-5">

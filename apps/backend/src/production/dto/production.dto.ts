@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsString, IsOptional, Min, Max, IsDateString, IsNumber, IsEnum } from 'class-validator';
+import { IsInt, IsString, IsOptional, IsNotEmpty, MinLength, Min, Max, IsDateString, IsNumber, IsEnum } from 'class-validator';
 
 /**
  * DTO pour créer un ordre de production
@@ -46,13 +46,38 @@ export class CreateProductionOrderDto {
  */
 export class CompleteProductionDto {
   @ApiProperty({
-    description: 'Quantité réellement produite',
+    description: 'Quantité réellement produite (doit être > 0, sinon annuler la production)',
     example: 95,
-    minimum: 0,
+    minimum: 1,
   })
   @IsNumber()
-  @Min(0)
+  @Min(1, { message: 'La quantité produite doit être supérieure à 0. Pour une production nulle, utilisez l\'annulation.' })
   quantityProduced: number;
+
+  @ApiPropertyOptional({
+    description: 'Poids réel du batch (kg)',
+    example: 48.5,
+  })
+  @IsOptional()
+  @IsNumber()
+  batchWeightReal?: number;
+
+  @ApiPropertyOptional({
+    description: 'Statut qualité (PASSED, FAILED, PENDING)',
+    example: 'PASSED',
+    enum: ['PASSED', 'FAILED', 'PENDING'],
+  })
+  @IsOptional()
+  @IsString()
+  qualityStatus?: string;
+
+  @ApiPropertyOptional({
+    description: 'Notes de contrôle qualité',
+    example: 'Conforme aux spécifications',
+  })
+  @IsOptional()
+  @IsString()
+  qualityNotes?: string;
 
   @ApiPropertyOptional({
     description: 'Notes de fin de production',
@@ -67,13 +92,14 @@ export class CompleteProductionDto {
  * DTO pour annuler une production
  */
 export class CancelProductionDto {
-  @ApiPropertyOptional({
-    description: 'Raison de l\'annulation',
+  @ApiProperty({
+    description: 'Raison de l\'annulation (obligatoire pour traçabilité audit)',
     example: 'Matières premières insuffisantes',
   })
-  @IsOptional()
+  @IsNotEmpty({ message: 'Le motif d\'annulation est obligatoire pour la traçabilité' })
   @IsString()
-  reason?: string;
+  @MinLength(10, { message: 'Le motif doit contenir au moins 10 caractères' })
+  reason: string;
 }
 
 /**

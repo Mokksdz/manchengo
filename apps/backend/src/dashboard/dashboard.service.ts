@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { SyncService } from '../sync/sync.service';
 import { CacheService, CacheTTL } from '../cache/cache.service';
 
 /**
@@ -15,7 +14,6 @@ export class DashboardService {
 
   constructor(
     private prisma: PrismaService,
-    private syncService: SyncService,
     private cacheService: CacheService,
   ) {}
 
@@ -55,7 +53,7 @@ export class DashboardService {
       this.getTodaySalesAmount().catch(() => 0),
       this.getTodayInvoicesCount().catch(() => 0),
       this.getOfflineDevicesCount().catch(() => 0),
-      this.syncService.getPendingEventsCount().catch(() => 0),
+      this.prisma.syncEvent.count({ where: { status: 'PENDING' } }).catch(() => 0),
     ]);
 
     return {
@@ -285,11 +283,32 @@ export class DashboardService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async getSyncStatus() {
-    return this.syncService.getDeviceSyncStatus();
+    const devices = await this.prisma.device.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, lastSyncAt: true },
+    });
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    return devices.map((d) => ({
+      deviceId: d.id,
+      name: d.name,
+      lastSync: d.lastSyncAt?.toISOString() ?? null,
+      online: d.lastSyncAt ? d.lastSyncAt > oneHourAgo : false,
+    }));
   }
 
   async getRecentSyncEvents(limit = 20) {
-    return this.syncService.getRecentEvents(limit);
+    return this.prisma.syncEvent.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: {
+        id: true,
+        entityType: true,
+        action: true,
+        status: true,
+        deviceId: true,
+        createdAt: true,
+      },
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

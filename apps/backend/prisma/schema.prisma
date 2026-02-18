@@ -34,6 +34,8 @@ model User {
   isActive     Boolean   @default(true) @map("is_active")
   mustChangePassword Boolean @default(false) @map("must_change_password") // R3: Force password change for seed users
   passwordChangedAt  DateTime? @map("password_changed_at") // R3: Track last password change
+  failedLoginAttempts Int @default(0) @map("failed_login_attempts")
+  lastFailedLoginAt   DateTime? @map("last_failed_login_at")
   // Soft delete
   isDeleted    Boolean   @default(false) @map("is_deleted")
   deletedAt    DateTime? @map("deleted_at")
@@ -265,16 +267,16 @@ model ProductMp {
   // Criticité et priorité
   criticite           MpCriticite   @default(MOYENNE)
   
-  // Fournisseur principal
+  // Fournisseur principal (utilisé par appro, production-supply-risks)
   fournisseurPrincipalId Int?       @map("fournisseur_principal_id")
   
   // Périssabilité (pour seuils inventaire)
   isPerishable        Boolean       @default(true) @map("is_perishable")
   
-  // Stock physique (dernier inventaire)
+  // Stock physique (dernier inventaire — mis à jour par inventory.service)
   lastPhysicalStock     Float?      @map("last_physical_stock")
   lastPhysicalStockDate DateTime?   @map("last_physical_stock_date")
-  
+
   createdAt      DateTime          @default(now()) @map("created_at")
   updatedAt      DateTime          @updatedAt @map("updated_at")
 
@@ -312,10 +314,10 @@ model ProductPf {
   brandId       Int?           @map("brand_id")
   familyId      Int?           @map("family_id")
   
-  // Stock physique (dernier inventaire)
+  // Stock physique (dernier inventaire — mis à jour par inventory.service)
   lastPhysicalStock     Float?      @map("last_physical_stock")
   lastPhysicalStockDate DateTime?   @map("last_physical_stock_date")
-  
+
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
 
@@ -608,6 +610,8 @@ model StockMovement {
   @@index([productType, productMpId, isDeleted, movementType])
   @@index([productType, productPfId, isDeleted, movementType])
   @@index([movementType, productMpId])
+  @@index([productMpId, createdAt])
+  @@index([productPfId, createdAt])
   @@index([createdAt])
   @@index([userId, createdAt])
   @@map("stock_movements")
@@ -825,7 +829,7 @@ model RecipeItem {
   // Impact stock
   affectsStock    Boolean         @default(true) @map("affects_stock")
   
-  // Options
+  // Options (substituteIds: IDs de ProductMp substituables — utilisé par recipe.service)
   isMandatory     Boolean         @default(true) @map("is_mandatory")
   isSubstitutable Boolean         @default(false) @map("is_substitutable")
   substituteIds   Int[]           @default([]) @map("substitute_ids")
@@ -916,7 +920,11 @@ model ProductionConsumption {
   
   // Coût
   unitCost          Int?      @map("unit_cost") // Coût unitaire du lot consommé
-  
+
+  // Traçabilité annulation: marqué true au lieu de supprimer
+  isReversed        Boolean   @default(false) @map("is_reversed")
+  reversedAt        DateTime? @map("reversed_at")
+
   createdAt         DateTime  @default(now()) @map("created_at")
 
   productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
@@ -1519,8 +1527,12 @@ enum AuditAction {
   USER_CREATED
   USER_UPDATED
   USER_DEACTIVATED
+  USER_BLOCKED
+  USER_UNBLOCKED
+  PASSWORD_RESET
+  STOCK_ADJUSTED
   DEVICE_REVOKED
-  
+
   // Manual overrides (HIGH RISK)
   MANUAL_OVERRIDE
 }

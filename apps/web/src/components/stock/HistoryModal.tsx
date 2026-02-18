@@ -48,8 +48,10 @@ export const HistoryModal = memo(function HistoryModal({ isOpen, onClose, produc
 
   useEffect(() => {
     if (isOpen && product) {
+      setFilter('ALL');
       loadMovements();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, product]);
 
   const loadMovements = async () => {
@@ -81,8 +83,8 @@ export const HistoryModal = memo(function HistoryModal({ isOpen, onClose, produc
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       
-      <div role="dialog" aria-modal="true" className="relative bg-white/95 backdrop-blur-xl rounded-[16px] shadow-apple-elevated w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/20 bg-white/95 backdrop-blur-xl">
+      <div role="dialog" aria-modal="true" className="relative glass-card rounded-[18px] w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/70 bg-white/72 backdrop-blur-[18px]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#007AFF]/10 rounded-lg flex items-center justify-center">
               <History className="w-5 h-5 text-[#007AFF]" />

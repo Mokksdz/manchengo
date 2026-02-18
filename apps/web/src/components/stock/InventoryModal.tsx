@@ -42,7 +42,7 @@ export const InventoryModal = memo(function InventoryModal({ isOpen, onClose, on
     }
   }, [isOpen, product, theoreticalStock]);
 
-  const canSubmit = reason.trim().length > 0 && physicalQuantity >= 0;
+  const canSubmit = reason.trim().length >= 10 && physicalQuantity >= 0;
 
   const handleSubmit = async () => {
     if (!canSubmit || !product) return;
@@ -82,15 +82,15 @@ export const InventoryModal = memo(function InventoryModal({ isOpen, onClose, on
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="inventory-modal-title">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-white rounded-[16px] shadow-apple-elevated w-full max-w-md overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E5E5E5] bg-white">
+      <div className="relative glass-card rounded-[18px] w-full max-w-md overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/70 bg-white/70 backdrop-blur-[18px]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
             </div>
             <div>
               <h2 id="inventory-modal-title" className="text-lg font-semibold text-[#1D1D1F]">Inventaire Stock</h2>
-              <p className="text-sm text-amber-100">Action auditée - ADMIN</p>
+              <p className="text-sm text-[#86868B]">Action auditée - ADMIN</p>
             </div>
           </div>
           <button onClick={onClose} className="text-[#86868B] hover:text-[#1D1D1F]" aria-label="Fermer">
@@ -124,7 +124,7 @@ export const InventoryModal = memo(function InventoryModal({ isOpen, onClose, on
                 value={physicalQuantity}
                 onChange={(e) => setPhysicalQuantity(Number(e.target.value))}
                 min={0}
-                step={0.01}
+                step={1}
                 className="flex-1 px-3 py-2 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
               />
               <span className="text-[#86868B]">{product.unit}</span>
@@ -169,6 +169,7 @@ export const InventoryModal = memo(function InventoryModal({ isOpen, onClose, on
               rows={2}
               className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
             />
+            <p className="text-xs text-[#86868B] mt-1">Minimum 10 caractères ({reason.trim().length}/10)</p>
           </div>
 
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">

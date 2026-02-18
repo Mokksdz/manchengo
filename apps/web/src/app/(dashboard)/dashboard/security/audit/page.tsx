@@ -16,8 +16,11 @@ import {
   Shield,
   AlertCircle,
 } from 'lucide-react';
-import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
+import { SkeletonTable } from '@/components/ui/skeleton-loader';
 import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
 
 /**
  * Security Audit Logs Page
@@ -68,20 +71,24 @@ export default function SecurityAuditPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 25;
 
-  const fetchLogs = async () => {
+  const [totalPages, setTotalPages] = useState(1);
+
+  const fetchLogs = async (page = currentPage) => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams();
       if (actionFilter) params.set('action', actionFilter);
-      params.set('limit', '100');
+      params.set('limit', String(ITEMS_PER_PAGE));
+      params.set('page', String(page));
 
-      // A6: Use /admin/security-logs endpoint (created in admin controller)
+      // Server-side pagination: backend returns only the requested page
       const res = await authFetch(`/admin/security-logs?${params}`, { credentials: 'include' });
       if (!res.ok) throw new Error('Failed to fetch logs');
       const data = await res.json();
-      setLogs(Array.isArray(data) ? data : data.logs || []);
-      setTotal(Array.isArray(data) ? data.length : data.total || 0);
+      setLogs(data.logs || []);
+      setTotal(data.total || 0);
+      setTotalPages(data.totalPages || 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading logs');
     } finally {
@@ -90,8 +97,13 @@ export default function SecurityAuditPage() {
   };
 
   useEffect(() => {
-    fetchLogs();
+    setCurrentPage(1);
+    fetchLogs(1);
   }, [actionFilter]);
+
+  useEffect(() => {
+    fetchLogs(currentPage);
+  }, [currentPage]);
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleString('fr-FR', {
@@ -108,11 +120,8 @@ export default function SecurityAuditPage() {
     return actionLabels[action] || { label: action, icon: FileText, color: 'text-[#6E6E73]' };
   };
 
-  // Pagination
-  const totalPages = Math.ceil(logs.length / ITEMS_PER_PAGE);
-  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIdx = startIdx + ITEMS_PER_PAGE;
-  const paginatedLogs = useMemo(() => logs.slice(startIdx, endIdx), [logs, startIdx, endIdx]);
+  // Server-side pagination: logs already contains only the current page
+  const paginatedLogs = logs;
 
   // Column definitions for ResponsiveTable
   const auditColumns: Column<SecurityLog>[] = useMemo(() => [
@@ -234,18 +243,11 @@ export default function SecurityAuditPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF9500]/20 to-[#FF9500]/10 flex items-center justify-center shadow-lg shadow-[#FF9500]/10">
-              <FileText className="w-6 h-6 text-[#FF9500]" />
-            </div>
-            <div>
-              <h1 className="text-[22px] font-bold text-[#1D1D1F] tracking-tight">Journal de Sécurité</h1>
-              <p className="text-[13px] text-[#86868B]">{total} événement{total !== 1 ? 's' : ''} au total</p>
-            </div>
-          </div>
+      <PageHeader
+        title="Journal de Sécurité"
+        subtitle={`${total} événement${total !== 1 ? 's' : ''} au total`}
+        icon={<FileText className="w-5 h-5" />}
+        actions={
           <div className="flex items-center gap-2">
             <select
               value={actionFilter}
@@ -262,17 +264,13 @@ export default function SecurityAuditPage() {
               <option value="ROLE_CHANGE">Changements de rôle</option>
               <option value="ACCESS_DENIED">Accès refusés</option>
             </select>
-            <button
-              onClick={fetchLogs}
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-black/5 text-[#1D1D1F] rounded-full hover:bg-black/10 transition-all font-medium"
-            >
+            <Button onClick={() => fetchLogs()} disabled={loading} variant="outline">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Actualiser
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Error */}
       {error && (
@@ -326,30 +324,12 @@ export default function SecurityAuditPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="glass-card flex items-center justify-between px-6 py-4">
-              <p className="text-[13px] text-[#86868B]">
-                {startIdx + 1}-{Math.min(endIdx, logs.length)} sur {logs.length}
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1.5 rounded-full text-[13px] font-medium border border-black/[0.04] hover:bg-white/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  Précédent
-                </button>
-                <span className="text-[13px] text-[#1D1D1F] font-medium px-2">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 rounded-full text-[13px] font-medium border border-black/[0.04] hover:bg-white/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  Suivant
-                </button>
-              </div>
-            </div>
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={total}
+              onPageChange={setCurrentPage}
+            />
           )}
         </>
       )}

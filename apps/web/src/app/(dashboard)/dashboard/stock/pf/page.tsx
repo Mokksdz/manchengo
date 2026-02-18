@@ -13,6 +13,8 @@ import {
   ArrowDownCircle, ArrowUpCircle,
   RefreshCw, Search, Filter
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -449,29 +451,21 @@ export default function StockPfPage() {
 
   return (
     <div className="glass-bg space-y-6">
-      {/* ─── Header ─── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1D1D1F]">
-            Produits Finis
-          </h1>
-          <p className="text-[13px] text-[#86868B] mt-1">
-            Fromages, beurre, cr&egrave;me — pr&ecirc;ts &agrave; la vente
-            {stats.rupture > 0 && (
-              <span className="ml-2 inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-pulse" />
-                <span className="text-[#FF3B30] font-medium">{stats.rupture} rupture(s)</span>
-              </span>
-            )}
-          </p>
-        </div>
-        <button
-          onClick={() => refetch()}
-          className="p-2.5 rounded-[14px] glass-card hover:bg-white/60 transition-all text-[#86868B] hover:text-[#1D1D1F]"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </div>
+      <PageHeader
+        title="Produits Finis"
+        subtitle="Fromages, beurre, crème — prêts à la vente"
+        icon={<Box className="w-5 h-5" />}
+        badge={
+          stats.rupture > 0
+            ? { text: `${stats.rupture} rupture(s)`, variant: 'error' }
+            : { text: 'Stock disponible', variant: 'success' }
+        }
+        actions={
+          <Button onClick={() => refetch()} variant="outline" size="icon" className="rounded-full">
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        }
+      />
 
       {/* Modals */}
       <InventoryModal

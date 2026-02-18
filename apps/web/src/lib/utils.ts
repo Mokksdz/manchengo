@@ -51,13 +51,3 @@ export function getStatusColor(status: string): string {
   return colors[status] || 'bg-[#F5F5F7] text-[#86868B]';
 }
 
-// Role label
-export function getRoleLabel(role: string): string {
-  const labels: Record<string, string> = {
-    ADMIN: 'Administrateur',
-    APPRO: 'Approvisionnement',
-    PRODUCTION: 'Production',
-    COMMERCIAL: 'Commercial',
-  };
-  return labels[role] || role;
-}

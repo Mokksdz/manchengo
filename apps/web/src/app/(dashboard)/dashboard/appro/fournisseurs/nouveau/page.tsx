@@ -17,6 +17,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { appro } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import {
   ArrowLeft,
   Truck,
@@ -219,8 +221,7 @@ export default function NouveauFournisseurPage() {
     setErrors({});
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const _result = await appro.createSupplier({
+      await appro.createSupplier({
         name: formData.name.trim(),
         rc: formData.rc.trim(),
         nif: formData.nif.trim(),
@@ -261,24 +262,20 @@ export default function NouveauFournisseurPage() {
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <Link
-          href="/dashboard/appro/fournisseurs"
-          className="p-2 hover:bg-[#F5F5F5] rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-[#86868B]" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-[#1D1D1F] flex items-center gap-3">
-            <Truck className="w-7 h-7 text-primary-600" />
-            Nouveau fournisseur
-          </h1>
-          <p className="text-[#6E6E73]">
-            Créer un fournisseur pour passer des bons de commande
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Nouveau fournisseur"
+        subtitle="Créer un fournisseur pour passer des bons de commande"
+        icon={<Truck className="w-5 h-5" />}
+        className="mb-8"
+        actions={(
+          <Button asChild variant="outline">
+            <Link href="/dashboard/appro/fournisseurs">
+              <ArrowLeft className="w-4 h-4" />
+              Retour
+            </Link>
+          </Button>
+        )}
+      />
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -291,7 +288,7 @@ export default function NouveauFournisseurPage() {
         )}
 
         {/* Section: Identité */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="glass-card rounded-xl p-6">
           <h2 className="text-lg font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
             <Building2 className="w-5 h-5 text-primary-600" />
             Identité du fournisseur
@@ -361,7 +358,7 @@ export default function NouveauFournisseurPage() {
         </div>
 
         {/* Section: Contact */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="glass-card rounded-xl p-6">
           <h2 className="text-lg font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
             <Phone className="w-5 h-5 text-primary-600" />
             Coordonnées

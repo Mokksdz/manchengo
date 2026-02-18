@@ -10,10 +10,12 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
   IsDateString,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -31,14 +33,16 @@ export class ReceiveLineDto {
   @Min(0)
   quantityReceived: number;
 
-  @ApiPropertyOptional({ description: 'Numéro de lot fournisseur' })
-  @IsOptional()
+  @ApiProperty({ description: 'Numéro de lot fournisseur (obligatoire si quantité > 0)' })
+  @ValidateIf((o) => o.quantityReceived > 0)
+  @IsNotEmpty({ message: 'Le numéro de lot est obligatoire pour la traçabilité' })
   @IsString()
   lotNumber?: string;
 
-  @ApiPropertyOptional({ description: 'Date d\'expiration du lot' })
-  @IsOptional()
-  @IsDateString()
+  @ApiProperty({ description: 'Date d\'expiration du lot (obligatoire si quantité > 0)' })
+  @ValidateIf((o) => o.quantityReceived > 0)
+  @IsNotEmpty({ message: 'La date d\'expiration (DLC) est obligatoire pour la traçabilité alimentaire' })
+  @IsDateString({}, { message: 'Format de date invalide (attendu: YYYY-MM-DD)' })
   expiryDate?: string;
 
   @ApiPropertyOptional({ description: 'Note sur la ligne' })

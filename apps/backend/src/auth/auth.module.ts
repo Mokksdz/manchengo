@@ -6,7 +6,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersService } from './users.service';
-import { DevicesService } from './devices.service';
+// DevicesService is provided by SecurityModule (Global) — no local duplicate needed
 
 @Module({
   imports: [
@@ -23,7 +23,7 @@ import { DevicesService } from './devices.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, UsersService, DevicesService],
-  exports: [AuthService, UsersService, DevicesService],
+  providers: [AuthService, JwtStrategy, UsersService],
+  exports: [AuthService, UsersService],
 })
 export class AuthModule {}

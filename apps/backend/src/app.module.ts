@@ -1,8 +1,9 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { CsrfMiddleware } from './common/middleware/csrf.middleware';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { LoggerModule } from './common/logger';
 import { AuditModule } from './common/audit';
@@ -102,7 +103,12 @@ import { ScheduleModule } from '@nestjs/schedule';
     EmailModule,      // Global - Nodemailer SMTP email service
     ReportsModule,    // Advanced reporting with PDF/Excel export
   ],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

@@ -6,6 +6,8 @@ import { useAuth } from '@/lib/auth-context';
 import { authFetch } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import {
   Factory, Package, ArrowLeft, Play, CheckCircle, X, Clock,
   AlertTriangle, Beaker, Box, Calendar, TrendingUp, Download
@@ -83,12 +85,17 @@ const formatDate = (date: string) => {
 };
 
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const statusConfig: Record<string, { label: string; tint: string; textColor: string; icon: any }> = {
-  PENDING: { label: 'En attente', tint: 'glass-tint-neutral', textColor: 'text-[#1D1D1F]', icon: Clock },
-  IN_PROGRESS: { label: 'En cours', tint: 'glass-tint-blue', textColor: 'text-blue-700', icon: Play },
-  COMPLETED: { label: 'Terminée', tint: 'glass-tint-emerald', textColor: 'text-emerald-700', icon: CheckCircle },
-  CANCELLED: { label: 'Annulée', tint: 'glass-tint-red', textColor: 'text-red-700', icon: X },
+const statusConfig: Record<string, {
+  label: string;
+  tint: string;
+  textColor: string;
+  icon: typeof Clock;
+  headerVariant: 'default' | 'success' | 'warning' | 'error' | 'info';
+}> = {
+  PENDING: { label: 'En attente', tint: 'glass-tint-neutral', textColor: 'text-[#1D1D1F]', icon: Clock, headerVariant: 'warning' },
+  IN_PROGRESS: { label: 'En cours', tint: 'glass-tint-blue', textColor: 'text-blue-700', icon: Play, headerVariant: 'info' },
+  COMPLETED: { label: 'Terminée', tint: 'glass-tint-emerald', textColor: 'text-emerald-700', icon: CheckCircle, headerVariant: 'success' },
+  CANCELLED: { label: 'Annulée', tint: 'glass-tint-red', textColor: 'text-red-700', icon: X, headerVariant: 'error' },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -312,95 +319,62 @@ export default function ProductionOrderDetailPage() {
   }
 
   const status = statusConfig[order.status] || statusConfig.PENDING;
-  const StatusIcon = status.icon;
 
   return (
     <div className="glass-bg space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between animate-slide-up">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push('/dashboard/production')}
-            className="glass-card-hover p-2.5 rounded-full"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#1D1D1F]" />
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#AF52DE]/10 to-[#AF52DE]/5 rounded-[14px] flex items-center justify-center">
-              <Factory className="w-6 h-6 text-[#AF52DE]" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-[#1D1D1F]">{order.reference}</h1>
-              <div className="flex items-center gap-2 text-sm">
-                <span className={cn('glass-status-pill flex items-center gap-1.5', status.tint, status.textColor)}>
-                  <StatusIcon className="w-3 h-3" />
-                  {status.label}
-                </span>
-                <span className="text-[#86868B]">·</span>
-                <span className="glass-pill text-[#86868B]">{order.productPf.code}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <PageHeader
+        title={order.reference}
+        subtitle={`Produit: ${order.productPf.name} (${order.productPf.code})`}
+        icon={<Factory className="w-5 h-5" />}
+        badge={{ text: status.label, variant: status.headerVariant }}
+        className="animate-slide-up"
+        actions={(
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button onClick={() => router.push('/dashboard/production')} variant="outline">
+              <ArrowLeft className="w-4 h-4" />
+              Retour
+            </Button>
 
-        {/* Actions */}
-        <div className="flex gap-2">
-          <button
-            onClick={handleDownloadPdf}
-            disabled={isDownloadingPdf}
-            className="inline-flex items-center gap-2 px-5 py-2 glass-card-hover rounded-full text-sm font-medium text-[#1D1D1F] disabled:opacity-50 transition-all"
-          >
-            <Download className="w-4 h-4" />
-            {isDownloadingPdf ? 'Téléchargement...' : 'Télécharger PDF'}
-          </button>
-          {canManage && (
-            <>
-              {order.status === 'PENDING' && (
-                <>
-                  <button
-                    onClick={handleStart}
-                    disabled={isStarting}
-                    className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-full text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                  >
-                    <Play className="w-4 h-4" />
-                    {isStarting ? 'Démarrage...' : 'Démarrer'}
-                  </button>
-                  {/* P9: Cancel requires ADMIN — backend enforces @Roles(ADMIN) */}
-                  {isAdmin && (
-                    <button
-                      onClick={() => setShowCancelModal(true)}
-                      className="inline-flex items-center gap-2 px-5 py-2 bg-red-500/10 text-red-600 rounded-full text-sm font-medium hover:bg-red-500/20 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                      Annuler
-                    </button>
-                  )}
-                </>
-              )}
-              {order.status === 'IN_PROGRESS' && (
-                <>
-                  <button
-                    onClick={() => setShowCompleteModal(true)}
-                    className="inline-flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-full text-sm font-medium hover:bg-emerald-700 transition-colors"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    Terminer
-                  </button>
-                  {isAdmin && (
-                    <button
-                      onClick={() => setShowCancelModal(true)}
-                      className="inline-flex items-center gap-2 px-5 py-2 bg-red-500/10 text-red-600 rounded-full text-sm font-medium hover:bg-red-500/20 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                      Annuler
-                    </button>
-                  )}
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+            <Button onClick={handleDownloadPdf} disabled={isDownloadingPdf} variant="outline">
+              <Download className="w-4 h-4" />
+              {isDownloadingPdf ? 'Téléchargement...' : 'Télécharger PDF'}
+            </Button>
+
+            {canManage && (
+              <>
+                {order.status === 'PENDING' && (
+                  <>
+                    <Button onClick={handleStart} disabled={isStarting}>
+                      <Play className="w-4 h-4" />
+                      {isStarting ? 'Démarrage...' : 'Démarrer'}
+                    </Button>
+                    {isAdmin && (
+                      <Button onClick={() => setShowCancelModal(true)} variant="destructive">
+                        <X className="w-4 h-4" />
+                        Annuler
+                      </Button>
+                    )}
+                  </>
+                )}
+                {order.status === 'IN_PROGRESS' && (
+                  <>
+                    <Button onClick={() => setShowCompleteModal(true)} variant="amber">
+                      <CheckCircle className="w-4 h-4" />
+                      Terminer
+                    </Button>
+                    {isAdmin && (
+                      <Button onClick={() => setShowCancelModal(true)} variant="destructive">
+                        <X className="w-4 h-4" />
+                        Annuler
+                      </Button>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      />
 
       {/* Main Info */}
       <div className="grid grid-cols-3 gap-6">
@@ -621,7 +595,7 @@ export default function ProductionOrderDetailPage() {
       {showCompleteModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
           <div className="absolute inset-0" onClick={() => setShowCompleteModal(false)} />
-          <div className="relative glass-card rounded-[20px] shadow-apple-elevated w-full max-w-md p-6 animate-slide-up">
+          <div className="relative glass-card rounded-[20px] w-full max-w-md p-6 animate-slide-up">
             <h2 className="text-lg font-semibold text-[#1D1D1F] mb-4">Terminer la production</h2>
             <div className="space-y-4">
               <div>
@@ -697,7 +671,7 @@ export default function ProductionOrderDetailPage() {
       {showCancelModal && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
           <div className="absolute inset-0" onClick={() => setShowCancelModal(false)} />
-          <div className="relative glass-card rounded-[20px] shadow-apple-elevated w-full max-w-md p-6 animate-slide-up">
+          <div className="relative glass-card rounded-[20px] w-full max-w-md p-6 animate-slide-up">
             <h2 className="text-lg font-semibold mb-4 text-red-600">Annuler la production</h2>
             <p className="text-sm text-[#6E6E73] mb-4">
               {order.status === 'IN_PROGRESS'

@@ -1,0 +1,11 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Kubernetes Namespace - Manchengo Smart ERP
+# ═══════════════════════════════════════════════════════════════════════════════
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: manchengo
+  labels:
+    app.kubernetes.io/name: manchengo-erp
+    app.kubernetes.io/part-of: manchengo

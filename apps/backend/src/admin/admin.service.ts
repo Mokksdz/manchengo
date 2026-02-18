@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StockService } from '../stock/stock.service';
+import { DevicesService } from '../security/devices.service';
+import { SecurityLogService } from '../security/security-log.service';
+import { AuditService } from '../common/audit/audit.service';
+import { UserRole, AuditAction, AuditSeverity } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import {
   CreateProductMpDto,
@@ -29,6 +33,9 @@ export class AdminService {
   constructor(
     private prisma: PrismaService,
     private stockService: StockService,
+    private devicesService: DevicesService,
+    private securityLogService: SecurityLogService,
+    private auditService: AuditService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -93,7 +100,8 @@ export class AdminService {
     return totalIn - totalOut;
   }
 
-  private getStockStatus(stock: number, minStock: number): 'OK' | 'ALERTE' | 'RUPTURE' {
+  private getStockStatus(stock: number, minStock: number): 'OK' | 'ALERTE' | 'RUPTURE' | 'NEGATIF' {
+    if (stock < 0) return 'NEGATIF';
     if (stock === 0) return 'RUPTURE';
     if (stock <= minStock) return 'ALERTE';
     return 'OK';
@@ -270,7 +278,8 @@ export class AdminService {
 
   async getInvoices(options: { page?: number; limit?: number; status?: string; search?: string }) {
     const { page = 1, limit = 20, status, search } = options;
-    const skip = (page - 1) * limit;
+    const safeLimit = Math.min(limit || 20, 200);
+    const skip = (page - 1) * safeLimit;
 
     const where: any = {};
     if (status) {
@@ -298,7 +307,7 @@ export class AdminService {
         },
         orderBy: { date: 'desc' },
         skip,
-        take: limit,
+        take: safeLimit,
       }),
       this.prisma.invoice.count({ where }),
     ]);
@@ -308,8 +317,8 @@ export class AdminService {
       meta: {
         total,
         page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        limit: safeLimit,
+        totalPages: Math.ceil(total / safeLimit),
       },
     };
   }
@@ -320,7 +329,8 @@ export class AdminService {
 
   async getProductionOrders(options: { page?: number; limit?: number; status?: string }) {
     const { page = 1, limit = 20, status } = options;
-    const skip = (page - 1) * limit;
+    const safeLimit = Math.min(limit || 20, 200);
+    const skip = (page - 1) * safeLimit;
 
     const where: any = {};
     if (status) {
@@ -341,14 +351,14 @@ export class AdminService {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: limit,
+        take: safeLimit,
       }),
       this.prisma.productionOrder.count({ where }),
     ]);
 
     return {
       data: orders,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      meta: { total, page, limit: safeLimit, totalPages: Math.ceil(total / safeLimit) },
     };
   }
 
@@ -556,12 +566,12 @@ export class AdminService {
       _count: true,
     });
 
-    // Calculer quantité totale
-    const allLines = await this.prisma.invoiceLine.findMany({
+    // Calculer quantité totale (agrégation SQL au lieu de findMany + reduce)
+    const quantityAgg = await this.prisma.invoiceLine.aggregate({
       where: { invoice: where },
-      select: { quantity: true },
+      _sum: { quantity: true },
     });
-    const totalQuantity = allLines.reduce((sum: number, l: { quantity: number }) => sum + l.quantity, 0);
+    const totalQuantity = quantityAgg._sum.quantity || 0;
 
     return {
       client,
@@ -621,9 +631,10 @@ export class AdminService {
 
   async getStockMovements(options: { page?: number; limit?: number; type?: string }) {
     const { page = 1, limit = 50, type } = options;
-    const skip = (page - 1) * limit;
+    const safeLimit = Math.min(limit || 50, 200);
+    const skip = (page - 1) * safeLimit;
 
-    const where: any = {};
+    const where: any = { isDeleted: false };
     if (type) {
       where.productType = type;
     }
@@ -638,14 +649,14 @@ export class AdminService {
         },
         orderBy: { createdAt: 'desc' },
         skip,
-        take: limit,
+        take: safeLimit,
       }),
       this.prisma.stockMovement.count({ where }),
     ]);
 
     return {
       data: movements,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      meta: { total, page, limit: safeLimit, totalPages: Math.ceil(total / safeLimit) },
     };
   }
 
@@ -806,16 +817,20 @@ export class AdminService {
     return this.prisma.client.update({ where: { id }, data: dto });
   }
 
+  // Protected delete: refuses if any invoices or deliveries reference this client
   async deleteClient(id: number) {
     const client = await this.prisma.client.findUnique({
       where: { id },
-      include: { _count: { select: { invoices: true } } },
+      include: { _count: { select: { invoices: true, deliveries: true } } },
     });
     if (!client) {
       throw new NotFoundException(`Client #${id} non trouvé`);
     }
     if (client._count.invoices > 0) {
-      throw new BadRequestException(`Impossible de supprimer: ${client._count.invoices} factures associées`);
+      throw new BadRequestException(`Impossible de supprimer: ${client._count.invoices} facture(s) associée(s)`);
+    }
+    if (client._count.deliveries > 0) {
+      throw new BadRequestException(`Impossible de supprimer: ${client._count.deliveries} livraison(s) associée(s)`);
     }
     return this.prisma.client.delete({ where: { id } });
   }
@@ -840,18 +855,18 @@ export class AdminService {
     return this.prisma.supplier.update({ where: { id }, data: dto });
   }
 
+  // Soft delete to preserve referential integrity (lots, purchase orders)
   async deleteSupplier(id: number) {
     const supplier = await this.prisma.supplier.findUnique({
       where: { id },
-      include: { _count: { select: { lots: true } } },
     });
     if (!supplier) {
       throw new NotFoundException(`Fournisseur #${id} non trouvé`);
     }
-    if (supplier._count.lots > 0) {
-      throw new BadRequestException(`Impossible de supprimer: ${supplier._count.lots} lots associés`);
-    }
-    return this.prisma.supplier.delete({ where: { id } });
+    return this.prisma.supplier.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -895,6 +910,10 @@ export class AdminService {
     if (!user) {
       throw new NotFoundException(`Utilisateur non trouvé`);
     }
+    // Prevent role escalation
+    if (dto.role && dto.role === 'ADMIN') {
+      throw new ForbiddenException('Promotion au rôle ADMIN interdite via cet endpoint');
+    }
     if (dto.email && dto.email !== user.email) {
       const existingEmail = await this.prisma.user.findUnique({ where: { email: dto.email } });
       if (existingEmail) {
@@ -917,7 +936,7 @@ export class AdminService {
     });
   }
 
-  async resetUserPassword(id: string, newPassword: string) {
+  async resetUserPassword(id: string, newPassword: string, adminUser?: { id: string; role: string; email: string }) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException(`Utilisateur non trouvé`);
@@ -925,19 +944,33 @@ export class AdminService {
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await this.prisma.user.update({
       where: { id },
-      data: { passwordHash },
+      data: { passwordHash, mustChangePassword: true },
     });
+
+    // Audit: log password reset
+    if (adminUser) {
+      this.auditService.log({
+        actor: { id: adminUser.id, role: adminUser.role as UserRole, email: adminUser.email },
+        action: AuditAction.PASSWORD_RESET,
+        severity: AuditSeverity.WARNING,
+        entityType: 'User',
+        entityId: id,
+        metadata: { targetEmail: user.email, targetName: `${user.firstName} ${user.lastName}` },
+      }).catch(() => {});
+    }
+
     return { message: 'Mot de passe réinitialisé avec succès' };
   }
 
-  async toggleUserStatus(id: string) {
+  async toggleUserStatus(id: string, adminUser?: { id: string; role: string; email: string }) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException(`Utilisateur non trouvé`);
     }
-    return this.prisma.user.update({
+    const newStatus = !user.isActive;
+    const result = await this.prisma.user.update({
       where: { id },
-      data: { isActive: !user.isActive },
+      data: { isActive: newStatus },
       select: {
         id: true,
         code: true,
@@ -948,6 +981,27 @@ export class AdminService {
         isActive: true,
       },
     });
+
+    // Audit + Security log: track user block/unblock
+    if (adminUser) {
+      const logMethod = newStatus
+        ? this.securityLogService.logUserUnblock.bind(this.securityLogService)
+        : this.securityLogService.logUserBlock.bind(this.securityLogService);
+      logMethod(adminUser.id, id).catch(() => {});
+
+      this.auditService.log({
+        actor: { id: adminUser.id, role: adminUser.role as UserRole, email: adminUser.email },
+        action: newStatus ? AuditAction.USER_UNBLOCKED : AuditAction.USER_BLOCKED,
+        severity: AuditSeverity.WARNING,
+        entityType: 'User',
+        entityId: id,
+        beforeState: { isActive: user.isActive },
+        afterState: { isActive: newStatus },
+        metadata: { targetEmail: user.email },
+      }).catch(() => {});
+    }
+
+    return result;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -961,26 +1015,37 @@ export class AdminService {
       throw new NotFoundException(`Client #${dto.clientId} non trouvé`);
     }
 
-    // V19: Generate reference with retry for uniqueness
+    // Génération de référence robuste (pas de race condition)
+    // Utilise MAX(reference) au lieu de COUNT pour éviter les collisions
     // A24: Use Algeria timezone (UTC+1) to ensure correct date
-    const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Algiers' }));
-    const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '').slice(2);
-    let reference = '';
+    // Utilise Intl.DateTimeFormat pour fiabilité cross-platform (évite le parsing non fiable de toLocaleString)
+    const algiersFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Algiers', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const todayStr = algiersFormatter.format(new Date()); // format: YYYY-MM-DD
+    const today = new Date(todayStr + 'T00:00:00+01:00'); // Date objet en timezone Algérie
+    const dateStr = todayStr.replace(/-/g, '').slice(2); // YYMMDD
+    const prefix = `F-${dateStr}-`;
+
+    const lastInvoice = await this.prisma.invoice.findFirst({
+      where: { reference: { startsWith: prefix } },
+      orderBy: { reference: 'desc' },
+      select: { reference: true },
+    });
+
+    let nextSeq = 1;
+    if (lastInvoice) {
+      const parts = lastInvoice.reference.replace(prefix, '');
+      const parsed = parseInt(parts, 10);
+      nextSeq = !isNaN(parsed) ? parsed + 1 : 1;
+    }
+
+    let reference = `${prefix}${String(nextSeq).padStart(3, '0')}`;
+
+    // Retry si collision (concurrence extrême)
     for (let attempt = 0; attempt < 3; attempt++) {
-      const count = await this.prisma.invoice.count({
-        where: {
-          createdAt: {
-            gte: new Date(today.getFullYear(), today.getMonth(), today.getDate()),
-          },
-        },
-      });
-      reference = `F-${dateStr}-${String(count + 1 + attempt).padStart(3, '0')}`;
       const existing = await this.prisma.invoice.findFirst({ where: { reference } });
       if (!existing) break;
-      if (attempt === 2) {
-        // Fallback with timestamp
-        reference = `F-${dateStr}-${String(count + 1).padStart(3, '0')}-${Date.now() % 1000}`;
-      }
+      nextSeq++;
+      reference = `${prefix}${String(nextSeq).padStart(3, '0')}`;
     }
 
     // V7: Batch fetch all products in one query instead of N+1
@@ -1014,8 +1079,11 @@ export class AdminService {
       });
     }
 
-    // TVA 19% (Algeria)
-    const totalTva = Math.round(totalHt * 0.19);
+    // TVA 19% (Algeria) — per-line rounding to avoid centime drift
+    let totalTva = 0;
+    for (const line of lineData) {
+      totalTva += Math.round(line.lineHt * 0.19);
+    }
     const totalTtc = totalHt + totalTva;
 
     // Timbre fiscal dynamique selon législation algérienne
@@ -1159,13 +1227,24 @@ export class AdminService {
       }); // end $transaction
     }
 
-    // Mise à jour simple sans lignes
+    // Mise à jour simple sans lignes — recalculer timbre si paymentMethod change
+    const updateData: any = {};
+    if (dto.clientId !== undefined) updateData.clientId = dto.clientId;
+
+    const newPaymentMethod = dto.paymentMethod ?? invoice.paymentMethod;
+    if (dto.paymentMethod !== undefined) updateData.paymentMethod = dto.paymentMethod;
+
+    // Recalculer timbre fiscal si paymentMethod ou applyTimbre changent
+    if (dto.paymentMethod !== undefined || dto.applyTimbre !== undefined) {
+      const applyTimbre = dto.applyTimbre ?? (invoice.timbreFiscal > 0);
+      const timbre = this.calculateTimbreFiscal(invoice.totalTtc, newPaymentMethod, applyTimbre);
+      updateData.timbreFiscal = timbre.amount;
+      updateData.netToPay = invoice.totalTtc + timbre.amount;
+    }
+
     return this.prisma.invoice.update({
       where: { id },
-      data: {
-        clientId: dto.clientId,
-        paymentMethod: dto.paymentMethod,
-      },
+      data: updateData,
       include: {
         client: true,
         lines: { include: { productPf: true } },
@@ -1180,7 +1259,7 @@ export class AdminService {
    * PAID → (aucune transition - statut final)
    * CANCELLED → (aucune transition - statut final)
    */
-  async updateInvoiceStatus(id: number, newStatus: string, userId: string, userRole: string) {
+  async updateInvoiceStatus(id: number, newStatus: string, userId: string, userRole: UserRole) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       include: { lines: true },
@@ -1202,20 +1281,39 @@ export class AdminService {
       );
     }
 
-    // V1+V2: When paying, deduct PF stock via processSale (FIFO, traçabilité)
+    // ATOMIQUE: processSale + status update dans la MÊME transaction
+    // Empêche le scénario: stock déduit mais facture reste DRAFT si crash entre les deux
     if (newStatus === 'PAID' && invoice.lines.length > 0) {
-      await this.stockService.processSale(
-        invoice.id,
-        invoice.reference,
-        invoice.lines.map((l) => ({
-          productPfId: l.productPfId,
-          quantity: l.quantity,
-        })),
-        userId,
-        userRole as any,
+      return this.prisma.$transaction(
+        async (tx) => {
+          // Déduire stock PF via processSale (utilise le tx partagé)
+          await this.stockService.processSale(
+            invoice.id,
+            invoice.reference,
+            invoice.lines.map((l) => ({
+              productPfId: l.productPfId,
+              quantity: l.quantity,
+            })),
+            userId,
+            userRole,
+            tx,
+          );
+
+          // Mettre à jour le statut dans la MÊME transaction
+          return tx.invoice.update({
+            where: { id },
+            data: { status: newStatus as any },
+            include: {
+              client: true,
+              lines: { include: { productPf: true } },
+            },
+          });
+        },
+        { timeout: 15000 },
       );
     }
 
+    // Cas simple: CANCELLED (pas de stock à déduire)
     return this.prisma.invoice.update({
       where: { id },
       data: { status: newStatus as any },
@@ -1284,7 +1382,7 @@ export class AdminService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   // A15: Wrapped in $transaction for atomicity
-  async adjustStock(dto: StockAdjustmentDto, userId: string) {
+  async adjustStock(dto: StockAdjustmentDto, userId: string, adminUser?: { id: string; role: string; email: string }) {
     if (dto.productType === 'MP') {
       const product = await this.prisma.productMp.findUnique({ where: { id: dto.productId } });
       if (!product) {
@@ -1326,6 +1424,18 @@ export class AdminService {
             userId,
           },
         });
+
+        // Audit: log stock adjustment
+        if (adminUser) {
+          this.auditService.log({
+            actor: { id: adminUser.id, role: adminUser.role as UserRole, email: adminUser.email },
+            action: AuditAction.STOCK_ADJUSTED,
+            severity: AuditSeverity.WARNING,
+            entityType: 'ProductMp',
+            entityId: String(dto.productId),
+            metadata: { quantity: dto.quantity, reason: dto.reason, lotNumber },
+          }).catch(() => {});
+        }
 
         return { message: 'Ajustement stock MP effectué', lot };
       });
@@ -1371,6 +1481,18 @@ export class AdminService {
           },
         });
 
+        // Audit: log stock adjustment
+        if (adminUser) {
+          this.auditService.log({
+            actor: { id: adminUser.id, role: adminUser.role as UserRole, email: adminUser.email },
+            action: AuditAction.STOCK_ADJUSTED,
+            severity: AuditSeverity.WARNING,
+            entityType: 'ProductPf',
+            entityId: String(dto.productId),
+            metadata: { quantity: dto.quantity, reason: dto.reason, lotNumber },
+          }).catch(() => {});
+        }
+
         return { message: 'Ajustement stock PF effectué', lot };
       }); // end PF $transaction
     }
@@ -1380,36 +1502,25 @@ export class AdminService {
   // DEVICES - MANAGEMENT
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async revokeDevice(deviceId: string, reason?: string) {
-    const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
-    if (!device) {
-      throw new NotFoundException(`Appareil non trouvé`);
-    }
-    // Revoke all tokens for this device
-    await this.prisma.refreshToken.deleteMany({ where: { deviceId } });
-    return this.prisma.device.update({
-      where: { id: deviceId },
-      data: { isActive: false },
-    });
+  // Delegates to SecurityModule's DevicesService (with proper security logging)
+  async revokeDevice(deviceId: string, adminUserId: string, reason?: string) {
+    await this.devicesService.revokeDevice(deviceId, adminUserId, reason);
+    return { message: 'Appareil révoqué' };
   }
 
   async reactivateDevice(deviceId: string) {
-    const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
-    if (!device) {
-      throw new NotFoundException(`Appareil non trouvé`);
-    }
-    return this.prisma.device.update({
-      where: { id: deviceId },
-      data: { isActive: true },
-    });
+    await this.devicesService.reactivateDevice(deviceId);
+    return { message: 'Appareil réactivé' };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // SECURITY LOGS (A6)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async getSecurityLogs(options: { action?: string; limit?: number }) {
-    const { action, limit = 100 } = options;
+  async getSecurityLogs(options: { action?: string; limit?: number; page?: number }) {
+    const { action, limit = 25, page = 1 } = options;
+    const safeLimit = Math.min(limit || 25, 200);
+    const skip = (page - 1) * safeLimit;
     const where: any = {};
     if (action) {
       where.action = action;
@@ -1419,11 +1530,18 @@ export class AdminService {
       this.prisma.securityLog.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        take: limit,
+        skip,
+        take: safeLimit,
       }),
       this.prisma.securityLog.count({ where }),
     ]);
 
-    return { logs, total };
+    return {
+      logs,
+      total,
+      page,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
+    };
   }
 }

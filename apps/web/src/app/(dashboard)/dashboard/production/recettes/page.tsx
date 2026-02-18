@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import {
   BookOpen,
   Plus,
+  ArrowLeft,
   Trash2,
   Package,
   AlertTriangle,
@@ -24,6 +25,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import {
   type Recipe,
   type StockMp,
@@ -302,7 +305,7 @@ export default function RecettesPage() {
       const [recipesRes, stockRes, pfRes] = await Promise.all([
         authFetch('/recipes', { credentials: 'include' }),
         authFetch('/stock/mp', { credentials: 'include' }),
-        authFetch('/stock/pf', { credentials: 'include' }),
+        authFetch('/products/pf', { credentials: 'include' }),
       ]);
 
       if (recipesRes.ok) {
@@ -470,12 +473,25 @@ export default function RecettesPage() {
   if (selectedRecipe && selectedStatus) {
     return (
       <div className="glass-bg space-y-6">
-        <button
-          onClick={() => { setSelectedRecipe(null); window.history.pushState({}, '', '/dashboard/production/recettes'); }}
-          className="text-sm text-[#86868B] hover:text-[#AF52DE] flex items-center gap-1 transition-colors"
-        >
-          &larr; Retour aux recettes
-        </button>
+        <PageHeader
+          title={selectedRecipe.name || selectedRecipe.productPf?.name || 'Recette'}
+          subtitle={selectedRecipe.productPf?.code || 'Fiche recette'}
+          icon={<BookOpen className="w-5 h-5" />}
+          badge={selectedStatus.isComplete && selectedStatus.stockSufficient
+            ? { text: 'Prête', variant: 'success' }
+            : selectedStatus.isComplete
+              ? { text: 'Stock insuffisant', variant: 'warning' }
+              : { text: 'Incomplète', variant: 'error' }}
+          actions={(
+            <Button
+              onClick={() => { setSelectedRecipe(null); window.history.pushState({}, '', '/dashboard/production/recettes'); }}
+              variant="outline"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Retour aux recettes
+            </Button>
+          )}
+        />
 
         <RecipeHeader recipe={selectedRecipe} status={selectedStatus} />
 
@@ -513,27 +529,18 @@ export default function RecettesPage() {
   // ─── List View ───────────────────────────────────────────────────────────
   return (
     <div className="glass-bg space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between animate-slide-up">
-        <div>
-          <h1 className="text-2xl font-bold text-[#1D1D1F] flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[14px] bg-gradient-to-b from-[#AF52DE]/10 to-[#AF52DE]/5 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-[#AF52DE]" />
-            </div>
-            Recettes de Production
-          </h1>
-          <p className="text-[#6E6E73] mt-1">Configurez les compositions pour produire vos fromages</p>
-        </div>
-        {canEdit && (
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1D1D1F] text-white rounded-full hover:bg-[#333336] transition-all font-medium text-[13px]"
-          >
+      <PageHeader
+        title="Recettes de production"
+        subtitle="Configurez les compositions pour produire vos fromages"
+        icon={<BookOpen className="w-5 h-5" />}
+        className="animate-slide-up"
+        actions={canEdit ? (
+          <Button onClick={() => setShowCreateModal(true)}>
             <Plus className="w-4 h-4" />
             Nouvelle recette
-          </button>
-        )}
-      </div>
+          </Button>
+        ) : undefined}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">

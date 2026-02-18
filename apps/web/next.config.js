@@ -58,9 +58,11 @@ const sentryWebpackPluginOptions = {
   ...(isDesktopExport ? {} : { tunnelRoute: '/monitoring' }),
 };
 
-// Only wrap with Sentry if DSN is configured
-const finalConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
-  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
-  : nextConfig;
+// Only wrap with Sentry if DSN is configured AND in production
+// Sentry webpack plugin causes 'Cannot read properties of undefined (reading call)' in dev
+const finalConfig =
+  process.env.NEXT_PUBLIC_SENTRY_DSN && process.env.NODE_ENV === 'production'
+    ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
+    : nextConfig;
 
 module.exports = finalConfig;

@@ -7,6 +7,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import { useFocusTrap, useEscapeKey } from '@/lib/hooks/use-focus-trap';
 import {
   Truck, Phone, MapPin, FileText, Building2, Pencil, History,
@@ -259,9 +261,8 @@ export default function SupplierDetailPage() {
       params.set('page', String(page));
       params.set('limit', '10');
 
-      const res = await fetch(
+      const res = await authFetch(
         `/suppliers/${supplierId}/history?${params}`,
-        { credentials: 'include' }
       );
       if (res.ok) {
         setHistoryData(await res.json());
@@ -425,57 +426,35 @@ export default function SupplierDetailPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push('/dashboard/appro/fournisseurs')}
-              className="p-2.5 rounded-full bg-black/5 hover:bg-black/10 transition-all"
-            >
-              <ArrowLeft className="w-5 h-5 text-[#1D1D1F]" />
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-[#007AFF] to-[#0056D6] rounded-full flex items-center justify-center shadow-lg shadow-[#007AFF]/25">
-                <Truck className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-[#1D1D1F]">{supplier.name}</h1>
-                <div className="flex items-center gap-2 text-sm text-[#86868B]">
-                  <span className="font-mono">{supplier.code}</span>
-                  {!supplier.isActive && (
-                    <span className="px-2 py-0.5 bg-[#FF3B30]/10 text-[#FF3B30] rounded-full text-xs">
-                      Inactif
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+      <PageHeader
+        title={supplier.name}
+        subtitle={supplier.code}
+        icon={<Truck className="w-5 h-5" />}
+        badge={supplier.isActive ? { text: 'Actif', variant: 'success' } : { text: 'Inactif', variant: 'error' }}
+        actions={(
+          <div className="flex flex-wrap items-center gap-2 justify-end">
+            <Button onClick={() => router.push('/dashboard/appro/fournisseurs')} variant="outline">
+              <ArrowLeft className="w-4 h-4" />
+              Retour
+            </Button>
 
-          {/* Actions (ADMIN only) */}
-          {isAdmin && supplier.isActive && (
-            <div className="flex items-center gap-2">
-              {!isEditing && activeTab === 'info' && (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#007AFF] text-white text-sm font-semibold rounded-full hover:bg-[#0056D6] shadow-lg shadow-[#007AFF]/25 transition-all active:scale-[0.97]"
-                >
-                  <Pencil className="w-4 h-4" />
-                  Modifier
-                </button>
-              )}
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FF3B30] text-white text-sm font-semibold rounded-full hover:bg-[#D63029] shadow-lg shadow-[#FF3B30]/25 transition-all active:scale-[0.97]"
-              >
-                <Trash2 className="w-4 h-4" />
-                Supprimer
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+            {isAdmin && supplier.isActive && (
+              <>
+                {!isEditing && activeTab === 'info' && (
+                  <Button onClick={() => setIsEditing(true)}>
+                    <Pencil className="w-4 h-4" />
+                    Modifier
+                  </Button>
+                )}
+                <Button onClick={() => setShowDeleteModal(true)} variant="destructive">
+                  <Trash2 className="w-4 h-4" />
+                  Supprimer
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+      />
 
       {/* Tabs */}
       <div className="flex gap-2">

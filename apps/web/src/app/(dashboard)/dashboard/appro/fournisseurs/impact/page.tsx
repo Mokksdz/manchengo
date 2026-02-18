@@ -142,8 +142,6 @@ function ImpactCard({
   };
 
   const config = riskConfig[impact.riskLevel];
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _hasImpact = impact.bcBlockingCount > 0 || impact.blockedMpCount > 0;
 
   return (
     <div className={cn(
@@ -439,8 +437,8 @@ export default function SupplierImpactPage() {
       {chainData && (
         <div className="fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/40" onClick={handleCloseChain} />
-          <div className="relative ml-auto w-full max-w-2xl bg-white shadow-apple-elevated overflow-y-auto">
-            <div className="sticky top-0 z-10 bg-white border-b border-[#E5E5E5] px-6 py-4 flex items-center justify-between">
+          <div className="relative ml-auto w-full max-w-2xl bg-white/92 backdrop-blur-[28px] border border-white/75 shadow-[0_24px_58px_rgba(18,22,33,0.16),inset_0_1px_0_rgba(255,255,255,0.5)] overflow-y-auto">
+            <div className="sticky top-0 z-10 bg-white/78 backdrop-blur-[20px] border-b border-white/70 px-6 py-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#1D1D1F] flex items-center gap-2">
                 <Link2 className="w-5 h-5 text-[#AEAEB2]" />
                 Chaîne d'impact
@@ -477,7 +475,7 @@ export default function SupplierImpactPage() {
 
       {/* Impact Cards List */}
       {impacts.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E5E5E5] p-12 text-center">
+        <div className="glass-card rounded-2xl p-12 text-center">
           <Link2 className="w-16 h-16 text-emerald-300 mx-auto" />
           <p className="mt-4 text-xl font-semibold text-[#1D1D1F]">Aucun blocage fournisseur détecté</p>
           <p className="text-[#86868B] mt-2">

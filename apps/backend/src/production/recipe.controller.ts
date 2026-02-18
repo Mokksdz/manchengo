@@ -18,6 +18,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import { RecipeService } from './recipe.service';
+import { CreateRecipeDto, CreateRecipeItemDto } from './dto/recipe.dto';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RECIPE CONTROLLER - Gestion des recettes de production
@@ -68,30 +69,7 @@ export class RecipeController {
   @Roles(UserRole.ADMIN, UserRole.PRODUCTION)
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Body() dto: {
-      productPfId: number;
-      name: string;
-      description?: string;
-      batchWeight: number;
-      outputQuantity: number;
-      lossTolerance?: number;
-      productionTime?: number;
-      shelfLifeDays?: number;
-      items: {
-        type?: 'MP' | 'FLUID' | 'PACKAGING';
-        productMpId?: number;
-        name?: string;
-        quantity: number;
-        unit: string;
-        unitCost?: number;
-        affectsStock?: boolean;
-        isMandatory?: boolean;
-        isSubstitutable?: boolean;
-        substituteIds?: number[];
-        sortOrder?: number;
-        notes?: string;
-      }[];
-    },
+    @Body() dto: CreateRecipeDto,
     @CurrentUser() user: { id: string },
   ) {
     return this.recipeService.create(dto, user.id);
@@ -127,22 +105,9 @@ export class RecipeController {
   @Roles(UserRole.ADMIN, UserRole.PRODUCTION)
   async addItem(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: {
-      type?: 'MP' | 'FLUID' | 'PACKAGING';
-      productMpId?: number;
-      name?: string;
-      quantity: number;
-      unit: string;
-      unitCost?: number;
-      affectsStock?: boolean;
-      isMandatory?: boolean;
-      isSubstitutable?: boolean;
-      substituteIds?: number[];
-      sortOrder?: number;
-      notes?: string;
-    },
+    @Body() dto: CreateRecipeItemDto,
   ) {
-    return this.recipeService.addItem(id, dto as any);
+    return this.recipeService.addItem(id, dto);
   }
 
   /**
@@ -190,7 +155,7 @@ export class RecipeController {
     @Param('id', ParseIntPipe) id: number,
     @Query('batchCount') batchCount: string,
   ) {
-    return this.recipeService.calculateRequirements(id, parseInt(batchCount) || 1);
+    return this.recipeService.calculateRequirements(id, parseInt(batchCount, 10) || 1);
   }
 
   /**
@@ -203,6 +168,6 @@ export class RecipeController {
     @Param('id', ParseIntPipe) id: number,
     @Query('batchCount') batchCount: string,
   ) {
-    return this.recipeService.checkStockAvailability(id, parseInt(batchCount) || 1);
+    return this.recipeService.checkStockAvailability(id, parseInt(batchCount, 10) || 1);
   }
 }

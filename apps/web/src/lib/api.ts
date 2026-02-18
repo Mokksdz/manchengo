@@ -44,6 +44,30 @@ export function getApiUrl(endpoint: string): string {
 }
 
 /**
+ * Read the CSRF token from the cookie set by the backend.
+ * The cookie is httpOnly: false so JavaScript can read it.
+ */
+function getCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|;\s*)csrf-token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+/**
+ * Build headers with CSRF token injected for state-changing methods.
+ */
+function withCsrfHeader(headers: HeadersInit, method?: string): HeadersInit {
+  const unsafeMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
+  if (method && unsafeMethods.includes(method.toUpperCase())) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      return { ...headers, 'x-csrf-token': csrfToken };
+    }
+  }
+  return headers;
+}
+
+/**
  * Simple authenticated fetch - use for direct fetch calls
  * Adds credentials: 'include' for cookie-based auth
  * 
@@ -52,13 +76,15 @@ export function getApiUrl(endpoint: string): string {
  */
 export function authFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
   const url = endpoint.startsWith('http') ? endpoint : getApiUrl(endpoint);
+  const method = (options.method || 'GET').toUpperCase();
+  const baseHeaders: HeadersInit = {
+    ...(method !== 'GET' && method !== 'HEAD' ? { 'Content-Type': 'application/json' } : {}),
+    ...options.headers,
+  };
   return fetch(url, {
     ...options,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers: withCsrfHeader(baseHeaders, options.method),
   });
 }
 
@@ -72,10 +98,13 @@ export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+  const method = (options.method || 'GET').toUpperCase();
+  const baseHeaders: HeadersInit = {
+    // Content-Type uniquement sur les requêtes avec body (évite preflight CORS inutile sur GET/HEAD)
+    ...(method !== 'GET' && method !== 'HEAD' ? { 'Content-Type': 'application/json' } : {}),
     ...options.headers,
   };
+  const headers = withCsrfHeader(baseHeaders, options.method);
 
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
@@ -87,14 +116,27 @@ export async function apiFetch<T>(
   if (response.status === 401) {
     const refreshed = await tryRefreshToken();
     if (refreshed) {
-      // Retry original request after refresh
+      // Retry original request after refresh (re-read CSRF token as it may have been renewed)
+      const retryHeaders = withCsrfHeader(baseHeaders, options.method);
       const retryResponse = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
-        headers,
+        headers: retryHeaders,
         credentials: 'include',
       });
       if (retryResponse.ok) {
         return retryResponse.json();
+      }
+      // Le refresh a réussi mais la requête retry a échoué pour une AUTRE raison (403, 500, etc.)
+      // Ne pas masquer l'erreur comme une session expirée — propager l'erreur réelle
+      if (!retryResponse.ok) {
+        const retryError = await retryResponse.json().catch(() => ({}));
+        const retryMessage = Array.isArray(retryError.message)
+          ? retryError.message.join(', ')
+          : retryError.message;
+        throw new ApiError(
+          retryMessage || `Erreur ${retryResponse.status}`,
+          retryResponse.status,
+        );
       }
     }
     // Refresh failed - dispatch custom event so auth-context can handle redirect via router
@@ -739,11 +781,12 @@ export const appro = {
     }),
 
   // Liste des BC
-  getPurchaseOrders: (params?: { status?: PurchaseOrderStatus; supplierId?: number; limit?: number }) => {
+  getPurchaseOrders: (params?: { status?: PurchaseOrderStatus; supplierId?: number; limit?: number; offset?: number }) => {
     const searchParams = new URLSearchParams();
     if (params?.status) searchParams.append('status', params.status);
     if (params?.supplierId) searchParams.append('supplierId', params.supplierId.toString());
     if (params?.limit) searchParams.append('limit', params.limit.toString());
+    if (params?.offset) searchParams.append('offset', params.offset.toString());
     const query = searchParams.toString();
     return apiFetch<PurchaseOrder[]>(`/appro/purchase-orders${query ? `?${query}` : ''}`);
   },
@@ -762,6 +805,7 @@ export const appro = {
     supplierEmail?: string;
     ccEmail?: string;
     message?: string;
+    /** Obligatoire si sendVia === 'MANUAL' (min 20 caractères) */
     proofNote?: string;
     proofUrl?: string;
     idempotencyKey?: string;

@@ -51,6 +51,7 @@
     .version { font-size: 10px; color: var(--text-dim); text-align: center; padding: 6px; }
     .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
     .status-online { background: var(--green); }
+    .status-local { background: var(--blue); }
 
     /* Page */
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
@@ -88,23 +89,9 @@
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: rgba(51,65,85,0.3); }
 
-    /* Login */
-    .login-container { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
-    .login-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 36px; width: 100%; max-width: 400px; }
-    .login-card h1 { text-align: center; margin-bottom: 6px; font-size: 20px; }
-    .login-card .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 28px; font-size: 13px; }
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 5px; color: var(--text-muted); }
-    .form-input { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: 13px; outline: none; transition: border-color 0.15s; }
-    .form-input:focus { border-color: var(--accent); }
-    .form-input::placeholder { color: var(--text-dim); }
-    .login-btn { width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-    .login-btn:hover { background: var(--accent-hover); }
-    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .error-msg { color: var(--red); font-size: 12px; text-align: center; margin-bottom: 12px; }
-
     .empty-state { text-align: center; padding: 40px 20px; color: var(--text-dim); }
     .empty-state .icon { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }
+    .empty-state .cta { margin-top: 16px; }
     .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 20px auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .fade-in { animation: fadeIn 0.3s ease; }
@@ -112,6 +99,41 @@
     .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
     .btn-primary { background: var(--accent); color: #fff; }
     .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .btn-secondary:hover { background: #475569; }
+    .btn-small { padding: 6px 12px; font-size: 12px; }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-success { background: var(--green); color: #fff; }
+    .btn:disabled, .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn:disabled:hover, .btn-action:disabled:hover { transform: none; box-shadow: none; }
+    .nav-item-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+    /* Action buttons */
+    .btn-action { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; background: var(--accent); color: #fff; border: none; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-action:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(236,118,32,0.3); }
+
+    /* Modals */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 100; animation: fadeIn 0.2s ease; }
+    .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; width: 90%; max-width: 520px; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 500; margin-bottom: 5px; color: var(--text-muted); }
+    .form-input { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; color: var(--text); font-size: 13px; outline: none; transition: border-color 0.15s; }
+    .form-input:focus { border-color: var(--accent); }
+    .form-input::placeholder { color: var(--text-dim); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-section { background: var(--bg); padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+    .form-section-title { font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; }
+    .ingredient-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .ingredient-row select { flex: 2; }
+    .ingredient-row input { flex: 1; }
+    .ingredient-row .btn-small { flex-shrink: 0; }
+
+    .loading-state { text-align: center; padding: 60px 20px; }
+    .error-state { text-align: center; padding: 40px 20px; color: var(--red); }
+    .error-state .icon { font-size: 40px; margin-bottom: 10px; }
 
     @media (max-width: 1100px) { .card-grid-4 { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 768px) { .sidebar { display: none; } .main { margin-left: 0; padding: 16px; } .card-grid-4, .card-grid-2 { grid-template-columns: 1fr; } }
@@ -120,77 +142,71 @@
 <body>
   <div id="app"></div>
   <script>
-    const API_URL = localStorage.getItem('api_url') || 'http://localhost:3000';
-    let token = localStorage.getItem('access_token') || null;
-    let user = null;
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // TAURI API - Remplace fetch() par invoke()
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    const { invoke } = window.__TAURI__.core;
     let page = 'dashboard';
 
-    async function api(path, opts = {}) {
-      const h = { 'Content-Type': 'application/json' };
-      if (token) h['Authorization'] = 'Bearer ' + token;
-      const r = await fetch(API_URL + '/api' + path, { ...opts, headers: h });
-      if (r.status === 401) { token = null; localStorage.removeItem('access_token'); render(); throw new Error('Session expiree'); }
-      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.message || 'Erreur ' + r.status); }
-      return r.json();
+    // Wrapper pour appeler les commandes Tauri
+    async function tauri(cmd, args = {}) {
+      try {
+        console.log('[Tauri]', cmd, args);
+        const result = await invoke(cmd, args);
+        console.log('[Tauri] Result:', cmd, result);
+        return result;
+      } catch (e) {
+        console.error('[Tauri] Error:', cmd, e);
+        throw e;
+      }
     }
+
+    // Helpers pour les etats UI
+    function showLoading(el) {
+      el.innerHTML = '<div class="loading-state fade-in"><div class="spinner"></div><p style="color:var(--text-muted)">Chargement...</p></div>';
+    }
+
+    function showEmpty(el, icon, msg, action) {
+      el.innerHTML = '<div class="empty-state fade-in"><div class="icon">' + icon + '</div><p>' + msg + '</p>' +
+        (action ? '<div class="cta"><button class="btn btn-primary" onclick="' + action.fn + '">' + action.label + '</button></div>' : '') +
+        '</div>';
+    }
+
+    function showError(el, msg) {
+      el.innerHTML = '<div class="error-state fade-in"><div class="icon">⚠️</div><p>' + msg + '</p>' +
+        '<button class="btn btn-primary" style="margin-top:14px" onclick="loadPage()">Reessayer</button></div>';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════════════════════════
 
     function render() {
       const el = document.getElementById('app');
-      if (!token) { el.innerHTML = loginHTML(); bindLogin(); }
-      else { el.innerHTML = appHTML(); bindNav(); loadPage(); }
+      el.innerHTML = appHTML();
+      bindNav();
+      loadPage();
     }
-
-    function loginHTML() {
-      return '<div class="login-container fade-in"><div class="login-card">' +
-        '<div style="text-align:center;margin-bottom:20px"><div class="logo-icon" style="width:50px;height:50px;font-size:20px;margin:0 auto 14px;border-radius:12px">M</div>' +
-        '<h1>Manchengo Smart ERP</h1><p class="subtitle">Connectez-vous pour continuer</p></div>' +
-        '<div id="lerr"></div><form id="lform">' +
-        '<div class="form-group"><label>Email</label><input type="email" class="form-input" id="lemail" placeholder="admin@manchengo.dz" required></div>' +
-        '<div class="form-group"><label>Mot de passe</label><input type="password" class="form-input" id="lpass" placeholder="Mot de passe" required></div>' +
-        '<div class="form-group"><label>Serveur</label><input type="text" class="form-input" id="lapi" value="' + API_URL + '"></div>' +
-        '<button type="submit" class="login-btn" id="lbtn">Se connecter</button></form></div></div>';
-    }
-
-    function bindLogin() {
-      document.getElementById('lform').onsubmit = async function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('lbtn');
-        btn.disabled = true; btn.textContent = 'Connexion...';
-        document.getElementById('lerr').innerHTML = '';
-        const apiUrl = document.getElementById('lapi').value.replace(/\/+$/, '');
-        localStorage.setItem('api_url', apiUrl);
-        try {
-          const r = await fetch(apiUrl + '/api/auth/login', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: document.getElementById('lemail').value, password: document.getElementById('lpass').value })
-          });
-          if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.message || 'Identifiants invalides'); }
-          const d = await r.json();
-          token = d.access_token; user = d.user || parseJwt(token);
-          localStorage.setItem('access_token', token); render();
-        } catch (err) {
-          document.getElementById('lerr').innerHTML = '<p class="error-msg">' + err.message + '</p>';
-          btn.disabled = false; btn.textContent = 'Se connecter';
-        }
-      };
-    }
-
-    function parseJwt(t) { try { return JSON.parse(atob(t.split('.')[1])); } catch { return {}; } }
 
     function appHTML() {
       return '<div class="app"><aside class="sidebar">' +
-        '<div class="logo"><div class="logo-icon">M</div><div><div class="logo-text">Manchengo ERP</div><div class="logo-sub">Smart Factory</div></div></div>' +
+        '<div class="logo"><div class="logo-icon">M</div><div><div class="logo-text">Manchengo ERP</div><div class="logo-sub">Desktop Edition</div></div></div>' +
         '<nav><div class="nav-section"><div class="nav-label">Principal</div>' +
-        navItem('dashboard', '\u{1F4CA}', 'Dashboard') + '</div>' +
+        navItem('dashboard', '📊', 'Dashboard') + '</div>' +
         '<div class="nav-section"><div class="nav-label">Operations</div>' +
-        navItem('stock', '\u{1F4E6}', 'Stock MP') +
-        navItem('production', '\u{1F3ED}', 'Production') +
-        navItem('appro', '\u{1F6D2}', 'Approvisionnement') + '</div>' +
+        navItem('stock', '📦', 'Stock MP') +
+        navItem('stockpf', '🧀', 'Stock PF') +
+        navItem('recettes', '📖', 'Recettes') +
+        navItem('production', '🏭', 'Production') +
+        navItem('appro', '🛒', 'Approvisionnement') +
+        navItem('fournisseurs', '🏢', 'Fournisseurs') + '</div>' +
         '<div class="nav-section"><div class="nav-label">Commercial</div>' +
-        navItem('clients', '\u{1F465}', 'Clients') +
-        navItem('factures', '\u{1F4C4}', 'Factures') + '</div></nav>' +
-        '<div class="sidebar-footer"><div class="nav-item" id="logout" style="cursor:pointer">\u{1F6AA} Deconnexion</div>' +
-        '<div class="version"><span class="status-dot status-online"></span>v1.0.0</div></div></aside>' +
+        navItem('clients', '👥', 'Clients') +
+        navItem('factures', '📄', 'Factures') + '</div></nav>' +
+        '<div class="sidebar-footer">' +
+        '<a class="nav-item nav-item-disabled" title="Synchronisation - Disponible v1.1">🔄 Sync (v1.1)</a>' +
+        '<div class="version"><span class="status-dot status-local"></span>v1.0.0 Local</div></div></aside>' +
         '<main class="main"><div id="pc"><div class="spinner"></div></div></main></div>';
     }
 
@@ -202,91 +218,653 @@
       document.querySelectorAll('[data-page]').forEach(function(el) {
         el.onclick = function(e) { e.preventDefault(); page = el.dataset.page; render(); };
       });
-      var lo = document.getElementById('logout');
-      if (lo) lo.onclick = function() { token = null; user = null; localStorage.removeItem('access_token'); render(); };
     }
 
     async function loadPage() {
       var el = document.getElementById('pc');
+      showLoading(el);
       try {
         if (page === 'dashboard') await loadDash(el);
         else if (page === 'stock') await loadStock(el);
+        else if (page === 'stockpf') await loadStockPF(el);
+        else if (page === 'recettes') await loadRecettes(el);
         else if (page === 'production') await loadProd(el);
         else if (page === 'appro') await loadAppro(el);
+        else if (page === 'fournisseurs') await loadFournisseurs(el);
         else if (page === 'clients') await loadClients(el);
         else if (page === 'factures') await loadFactures(el);
       } catch (err) {
-        el.innerHTML = '<div class="empty-state fade-in"><div class="icon">\u26A0</div><p>' + err.message + '</p>' +
-          '<p style="margin-top:6px;font-size:11px;color:var(--text-dim)">Serveur: ' + API_URL + '</p>' +
-          '<button class="btn btn-primary" style="margin-top:14px" onclick="loadPage()">Reessayer</button></div>';
+        console.error('Page load error:', err);
+        showError(el, err.toString());
       }
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // DASHBOARD
+    // ═══════════════════════════════════════════════════════════════════════════════
+
     async function loadDash(el) {
-      var k = null;
-      try { k = await api('/dashboard/kpis'); } catch {}
-      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Dashboard</h1><p>Vue d\'ensemble</p></div></div>' +
+      var dash = null;
+      var alerts = null;
+      try {
+        dash = await tauri('get_production_dashboard');
+      } catch (e) { console.warn('Dashboard error:', e); }
+      try {
+        alerts = await tauri('get_stock_alerts');
+      } catch (e) { console.warn('Alerts error:', e); }
+
+      var kpis = dash?.kpis || {};
+      var alertCount = alerts?.total_ruptures || 0;
+      var lowStock = alerts?.total_critical || 0;
+
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Dashboard</h1><p>Base de donnees locale SQLite</p></div></div>' +
         '<div class="card-grid card-grid-4">' +
-        kpiCard('\u{1F4E6}', 'icon-orange', 'Stock MP', k?.stock?.mp?.total, k?.stock?.mp?.lowStock > 0 ? k.stock.mp.lowStock + ' alertes' : null, 'red') +
-        kpiCard('\u{1F3ED}', 'icon-green', 'Stock PF', k?.stock?.pf?.total, k?.stock?.pf?.lowStock > 0 ? k.stock.pf.lowStock + ' bas' : null, 'yellow') +
-        kpiCard('\u{1F4B0}', 'icon-blue', 'Ventes du jour', formatDZD(k?.sales?.todayAmount), (k?.sales?.todayInvoices ?? 0) + ' fact.', 'blue') +
-        kpiCard('\u{1F4C8}', 'icon-orange', 'Sync en attente', k?.sync?.pendingEvents ?? 0, null, null) +
+        kpiCard('📦', 'icon-orange', 'Stock MP', kpis.pending_orders || 0, alertCount > 0 ? alertCount + ' alertes' : null, 'red') +
+        kpiCard('🧀', 'icon-green', 'Stock PF', kpis.active_orders || 0, lowStock > 0 ? lowStock + ' bas' : null, 'yellow') +
+        kpiCard('💰', 'icon-blue', 'Aujourd\'hui', kpis.today_completed || 0, 'completees', 'blue') +
+        kpiCard('📈', 'icon-orange', 'Productions', kpis.active_orders || 0, kpis.pending_orders ? kpis.pending_orders + ' en attente' : null, 'yellow') +
         '</div>' +
-        (k === null ? '<div class="card" style="text-align:center;padding:32px"><div style="font-size:40px;margin-bottom:8px">\u{1F310}</div><p style="font-weight:600">Mode hors ligne</p><p style="color:var(--text-muted);font-size:13px">Backend non accessible</p></div>' : '') +
+        '<div class="card" style="text-align:center;padding:32px"><div style="font-size:40px;margin-bottom:8px">💾</div>' +
+        '<p style="font-weight:600">Mode Desktop Local</p><p style="color:var(--text-muted);font-size:13px">Donnees stockees localement via SQLite</p></div>' +
         '</div>';
     }
 
     function kpiCard(icon, cls, label, value, badge, badgeColor) {
       return '<div class="card"><div class="card-header"><div class="icon-box ' + cls + '">' + icon + '</div>' +
         (badge ? '<span class="card-badge badge-' + badgeColor + '">' + badge + '</span>' : '') +
-        '</div><div class="card-value">' + (value != null ? value.toLocaleString?.() || value : '\u2014') + '</div>' +
+        '</div><div class="card-value">' + (value != null ? value : '—') + '</div>' +
         '<div class="card-label">' + label + '</div></div>';
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // STOCK MP
+    // ═══════════════════════════════════════════════════════════════════════════════
+
     async function loadStock(el) {
-      var d = await api('/stock/dashboard');
-      var items = d.critique?.items || [];
-      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Stock MP</h1><p>Tableau de bord stock</p></div></div>' +
+      var items = [];
+      try {
+        items = await tauri('get_stock_mp') || [];
+      } catch (e) {
+        console.warn('Stock MP error:', e);
+        items = [];
+      }
+
+      if (items.length === 0) {
+        showEmpty(el, '📦', 'Aucune matiere premiere en stock', {label: '+ Nouvelle Reception', fn: 'showReceptionModal()'});
+        return;
+      }
+
+      var critiques = items.filter(function(p) { return p.status === 'RUPTURE' || p.status === 'CRITICAL'; });
+      var warnings = items.filter(function(p) { return p.status === 'LOW' || p.status === 'WARNING'; });
+
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Stock MP</h1><p>' + items.length + ' produits</p></div>' +
+        '<button class="btn-action" id="btn-reception">+ Reception MP</button></div>' +
         '<div class="card-grid card-grid-3">' +
-        '<div class="card"><div class="card-value" style="color:var(--red)">' + (d.critique?.totalCount ?? 0) + '</div><div class="card-label">Critiques</div></div>' +
-        '<div class="card"><div class="card-value" style="color:var(--yellow)">' + (d.aTraiter?.totalCount ?? 0) + '</div><div class="card-label">A traiter</div></div>' +
-        '<div class="card"><div class="card-value" style="color:var(--green)">' + (d.sante?.fifoCompliance ?? '-') + '%</div><div class="card-label">FIFO</div></div></div>' +
-        (items.length > 0 ? tableHTML('Alertes', ['Produit','Stock','Seuil','Statut'], items.slice(0,20).map(function(p) {
-          return [p.name||p.code||'-', p.currentStock??p.stock??'-', p.minStock??'-', badge(p.status)];
-        })) : emptyHTML('\u2705', 'Aucune alerte')) + '</div>';
+        '<div class="card"><div class="card-value" style="color:var(--red)">' + critiques.length + '</div><div class="card-label">Ruptures</div></div>' +
+        '<div class="card"><div class="card-value" style="color:var(--yellow)">' + warnings.length + '</div><div class="card-label">Stock bas</div></div>' +
+        '<div class="card"><div class="card-value" style="color:var(--green)">' + (items.length - critiques.length - warnings.length) + '</div><div class="card-label">OK</div></div></div>' +
+        tableHTML('Matieres Premieres', ['Code','Nom','Stock','Seuil','Statut','Actions'], items.map(function(p) {
+          var actions = '<button class="btn btn-small btn-secondary" onclick="showMovements(\'MP\',\'' + p.product_id + '\',\'' + (p.product_name||'').replace(/'/g,"\\'") + '\')">Mouvements</button>';
+          return [p.product_code||'-', p.product_name||'-', (p.current_stock||0).toFixed(1), p.min_stock||'-', statusBadge(p.status), actions];
+        })) + '</div>';
+
+      document.getElementById('btn-reception').onclick = showReceptionModal;
     }
+
+    async function showMovements(type, productId, productName) {
+      try {
+        var movements = await tauri('get_movement_history', { product_type: type, product_id: productId, limit: 30 }) || [];
+        var rowsHtml = movements.map(function(m) {
+          var sign = (m.movement_type === 'ENTRY' || m.movement_type === 'PRODUCTION_OUTPUT') ? '+' : '-';
+          var color = sign === '+' ? 'var(--green)' : 'var(--red)';
+          return '<tr><td>' + fmtDate(m.created_at) + '</td><td>' + (m.movement_type||'-') + '</td>' +
+            '<td style="color:' + color + '">' + sign + (m.quantity||0).toFixed(2) + '</td>' +
+            '<td>' + (m.lot_number||'-') + '</td><td>' + (m.reference||'-') + '</td></tr>';
+        }).join('');
+
+        document.body.insertAdjacentHTML('beforeend',
+          '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+          '<div class="modal" style="max-width:700px"><h2>📋 Mouvements - ' + (productName||'Produit') + '</h2>' +
+          (movements.length === 0 ? '<p style="text-align:center;color:var(--text-muted);padding:20px">Aucun mouvement enregistre</p>' :
+          '<div style="max-height:400px;overflow-y:auto"><table style="width:100%"><thead><tr><th>Date</th><th>Type</th><th>Qte</th><th>Lot</th><th>Reference</th></tr></thead><tbody>' + rowsHtml + '</tbody></table></div>') +
+          '<div class="modal-actions"><button class="btn btn-secondary" onclick="hideModal()">Fermer</button></div></div></div>');
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // STOCK PF
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    async function loadStockPF(el) {
+      var items = [];
+      try {
+        items = await tauri('get_stock_pf') || [];
+      } catch (e) {
+        console.warn('Stock PF error:', e);
+        items = [];
+      }
+
+      if (items.length === 0) {
+        showEmpty(el, '🧀', 'Aucun produit fini en stock', {label: 'Lancer une production', fn: "page='production';render()"});
+        return;
+      }
+
+      var critiques = items.filter(function(p) { return p.status === 'RUPTURE' || p.status === 'CRITICAL'; });
+      var warnings = items.filter(function(p) { return p.status === 'LOW' || p.status === 'WARNING'; });
+
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Stock PF</h1><p>' + items.length + ' produits finis</p></div></div>' +
+        '<div class="card-grid card-grid-3">' +
+        '<div class="card"><div class="card-value" style="color:var(--red)">' + critiques.length + '</div><div class="card-label">Ruptures</div></div>' +
+        '<div class="card"><div class="card-value" style="color:var(--yellow)">' + warnings.length + '</div><div class="card-label">Stock bas</div></div>' +
+        '<div class="card"><div class="card-value" style="color:var(--green)">' + (items.length - critiques.length - warnings.length) + '</div><div class="card-label">OK</div></div></div>' +
+        tableHTML('Produits Finis', ['Code','Nom','Stock','Seuil','Statut','Actions'], items.map(function(p) {
+          var actions = '<button class="btn btn-small btn-secondary" onclick="showMovements(\'PF\',\'' + p.product_id + '\',\'' + (p.product_name||'').replace(/'/g,"\\'") + '\')">Mouvements</button>';
+          return [p.product_code||'-', p.product_name||'-', (p.current_stock||0).toFixed(1), p.min_stock||'-', statusBadge(p.status), actions];
+        })) + '</div>';
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // FOURNISSEURS
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    async function loadFournisseurs(el) {
+      var items = [];
+      try {
+        items = await tauri('list_suppliers', { active_only: true }) || [];
+      } catch (e) {
+        console.warn('Suppliers error:', e);
+        items = [];
+      }
+
+      if (items.length === 0) {
+        showEmpty(el, '🏢', 'Aucun fournisseur enregistre', {label: '+ Nouveau Fournisseur', fn: 'showFournisseurModal()'});
+        return;
+      }
+
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Fournisseurs</h1><p>' + items.length + ' fournisseurs</p></div>' +
+        '<button class="btn-action" id="btn-fournisseur">+ Nouveau Fournisseur</button></div>' +
+        tableHTML('Fournisseurs', ['Code','Nom','Telephone','Adresse','Actions'], items.map(function(f) {
+          var actions = '<button class="btn btn-small btn-primary" onclick="editFournisseur(\'' + f.id + '\')">Modifier</button>';
+          return [f.code||'-', f.name||'-', f.phone||'-', f.address||'-', actions];
+        })) + '</div>';
+
+      document.getElementById('btn-fournisseur').onclick = showFournisseurModal;
+    }
+
+    var editingFournisseurId = null;
+
+    async function editFournisseur(id) {
+      try {
+        var f = await tauri('get_supplier', { id: id });
+        if (!f) { alert('Fournisseur non trouve'); return; }
+        editingFournisseurId = id;
+        document.body.insertAdjacentHTML('beforeend',
+          '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+          '<div class="modal"><h2>✏️ Modifier Fournisseur</h2>' +
+          '<div class="form-group"><label>Raison sociale *</label><input class="form-input" id="edit-sup-name" value="' + (f.name||'') + '"></div>' +
+          '<div class="form-row">' +
+          '<div class="form-group"><label>Telephone</label><input class="form-input" id="edit-sup-phone" value="' + (f.phone||'') + '"></div>' +
+          '<div class="form-group"><label>RC</label><input class="form-input" id="edit-sup-rc" value="' + (f.rc||'') + '"></div></div>' +
+          '<div class="form-row">' +
+          '<div class="form-group"><label>NIF</label><input class="form-input" id="edit-sup-nif" value="' + (f.nif||'') + '"></div>' +
+          '<div class="form-group"><label>AI</label><input class="form-input" id="edit-sup-ai" value="' + (f.ai||'') + '"></div></div>' +
+          '<div class="form-group"><label>Adresse</label><input class="form-input" id="edit-sup-address" value="' + (f.address||'') + '"></div>' +
+          '<div class="modal-actions">' +
+          '<button class="btn btn-secondary" onclick="hideModal()">Annuler</button>' +
+          '<button class="btn btn-primary" onclick="updateFournisseur()">Enregistrer</button></div></div></div>');
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    async function updateFournisseur() {
+      if (!editingFournisseurId) return;
+      var data = {
+        name: document.getElementById('edit-sup-name').value.trim(),
+        phone: document.getElementById('edit-sup-phone').value.trim() || null,
+        rc: document.getElementById('edit-sup-rc').value.trim() || null,
+        nif: document.getElementById('edit-sup-nif').value.trim() || null,
+        ai: document.getElementById('edit-sup-ai').value.trim() || null,
+        address: document.getElementById('edit-sup-address').value.trim() || null
+      };
+      if (!data.name) { alert('Le nom est obligatoire'); return; }
+      try {
+        await tauri('update_supplier', { id: editingFournisseurId, data: data });
+        hideModal();
+        editingFournisseurId = null;
+        alert('Fournisseur modifie!');
+        page = 'fournisseurs'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // RECETTES
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    async function loadRecettes(el) {
+      var recettes = [];
+      var pf = [];
+      try {
+        recettes = await tauri('list_recipes', { filter: {} }) || [];
+      } catch (e) { console.warn('Recipes error:', e); }
+      try {
+        pf = await tauri('list_products_pf', { filter: {} }) || [];
+      } catch (e) { console.warn('Products PF error:', e); }
+
+      if (recettes.length === 0) {
+        showEmpty(el, '📖', 'Aucune recette definie', {label: '+ Nouvelle Recette', fn: 'showRecetteModal()'});
+        return;
+      }
+
+      var withRecipe = recettes.length;
+      var withoutRecipe = pf.filter(function(p) { return !recettes.some(function(rec) { return rec.product_pf_id === p.id; }); }).length;
+
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Recettes</h1><p>' + recettes.length + ' recettes definies</p></div>' +
+        '<button class="btn-action" id="btn-recette">+ Nouvelle Recette</button></div>' +
+        '<div class="card-grid card-grid-3">' +
+        '<div class="card"><div class="card-value" style="color:var(--green)">' + withRecipe + '</div><div class="card-label">Avec recette</div></div>' +
+        '<div class="card"><div class="card-value" style="color:var(--yellow)">' + withoutRecipe + '</div><div class="card-label">Sans recette</div></div>' +
+        '<div class="card"><div class="card-value">' + pf.length + '</div><div class="card-label">Produits finis</div></div></div>' +
+        tableHTML('Recettes de production', ['Produit','Nom','Output/Batch','Ingredients','Statut','Actions'], recettes.map(function(rec) {
+          var nbItems = rec.items ? rec.items.length : 0;
+          var actions = '<button class="btn btn-small btn-secondary" onclick="showRecetteDetails(\'' + rec.id + '\')">Voir</button>' +
+            ' <button class="btn btn-small btn-danger" onclick="deleteRecette(\'' + rec.id + '\')">Suppr.</button>';
+          return [rec.product_pf_name||'-', rec.name||'-', (rec.output_quantity||'-') + ' u', nbItems + ' ing.', rec.is_active ? statusBadge('ACTIVE') : statusBadge('INACTIVE'), actions];
+        })) + '</div>';
+
+      document.getElementById('btn-recette').onclick = showRecetteModal;
+    }
+
+    async function showRecetteDetails(id) {
+      try {
+        var rec = await tauri('get_recipe', { id: id });
+        if (!rec) { alert('Recette non trouvee'); return; }
+        var avail = { available: false, missing_items: [] };
+        try { avail = await tauri('check_recipe_availability', { product_pf_id: rec.product_pf_id, batch_count: 1 }) || avail; } catch {}
+
+        var itemsHtml = (rec.items || []).map(function(it) {
+          return '<tr><td>' + (it.product_mp_name||it.product_mp_id||'-') + '</td><td>' + (it.quantity||0) + ' ' + (it.unit||'kg') + '</td><td>' + (it.is_mandatory ? 'Oui' : 'Non') + '</td></tr>';
+        }).join('');
+
+        document.body.insertAdjacentHTML('beforeend',
+          '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+          '<div class="modal" style="max-width:600px"><h2>📖 ' + (rec.name||'Recette') + '</h2>' +
+          '<div class="form-section"><div class="form-section-title">Informations</div>' +
+          '<p><strong>Produit:</strong> ' + (rec.product_pf_name||'-') + '</p>' +
+          '<p><strong>Output/batch:</strong> ' + (rec.output_quantity||0) + ' unites</p>' +
+          '<p><strong>Poids batch:</strong> ' + (rec.batch_weight||0) + ' kg</p>' +
+          '<p><strong>Tolerance perte:</strong> ' + ((rec.loss_tolerance||0)*100).toFixed(0) + '%</p>' +
+          '<p><strong>DLC:</strong> ' + (rec.shelf_life_days||0) + ' jours</p>' +
+          '<p><strong>Statut:</strong> ' + (rec.is_active ? 'Active' : 'Inactive') + '</p></div>' +
+          '<div class="form-section"><div class="form-section-title">Ingredients (' + (rec.items||[]).length + ')</div>' +
+          '<table style="width:100%"><thead><tr><th>Matiere</th><th>Quantite</th><th>Obligatoire</th></tr></thead><tbody>' + itemsHtml + '</tbody></table></div>' +
+          '<div class="form-section"><div class="form-section-title">Disponibilite (1 batch)</div>' +
+          '<p style="color:' + (avail.available ? 'var(--green)' : 'var(--red)') + '">' +
+          (avail.available ? '✅ Stock suffisant' : '❌ Stock insuffisant') + '</p>' +
+          (avail.missing_items && avail.missing_items.length > 0 ? '<p>Manquant: ' + avail.missing_items.map(function(m) { return m.product_name + ' (' + m.missing_quantity + ')'; }).join(', ') + '</p>' : '') +
+          '</div>' +
+          '<div class="modal-actions"><button class="btn btn-secondary" onclick="hideModal()">Fermer</button></div></div></div>');
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    async function deleteRecette(id) {
+      if (!confirm('Supprimer cette recette definitivement?')) return;
+      try {
+        await tauri('delete_recipe', { id: id });
+        alert('Recette supprimee!');
+        page = 'recettes'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // PRODUCTION
+    // ═══════════════════════════════════════════════════════════════════════════════
 
     async function loadProd(el) {
-      var items = []; try { var d = await api('/production/orders?limit=20'); items = d.items || d || []; } catch {}
-      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Production</h1><p>Ordres de production</p></div></div>' +
-        (items.length > 0 ? tableHTML('Ordres', ['Ref','Produit','Qte','Statut','Date'], items.map(function(o) {
-          return [o.reference||o.id, o.productPf?.name||'-', o.quantity??'-', badge(o.status), fmtDate(o.createdAt)];
-        })) : emptyHTML('\u{1F3ED}', 'Aucun ordre')) + '</div>';
+      var items = [];
+      try {
+        items = await tauri('list_production_orders', { filter: { limit: 50 } }) || [];
+      } catch (e) {
+        console.warn('Production orders error:', e);
+        items = [];
+      }
+
+      if (items.length === 0) {
+        showEmpty(el, '🏭', 'Aucun ordre de production', {label: '+ Nouvelle Production', fn: 'showProdModal()'});
+        return;
+      }
+
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Production</h1><p>Ordres de production</p></div>' +
+        '<button class="btn-action" id="btn-prod">+ Nouvelle Production</button></div>' +
+        tableHTML('Ordres de Production', ['Ref','Produit','Batches','Statut','Actions'], items.map(function(o) {
+          var actions = '';
+          if (o.status === 'Pending') {
+            actions = '<button class="btn btn-success btn-small" onclick="startProduction(\'' + o.id + '\')">Demarrer</button>' +
+              ' <button class="btn btn-danger btn-small" onclick="cancelProduction(\'' + o.id + '\')">Annuler</button>';
+          } else if (o.status === 'InProgress') {
+            actions = '<button class="btn btn-primary btn-small" onclick="completeProduction(\'' + o.id + '\')">Terminer</button>' +
+              ' <button class="btn btn-danger btn-small" onclick="cancelProduction(\'' + o.id + '\')">Annuler</button>';
+          } else if (o.status === 'Completed') {
+            actions = '<button class="btn btn-secondary btn-small" onclick="showProductionCost(\'' + o.id + '\')">Couts</button>';
+          } else {
+            actions = '-';
+          }
+          return [o.reference||o.id.slice(0,8), o.product_pf_name||'-', o.batch_count||'-', statusBadge(o.status), actions];
+        })) + '</div>';
+
+      document.getElementById('btn-prod').onclick = showProdModal;
     }
+
+    async function startProduction(orderId) {
+      if (!confirm('Demarrer la production? Les MP seront consommees (FIFO).')) return;
+      try {
+        await tauri('start_production', { order_id: orderId, user_id: 'desktop-user' });
+        alert('Production demarree!');
+        page = 'production'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    async function completeProduction(orderId) {
+      var qty = prompt('Quantite produite?');
+      if (!qty || isNaN(parseFloat(qty))) return;
+      try {
+        await tauri('complete_production', {
+          order_id: orderId,
+          data: { quantity_produced: parseFloat(qty), quality_grade: 'A', notes: null },
+          user_id: 'desktop-user'
+        });
+        alert('Production terminee!');
+        page = 'production'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    async function cancelProduction(orderId) {
+      var reason = prompt('Motif d\'annulation?');
+      if (!reason) return;
+      try {
+        await tauri('cancel_production', { order_id: orderId, reason: reason });
+        alert('Production annulee!');
+        page = 'production'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    async function showProductionCost(orderId) {
+      try {
+        var cost = await tauri('calculate_production_cost', { order_id: orderId });
+        var itemsHtml = (cost.items || []).map(function(it) {
+          return '<tr><td>' + (it.product_name||'-') + '</td><td>' + (it.quantity||0).toFixed(2) + '</td><td>' + formatDZD(it.unit_cost||0) + '</td><td>' + formatDZD(it.total_cost||0) + '</td></tr>';
+        }).join('');
+
+        document.body.insertAdjacentHTML('beforeend',
+          '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+          '<div class="modal" style="max-width:600px"><h2>💰 Couts de Production</h2>' +
+          '<div class="card-grid card-grid-3" style="margin-bottom:16px">' +
+          '<div class="card"><div class="card-value">' + formatDZD(cost.total_mp_cost||0) + '</div><div class="card-label">Cout MP</div></div>' +
+          '<div class="card"><div class="card-value">' + formatDZD(cost.total_labor_cost||0) + '</div><div class="card-label">Main d\'oeuvre</div></div>' +
+          '<div class="card"><div class="card-value" style="color:var(--accent)">' + formatDZD(cost.total_cost||0) + '</div><div class="card-label">Cout Total</div></div></div>' +
+          (itemsHtml ? '<div class="form-section"><div class="form-section-title">Detail MP consommees</div>' +
+          '<table style="width:100%"><thead><tr><th>Matiere</th><th>Qte</th><th>P.U.</th><th>Total</th></tr></thead><tbody>' + itemsHtml + '</tbody></table></div>' : '') +
+          '<div class="form-section"><div class="form-section-title">Prix de revient</div>' +
+          '<p><strong>Quantite produite:</strong> ' + (cost.quantity_produced||0) + ' unites</p>' +
+          '<p><strong>Cout unitaire:</strong> ' + formatDZD(cost.unit_cost||0) + '</p></div>' +
+          '<div class="modal-actions"><button class="btn btn-secondary" onclick="hideModal()">Fermer</button></div></div></div>');
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // APPROVISIONNEMENT / BC
+    // ═══════════════════════════════════════════════════════════════════════════════
 
     async function loadAppro(el) {
-      var items = []; try { var d = await api('/appro/purchase-orders?limit=20'); items = d.items || d || []; } catch {}
-      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Approvisionnement</h1><p>Bons de commande</p></div></div>' +
-        (items.length > 0 ? tableHTML('Bons de commande', ['Ref','Fournisseur','Montant','Statut','Date'], items.map(function(b) {
-          return [b.reference||b.id, b.supplier?.name||'-', formatDZD(b.totalAmount), badge(b.status), fmtDate(b.createdAt)];
-        })) : emptyHTML('\u{1F6D2}', 'Aucun bon de commande')) + '</div>';
+      var items = [];
+      try {
+        items = await tauri('list_purchase_orders', { filter: { limit: 50 } }) || [];
+      } catch (e) {
+        console.warn('Purchase orders error:', e);
+        items = [];
+      }
+
+      if (items.length === 0) {
+        showEmpty(el, '🛒', 'Aucun bon de commande', {label: '+ Nouveau BC', fn: 'showBCModal()'});
+        return;
+      }
+
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Approvisionnement</h1><p>Bons de commande</p></div>' +
+        '<button class="btn-action" id="btn-bc">+ Nouveau BC</button></div>' +
+        tableHTML('Bons de commande', ['Ref','Fournisseur','Montant','Statut','Actions'], items.map(function(b) {
+          var actions = '';
+          if (b.status === 'Draft') {
+            actions = '<button class="btn btn-small btn-primary" onclick="confirmBC(\'' + b.id + '\')">Confirmer</button>' +
+              ' <button class="btn btn-small btn-danger" onclick="cancelBC(\'' + b.id + '\')">Annuler</button>';
+          } else if (b.status === 'Confirmed') {
+            actions = '<button class="btn btn-small btn-primary" onclick="sendBC(\'' + b.id + '\')">Envoyer</button>' +
+              ' <button class="btn btn-small btn-danger" onclick="cancelBC(\'' + b.id + '\')">Annuler</button>';
+          } else if (b.status === 'Sent') {
+            actions = '<button class="btn btn-small btn-success" onclick="receiveBC(\'' + b.id + '\')">Receptionner</button>';
+          } else {
+            actions = '-';
+          }
+          return [b.reference||b.id.slice(0,8), b.supplier_name||'-', formatDZD(b.total_amount), statusBadge(b.status), actions];
+        })) + '</div>';
+
+      document.getElementById('btn-bc').onclick = showBCModal;
     }
+
+    async function confirmBC(id) {
+      try {
+        await tauri('confirm_purchase_order', { id: id });
+        alert('BC confirme!');
+        page = 'appro'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    async function sendBC(id) {
+      try {
+        await tauri('send_purchase_order', { id: id });
+        alert('BC envoye!');
+        page = 'appro'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    async function receiveBC(id) {
+      try {
+        var order = await tauri('get_purchase_order', { id: id });
+        var data = {
+          lines: order.lines.map(function(l) {
+            return {
+              product_mp_id: l.product_mp_id,
+              quantity_received: l.quantity,
+              unit_cost: Math.round(l.unit_price),
+              lot_number: null,
+              expiry_date: null
+            };
+          })
+        };
+        await tauri('receive_purchase_order', { id: id, data: data, user_id: 'desktop-user' });
+        alert('BC receptionne!');
+        page = 'appro'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    async function cancelBC(id) {
+      if (!confirm('Annuler ce bon de commande?')) return;
+      try {
+        await tauri('cancel_purchase_order', { id: id });
+        alert('BC annule!');
+        page = 'appro'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // CLIENTS
+    // ═══════════════════════════════════════════════════════════════════════════════
 
     async function loadClients(el) {
-      var items = []; try { var d = await api('/clients?limit=20'); items = d.items || d || []; } catch {}
-      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Clients</h1><p>' + items.length + ' clients</p></div></div>' +
-        (items.length > 0 ? tableHTML('Clients', ['Nom','Email','Tel','Wilaya'], items.map(function(c) {
-          return [c.name||c.companyName||'-', c.email||'-', c.phone||'-', c.wilaya||'-'];
-        })) : emptyHTML('\u{1F465}', 'Aucun client')) + '</div>';
+      var items = [];
+      try {
+        items = await tauri('list_clients', { filter: {} }) || [];
+      } catch (e) {
+        console.warn('Clients error:', e);
+        items = [];
+      }
+
+      if (items.length === 0) {
+        showEmpty(el, '👥', 'Aucun client enregistre', {label: '+ Nouveau Client', fn: 'showClientModal()'});
+        return;
+      }
+
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Clients</h1><p>' + items.length + ' clients</p></div>' +
+        '<button class="btn-action" id="btn-client">+ Nouveau Client</button></div>' +
+        tableHTML('Clients', ['Code','Nom','Email','Tel','Type','Actions'], items.map(function(c) {
+          var actions = '<button class="btn btn-small btn-secondary" onclick="showClientDetails(\'' + c.id + '\')">Details</button>' +
+            ' <button class="btn btn-small btn-primary" onclick="editClient(\'' + c.id + '\')">Modifier</button>' +
+            ' <button class="btn btn-small btn-danger" onclick="deleteClient(\'' + c.id + '\')">Suppr.</button>';
+          return [c.code||'-', c.name||c.company_name||'-', c.email||'-', c.phone||'-', c.client_type||'-', actions];
+        })) + '</div>';
+
+      document.getElementById('btn-client').onclick = showClientModal;
     }
 
-    async function loadFactures(el) {
-      var items = []; try { var d = await api('/invoices?limit=20'); items = d.items || d || []; } catch {}
-      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Factures</h1><p>' + items.length + ' factures</p></div></div>' +
-        (items.length > 0 ? tableHTML('Factures', ['Numero','Client','TTC','Statut','Date'], items.map(function(f) {
-          return [f.invoiceNumber||f.id, f.client?.name||'-', formatDZD(f.totalTTC), badge(f.status), fmtDate(f.createdAt)];
-        })) : emptyHTML('\u{1F4C4}', 'Aucune facture')) + '</div>';
+    async function showClientDetails(id) {
+      try {
+        var client = await tauri('get_client', { id: id });
+        var balance = { total_due: 0, total_paid: 0, balance: 0 };
+        var history = [];
+        try { balance = await tauri('get_client_balance', { id: id }) || balance; } catch {}
+        try { history = await tauri('get_client_history', { id: id, limit: 10 }) || []; } catch {}
+
+        document.body.insertAdjacentHTML('beforeend',
+          '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+          '<div class="modal" style="max-width:600px"><h2>👤 ' + (client.name||client.company_name||'Client') + '</h2>' +
+          '<div class="card-grid card-grid-3" style="margin-bottom:16px">' +
+          '<div class="card"><div class="card-value" style="color:var(--red)">' + formatDZD(balance.total_due||0) + '</div><div class="card-label">Total du</div></div>' +
+          '<div class="card"><div class="card-value" style="color:var(--green)">' + formatDZD(balance.total_paid||0) + '</div><div class="card-label">Total paye</div></div>' +
+          '<div class="card"><div class="card-value">' + formatDZD(balance.balance||0) + '</div><div class="card-label">Solde</div></div></div>' +
+          '<div class="form-section"><div class="form-section-title">Informations</div>' +
+          '<p><strong>Code:</strong> ' + (client.code||'-') + '</p>' +
+          '<p><strong>Type:</strong> ' + (client.client_type||'-') + '</p>' +
+          '<p><strong>Email:</strong> ' + (client.email||'-') + '</p>' +
+          '<p><strong>Tel:</strong> ' + (client.phone||'-') + '</p>' +
+          '<p><strong>Adresse:</strong> ' + (client.address||'-') + '</p>' +
+          '<p><strong>Wilaya:</strong> ' + (client.wilaya||'-') + '</p></div>' +
+          (history.length > 0 ? '<div class="form-section"><div class="form-section-title">Historique recent</div>' +
+            history.map(function(h) { return '<p>' + fmtDate(h.date) + ' - ' + (h.type||'') + ' - ' + formatDZD(h.amount||0) + '</p>'; }).join('') +
+          '</div>' : '') +
+          '<div class="modal-actions"><button class="btn btn-secondary" onclick="hideModal()">Fermer</button></div></div></div>');
+      } catch (e) { alert('Erreur: ' + e); }
     }
+
+    var editingClientId = null;
+
+    async function editClient(id) {
+      try {
+        var c = await tauri('get_client', { id: id });
+        editingClientId = id;
+        document.body.insertAdjacentHTML('beforeend',
+          '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+          '<div class="modal"><h2>✏️ Modifier Client</h2>' +
+          '<div class="form-group"><label>Nom *</label><input class="form-input" id="edit-name" value="' + (c.name||c.company_name||'') + '"></div>' +
+          '<div class="form-row">' +
+          '<div class="form-group"><label>Telephone</label><input class="form-input" id="edit-phone" value="' + (c.phone||'') + '"></div>' +
+          '<div class="form-group"><label>Email</label><input type="email" class="form-input" id="edit-email" value="' + (c.email||'') + '"></div></div>' +
+          '<div class="form-row">' +
+          '<div class="form-group"><label>Type</label><select class="form-input" id="edit-type">' +
+          '<option value="DISTRIBUTEUR"' + (c.client_type==='DISTRIBUTEUR'?' selected':'') + '>Distributeur</option>' +
+          '<option value="GROSSISTE"' + (c.client_type==='GROSSISTE'?' selected':'') + '>Grossiste</option>' +
+          '<option value="SUPERETTE"' + (c.client_type==='SUPERETTE'?' selected':'') + '>Superette</option>' +
+          '<option value="FAST_FOOD"' + (c.client_type==='FAST_FOOD'?' selected':'') + '>Fast Food</option></select></div>' +
+          '<div class="form-group"><label>Wilaya</label><input class="form-input" id="edit-wilaya" value="' + (c.wilaya||'') + '"></div></div>' +
+          '<div class="form-group"><label>Adresse</label><input class="form-input" id="edit-address" value="' + (c.address||'') + '"></div>' +
+          '<div class="modal-actions">' +
+          '<button class="btn btn-secondary" onclick="hideModal()">Annuler</button>' +
+          '<button class="btn btn-primary" onclick="updateClient()">Enregistrer</button></div></div></div>');
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    async function updateClient() {
+      if (!editingClientId) return;
+      var data = {
+        name: document.getElementById('edit-name').value.trim(),
+        phone: document.getElementById('edit-phone').value.trim() || null,
+        email: document.getElementById('edit-email').value.trim() || null,
+        client_type: document.getElementById('edit-type').value || null,
+        wilaya: document.getElementById('edit-wilaya').value.trim() || null,
+        address: document.getElementById('edit-address').value.trim() || null
+      };
+      if (!data.name) { alert('Le nom est obligatoire'); return; }
+      try {
+        await tauri('update_client', { id: editingClientId, data: data });
+        hideModal();
+        editingClientId = null;
+        alert('Client modifie!');
+        page = 'clients'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    async function deleteClient(id) {
+      if (!confirm('Supprimer ce client definitivement?')) return;
+      try {
+        await tauri('delete_client', { id: id });
+        alert('Client supprime!');
+        page = 'clients'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // FACTURES
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    async function loadFactures(el) {
+      var items = [];
+      try {
+        items = await tauri('list_invoices', { filter: {} }) || [];
+      } catch (e) {
+        console.warn('Invoices error:', e);
+        items = [];
+      }
+
+      if (items.length === 0) {
+        showEmpty(el, '📄', 'Aucune facture', {label: '+ Nouvelle Facture', fn: 'showFactureModal()'});
+        return;
+      }
+
+      el.innerHTML = '<div class="fade-in"><div class="page-header"><div><h1>Factures</h1><p>' + items.length + ' factures</p></div>' +
+        '<button class="btn-action" id="btn-facture">+ Nouvelle Facture</button></div>' +
+        tableHTML('Factures', ['Numero','Client','TTC','Statut','Actions'], items.map(function(f) {
+          var actions = '';
+          if (f.status === 'Draft') {
+            actions = '<button class="btn btn-small btn-success" onclick="validateInvoice(\'' + f.id + '\')">Valider</button>' +
+              ' <button class="btn btn-small btn-danger" onclick="voidInvoice(\'' + f.id + '\')">Annuler</button>';
+          } else if (f.status === 'Validated') {
+            actions = '<button class="btn btn-small btn-danger" onclick="voidInvoice(\'' + f.id + '\')">Avoir</button>';
+          } else {
+            actions = '-';
+          }
+          return [f.invoice_number||f.id.slice(0,8), f.client_name||'-', formatDZD(f.total_ttc), statusBadge(f.status), actions];
+        })) + '</div>';
+
+      document.getElementById('btn-facture').onclick = showFactureModal;
+    }
+
+    async function validateInvoice(id) {
+      try {
+        await tauri('validate_invoice', { id: id });
+        alert('Facture validee!');
+        page = 'factures'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    async function voidInvoice(id) {
+      var reason = prompt('Motif d\'annulation?');
+      if (!reason) return;
+      try {
+        await tauri('void_invoice', { id: id, reason: reason });
+        alert('Facture annulee!');
+        page = 'factures'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════════════════════════
 
     function tableHTML(title, headers, rows) {
       return '<div class="table-container"><div class="table-header"><span class="card-title">' + title + '</span></div><table><thead><tr>' +
@@ -295,26 +873,537 @@
         '</tbody></table></div>';
     }
 
-    function emptyHTML(icon, msg) {
-      return '<div class="empty-state"><div class="icon">' + icon + '</div><p>' + msg + '</p></div>';
-    }
-
-    function badge(status) {
+    function statusBadge(status) {
+      var s = String(status || '').toUpperCase();
       var cls = 'badge-yellow';
-      if (status === 'COMPLETED' || status === 'PAID' || status === 'RECEIVED' || status === 'SAIN') cls = 'badge-green';
-      else if (status === 'IN_PROGRESS' || status === 'SENT') cls = 'badge-blue';
-      else if (status === 'RUPTURE' || status === 'BLOQUANT_PRODUCTION') cls = 'badge-red';
+      if (s === 'COMPLETED' || s === 'PAID' || s === 'RECEIVED' || s === 'SAIN' || s === 'ACTIVE' || s === 'OK' || s === 'VALIDATED') cls = 'badge-green';
+      else if (s === 'IN_PROGRESS' || s === 'INPROGRESS' || s === 'SENT' || s === 'PENDING' || s === 'CONFIRMED' || s === 'DRAFT') cls = 'badge-blue';
+      else if (s === 'RUPTURE' || s === 'CRITICAL' || s === 'CANCELLED' || s === 'INACTIVE' || s === 'VOIDED') cls = 'badge-red';
       return '<span class="card-badge ' + cls + '">' + (status || '-') + '</span>';
     }
 
     function formatDZD(a) {
-      if (a == null) return '\u2014';
-      return new Intl.NumberFormat('fr-DZ', { style: 'currency', currency: 'DZD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(a).replace('DZD', 'DA');
+      if (a == null) return '—';
+      var val = typeof a === 'number' ? a / 100 : a;
+      return new Intl.NumberFormat('fr-DZ', { style: 'currency', currency: 'DZD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val).replace('DZD', 'DA');
     }
 
     function fmtDate(d) { return d ? new Date(d).toLocaleDateString('fr') : '-'; }
 
-    if (token) user = parseJwt(token);
+    function hideModal() { var m = document.getElementById('modal'); if (m) m.remove(); }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // MODAL - FOURNISSEUR
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    function showFournisseurModal() {
+      document.body.insertAdjacentHTML('beforeend',
+        '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+        '<div class="modal"><h2>🏢 Nouveau Fournisseur</h2>' +
+        '<div class="form-group"><label>Raison sociale *</label><input class="form-input" id="m-name" placeholder="Nom de l\'entreprise" required></div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>Telephone *</label><input class="form-input" id="m-phone" placeholder="0550123456" maxlength="10"></div>' +
+        '<div class="form-group"><label>RC</label><input class="form-input" id="m-rc" placeholder="RC123456"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>NIF</label><input class="form-input" id="m-nif" placeholder="000000000000000" maxlength="15"></div>' +
+        '<div class="form-group"><label>AI</label><input class="form-input" id="m-ai" placeholder="AI12345"></div>' +
+        '</div>' +
+        '<div class="form-group"><label>Adresse *</label><input class="form-input" id="m-address" placeholder="Adresse complete"></div>' +
+        '<div class="modal-actions">' +
+        '<button class="btn btn-secondary" onclick="hideModal()">Annuler</button>' +
+        '<button class="btn btn-primary" onclick="createFournisseur()">Creer</button>' +
+        '</div></div></div>');
+    }
+
+    async function createFournisseur() {
+      var data = {
+        name: document.getElementById('m-name').value.trim(),
+        phone: document.getElementById('m-phone').value.trim() || null,
+        address: document.getElementById('m-address').value.trim() || null,
+        rc: document.getElementById('m-rc').value.trim() || null,
+        nif: document.getElementById('m-nif').value.trim() || null,
+        ai: document.getElementById('m-ai').value.trim() || null
+      };
+
+      if (!data.name) { alert('Le nom est obligatoire'); return; }
+
+      try {
+        await tauri('create_supplier', { data: data });
+        hideModal();
+        alert('Fournisseur cree!');
+        page = 'fournisseurs'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // MODAL - RECEPTION MP
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    var recFournisseurs = [];
+    var recProduits = [];
+
+    async function showReceptionModal() {
+      try { recFournisseurs = await tauri('list_suppliers', { active_only: true }) || []; } catch { recFournisseurs = []; }
+      try { recProduits = await tauri('list_products_mp', { filter: {} }) || []; } catch { recProduits = []; }
+
+      if (recFournisseurs.length === 0) {
+        alert('Creez d\'abord un fournisseur');
+        page = 'fournisseurs'; render();
+        return;
+      }
+      if (recProduits.length === 0) {
+        alert('Aucun produit MP disponible');
+        return;
+      }
+
+      var fournOpts = '<option value="">-- Fournisseur --</option>' +
+        recFournisseurs.map(function(f) { return '<option value="' + f.id + '">' + f.name + '</option>'; }).join('');
+      var prodOpts = '<option value="">-- Produit MP --</option>' +
+        recProduits.map(function(p) { return '<option value="' + p.id + '">' + p.name + ' (' + p.code + ')</option>'; }).join('');
+
+      document.body.insertAdjacentHTML('beforeend',
+        '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+        '<div class="modal"><h2>📦 Reception Matiere Premiere</h2>' +
+        '<div class="form-group"><label>Fournisseur *</label><select class="form-input" id="m-fournisseur">' + fournOpts + '</select></div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>Produit MP *</label><select class="form-input" id="m-mp">' + prodOpts + '</select></div>' +
+        '<div class="form-group"><label>Quantite *</label><input type="number" class="form-input" id="m-qty" value="100" min="1"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>Prix unitaire (DA)</label><input type="number" class="form-input" id="m-price" value="0" min="0"></div>' +
+        '<div class="form-group"><label>N° Lot</label><input class="form-input" id="m-lot" placeholder="LOT-001"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>N° BL</label><input class="form-input" id="m-bl" placeholder="BL-001"></div>' +
+        '<div class="form-group"><label>Date expiration</label><input type="date" class="form-input" id="m-dlc"></div>' +
+        '</div>' +
+        '<div class="modal-actions">' +
+        '<button class="btn btn-secondary" onclick="hideModal()">Annuler</button>' +
+        '<button class="btn btn-primary" onclick="createReception()">Enregistrer</button>' +
+        '</div></div></div>');
+    }
+
+    async function createReception() {
+      var supplierId = document.getElementById('m-fournisseur').value;
+      var mpId = document.getElementById('m-mp').value;
+      var qty = parseFloat(document.getElementById('m-qty').value) || 0;
+      var price = parseFloat(document.getElementById('m-price').value) || 0;
+      var lot = document.getElementById('m-lot').value.trim();
+      var bl = document.getElementById('m-bl').value.trim();
+      var dlc = document.getElementById('m-dlc').value;
+
+      if (!supplierId) { alert('Choisissez un fournisseur'); return; }
+      if (!mpId) { alert('Choisissez un produit'); return; }
+      if (qty <= 0) { alert('Quantite invalide'); return; }
+
+      var data = {
+        supplier_id: supplierId,
+        date: new Date().toISOString().split('T')[0],
+        bl_number: bl || null,
+        note: null,
+        lines: [{
+          product_mp_id: mpId,
+          quantity: qty,
+          unit_cost: Math.round(price * 100),
+          lot_number: lot || null,
+          expiry_date: dlc || null,
+          tva_rate: null
+        }]
+      };
+
+      try {
+        await tauri('create_reception', { data: data, user_id: 'desktop-user' });
+        hideModal();
+        alert('Reception enregistree!');
+        page = 'stock'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // MODAL - RECETTE
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    var recettePfList = [];
+    var recetteMpList = [];
+    var ingredientCount = 1;
+
+    async function showRecetteModal() {
+      try {
+        recettePfList = await tauri('list_products_pf', { filter: {} }) || [];
+      } catch (e) {
+        console.error('[showRecetteModal] Erreur list_products_pf:', e);
+        alert('Erreur chargement produits PF: ' + e);
+        return;
+      }
+
+      try {
+        recetteMpList = await tauri('list_products_mp', { filter: {} }) || [];
+      } catch (e) {
+        console.error('[showRecetteModal] Erreur list_products_mp:', e);
+        alert('Erreur chargement produits MP: ' + e);
+        return;
+      }
+
+      if (recettePfList.length === 0) {
+        alert('Aucun produit fini disponible. Creez d\'abord un produit PF dans Stock > Produits Finis.');
+        return;
+      }
+      if (recetteMpList.length === 0) {
+        alert('Aucune matiere premiere disponible. Creez d\'abord une MP dans Stock > Matieres Premieres.');
+        return;
+      }
+
+      var pfOpts = '<option value="">-- Produit fini --</option>' +
+        recettePfList.map(function(p) { return '<option value="' + p.id + '">' + p.name + ' (' + p.code + ')</option>'; }).join('');
+
+      ingredientCount = 1;
+
+      document.body.insertAdjacentHTML('beforeend',
+        '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+        '<div class="modal" style="max-width:580px"><h2>📖 Nouvelle Recette</h2>' +
+        '<div class="form-group"><label>Produit fini *</label><select class="form-input" id="m-pf">' + pfOpts + '</select></div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>Poids batch (kg)</label><input type="number" class="form-input" id="m-batch-weight" value="10" min="0.1" step="0.1"></div>' +
+        '<div class="form-group"><label>Output (unites/batch) *</label><input type="number" class="form-input" id="m-output" value="10" min="1"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>Tolerance perte (%)</label><input type="number" class="form-input" id="m-tolerance" value="5" min="0" max="50"></div>' +
+        '<div class="form-group"><label>DLC (jours)</label><input type="number" class="form-input" id="m-shelf" value="90" min="1"></div>' +
+        '</div>' +
+        '<div class="form-section">' +
+        '<div class="form-section-title">Ingredients</div>' +
+        '<div id="ingredients-container">' + buildIngredientRow(1) + '</div>' +
+        '<button type="button" class="btn btn-secondary btn-small" onclick="addIngredientRow()" style="margin-top:8px">+ Ajouter</button>' +
+        '</div>' +
+        '<div class="modal-actions">' +
+        '<button class="btn btn-secondary" onclick="hideModal()">Annuler</button>' +
+        '<button class="btn btn-primary" onclick="createRecette()">Creer</button>' +
+        '</div></div></div>');
+    }
+
+    function buildIngredientRow(idx) {
+      var mpOpts = '<option value="">-- MP --</option>' +
+        recetteMpList.map(function(m) { return '<option value="' + m.id + '">' + m.name + ' (' + (m.unit||'kg') + ')</option>'; }).join('');
+      return '<div class="ingredient-row" id="ing-row-' + idx + '">' +
+        '<select class="form-input" id="m-mp' + idx + '">' + mpOpts + '</select>' +
+        '<input type="number" class="form-input" id="m-qty' + idx + '" placeholder="Qte" min="0.01" step="0.01">' +
+        (idx > 1 ? '<button type="button" class="btn btn-danger btn-small" onclick="removeIngredientRow(' + idx + ')">×</button>' : '<div style="width:40px"></div>') +
+        '</div>';
+    }
+
+    function addIngredientRow() {
+      ingredientCount++;
+      document.getElementById('ingredients-container').insertAdjacentHTML('beforeend', buildIngredientRow(ingredientCount));
+    }
+
+    function removeIngredientRow(idx) {
+      var row = document.getElementById('ing-row-' + idx);
+      if (row) row.remove();
+    }
+
+    async function createRecette() {
+      var pfId = document.getElementById('m-pf').value;
+      var batchWeight = parseFloat(document.getElementById('m-batch-weight').value) || 10;
+      var output = parseInt(document.getElementById('m-output').value) || 0;
+      var tolerance = (parseFloat(document.getElementById('m-tolerance').value) || 5) / 100;
+      var shelf = parseInt(document.getElementById('m-shelf').value) || 90;
+
+      if (!pfId) { alert('Choisissez un produit fini'); return; }
+      if (output <= 0) { alert('Output invalide'); return; }
+
+      var items = [];
+      for (var i = 1; i <= ingredientCount; i++) {
+        var mpEl = document.getElementById('m-mp' + i);
+        var qtyEl = document.getElementById('m-qty' + i);
+        if (!mpEl || !qtyEl) continue;
+        var mpId = mpEl.value;
+        var qty = parseFloat(qtyEl.value);
+        if (mpId && qty > 0) {
+          var mp = recetteMpList.find(function(m) { return m.id == mpId; });
+          items.push({
+            type: 'MP',
+            product_mp_id: mpId,
+            quantity: qty,
+            unit: mp?.unit || 'kg',
+            affects_stock: true,
+            is_mandatory: true,
+            sort_order: items.length + 1
+          });
+        }
+      }
+
+      if (items.length === 0) {
+        alert('Ajoutez au moins un ingredient');
+        return;
+      }
+
+      var pf = recettePfList.find(function(p) { return p.id == pfId; });
+      var data = {
+        name: (pf?.name || 'Recette') + ' - v1',
+        product_pf_id: pfId,
+        batch_weight: batchWeight,
+        output_quantity: output,
+        loss_tolerance: tolerance,
+        shelf_life_days: shelf,
+        items: items
+      };
+
+      try {
+        await tauri('create_recipe', { data: data });
+        hideModal();
+        alert('Recette creee!');
+        page = 'recettes'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // MODAL - PRODUCTION
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    var pfProduitsWithRecipe = [];
+
+    async function showProdModal() {
+      try {
+        var recettes = await tauri('list_recipes', { filter: {} }) || [];
+        pfProduitsWithRecipe = recettes.filter(function(rec) { return rec.is_active; }).map(function(rec) {
+          return { id: rec.product_pf_id, name: rec.product_pf_name, recipeId: rec.id, output: rec.output_quantity };
+        });
+      } catch { pfProduitsWithRecipe = []; }
+
+      if (pfProduitsWithRecipe.length === 0) {
+        alert('Aucun produit avec recette. Creez une recette d\'abord.');
+        page = 'recettes'; render();
+        return;
+      }
+
+      var prodOpts = '<option value="">-- Produit --</option>' +
+        pfProduitsWithRecipe.map(function(p) { return '<option value="' + p.id + '">' + p.name + ' (' + p.output + ' u/batch)</option>'; }).join('');
+
+      document.body.insertAdjacentHTML('beforeend',
+        '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+        '<div class="modal"><h2>🏭 Nouvelle Production</h2>' +
+        '<div class="form-group"><label>Produit fini *</label><select class="form-input" id="m-pf">' + prodOpts + '</select></div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>Nombre de batches *</label><input type="number" class="form-input" id="m-batch" value="1" min="1" max="1000"></div>' +
+        '<div class="form-group"><label>Date planifiee</label><input type="date" class="form-input" id="m-date"></div>' +
+        '</div>' +
+        '<div class="form-group"><label>Notes</label><textarea class="form-input" id="m-notes" rows="2"></textarea></div>' +
+        '<div class="modal-actions">' +
+        '<button class="btn btn-secondary" onclick="hideModal()">Annuler</button>' +
+        '<button class="btn btn-primary" onclick="createProd()">Lancer</button>' +
+        '</div></div></div>');
+    }
+
+    async function createProd() {
+      var pfId = document.getElementById('m-pf').value;
+      var batch = parseInt(document.getElementById('m-batch').value) || 0;
+      var date = document.getElementById('m-date').value;
+      var notes = document.getElementById('m-notes').value;
+
+      if (!pfId) { alert('Choisissez un produit'); return; }
+      if (batch < 1) { alert('Nombre de batches invalide'); return; }
+
+      var data = {
+        product_pf_id: pfId,
+        batch_count: batch,
+        scheduled_date: date || null,
+        notes: notes || null
+      };
+
+      try {
+        await tauri('create_production_order', { data: data, user_id: 'desktop-user' });
+        hideModal();
+        alert('Production creee!');
+        page = 'production'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // MODAL - BON DE COMMANDE
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    var bcFournisseurs = [];
+    var bcProduits = [];
+
+    async function showBCModal() {
+      try { bcFournisseurs = await tauri('list_suppliers', { active_only: true }) || []; } catch { bcFournisseurs = []; }
+      try { bcProduits = await tauri('list_products_mp', { filter: {} }) || []; } catch { bcProduits = []; }
+
+      if (bcFournisseurs.length === 0) {
+        alert('Creez d\'abord un fournisseur');
+        page = 'fournisseurs'; render();
+        return;
+      }
+
+      var fournOpts = '<option value="">-- Fournisseur --</option>' + bcFournisseurs.map(function(f) { return '<option value="' + f.id + '">' + f.name + '</option>'; }).join('');
+      var prodOpts = '<option value="">-- Produit --</option>' + bcProduits.map(function(p) { return '<option value="' + p.id + '">' + p.name + '</option>'; }).join('');
+
+      document.body.insertAdjacentHTML('beforeend',
+        '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+        '<div class="modal"><h2>🛒 Nouveau Bon de Commande</h2>' +
+        '<div class="form-group"><label>Fournisseur *</label><select class="form-input" id="m-fournisseur">' + fournOpts + '</select></div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>Produit MP *</label><select class="form-input" id="m-mp">' + prodOpts + '</select></div>' +
+        '<div class="form-group"><label>Quantite *</label><input type="number" class="form-input" id="m-qty" value="100" min="1"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>Prix unitaire (DA)</label><input type="number" class="form-input" id="m-price" value="0" min="0"></div>' +
+        '<div class="form-group"><label>Livraison prevue</label><input type="date" class="form-input" id="m-date"></div>' +
+        '</div>' +
+        '<div class="modal-actions">' +
+        '<button class="btn btn-secondary" onclick="hideModal()">Annuler</button>' +
+        '<button class="btn btn-primary" onclick="createBC()">Creer</button>' +
+        '</div></div></div>');
+    }
+
+    async function createBC() {
+      var supplierId = document.getElementById('m-fournisseur').value;
+      var mpId = document.getElementById('m-mp').value;
+      var qty = parseInt(document.getElementById('m-qty').value) || 0;
+      var price = parseFloat(document.getElementById('m-price').value) || 0;
+      var date = document.getElementById('m-date').value;
+
+      if (!supplierId) { alert('Choisissez un fournisseur'); return; }
+      if (!mpId) { alert('Choisissez un produit'); return; }
+      if (qty <= 0) { alert('Quantite invalide'); return; }
+
+      var data = {
+        supplier_id: supplierId,
+        expected_delivery: date || null,
+        lines: [{
+          product_mp_id: mpId,
+          quantity: qty,
+          unit_price: price
+        }]
+      };
+
+      try {
+        await tauri('create_purchase_order', { data: data });
+        hideModal();
+        alert('BC cree!');
+        page = 'appro'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // MODAL - CLIENT
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    function showClientModal() {
+      document.body.insertAdjacentHTML('beforeend',
+        '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+        '<div class="modal"><h2>👥 Nouveau Client</h2>' +
+        '<div class="form-group"><label>Nom *</label><input class="form-input" id="m-name" placeholder="Nom du client"></div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>Telephone</label><input class="form-input" id="m-phone" placeholder="0555123456"></div>' +
+        '<div class="form-group"><label>Email</label><input type="email" class="form-input" id="m-email" placeholder="email@example.com"></div>' +
+        '</div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>Type</label><select class="form-input" id="m-type"><option value="DISTRIBUTEUR">Distributeur</option><option value="GROSSISTE">Grossiste</option><option value="SUPERETTE">Superette</option><option value="FAST_FOOD">Fast Food</option></select></div>' +
+        '<div class="form-group"><label>Wilaya</label><input class="form-input" id="m-wilaya" placeholder="Alger"></div>' +
+        '</div>' +
+        '<div class="form-group"><label>Adresse</label><input class="form-input" id="m-address" placeholder="Adresse"></div>' +
+        '<div class="modal-actions">' +
+        '<button class="btn btn-secondary" onclick="hideModal()">Annuler</button>' +
+        '<button class="btn btn-primary" onclick="createClient()">Creer</button>' +
+        '</div></div></div>');
+    }
+
+    async function createClient() {
+      var name = document.getElementById('m-name').value.trim();
+      if (!name) { alert('Le nom est obligatoire'); return; }
+
+      var data = {
+        name: name,
+        phone: document.getElementById('m-phone').value.trim() || null,
+        email: document.getElementById('m-email').value.trim() || null,
+        client_type: document.getElementById('m-type').value || null,
+        wilaya: document.getElementById('m-wilaya').value.trim() || null,
+        address: document.getElementById('m-address').value.trim() || null,
+        nif: null,
+        rc: null,
+        ai: null,
+        credit_limit: 0
+      };
+
+      try {
+        await tauri('create_client', { data: data });
+        hideModal();
+        alert('Client cree!');
+        page = 'clients'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // MODAL - FACTURE
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    var factureClients = [];
+    var factureProduits = [];
+
+    async function showFactureModal() {
+      try { factureClients = await tauri('list_clients', { filter: {} }) || []; } catch { factureClients = []; }
+      try { factureProduits = await tauri('list_products_pf', { filter: {} }) || []; } catch { factureProduits = []; }
+
+      if (factureClients.length === 0) {
+        alert('Creez d\'abord un client');
+        page = 'clients'; render();
+        return;
+      }
+
+      var clientOpts = '<option value="">-- Client --</option>' + factureClients.map(function(c) { return '<option value="' + c.id + '">' + (c.name||c.company_name) + '</option>'; }).join('');
+      var prodOpts = '<option value="">-- Produit --</option>' + factureProduits.map(function(p) { return '<option value="' + p.id + '" data-price="' + (p.price_ht||0) + '">' + p.name + '</option>'; }).join('');
+
+      document.body.insertAdjacentHTML('beforeend',
+        '<div class="modal-overlay" id="modal" onclick="if(event.target===this)hideModal()">' +
+        '<div class="modal"><h2>📄 Nouvelle Facture</h2>' +
+        '<div class="form-group"><label>Client *</label><select class="form-input" id="m-client">' + clientOpts + '</select></div>' +
+        '<div class="form-row">' +
+        '<div class="form-group"><label>Produit *</label><select class="form-input" id="m-produit">' + prodOpts + '</select></div>' +
+        '<div class="form-group"><label>Quantite *</label><input type="number" class="form-input" id="m-qty" value="1" min="1"></div>' +
+        '</div>' +
+        '<div class="form-group"><label>Prix unitaire HT (DA)</label><input type="number" class="form-input" id="m-price" value="0" min="0"></div>' +
+        '<div class="form-group"><label>Mode de paiement</label><select class="form-input" id="m-payment"><option value="ESPECES">Especes</option><option value="CHEQUE">Cheque</option><option value="VIREMENT">Virement</option></select></div>' +
+        '<div class="modal-actions">' +
+        '<button class="btn btn-secondary" onclick="hideModal()">Annuler</button>' +
+        '<button class="btn btn-primary" onclick="createFacture()">Creer</button>' +
+        '</div></div></div>');
+    }
+
+    async function createFacture() {
+      var clientId = document.getElementById('m-client').value;
+      var prodId = document.getElementById('m-produit').value;
+      var qty = parseInt(document.getElementById('m-qty').value) || 0;
+      var price = parseFloat(document.getElementById('m-price').value) || 0;
+      var payment = document.getElementById('m-payment').value;
+
+      if (!clientId) { alert('Choisissez un client'); return; }
+      if (!prodId) { alert('Choisissez un produit'); return; }
+      if (qty <= 0) { alert('Quantite invalide'); return; }
+
+      var data = {
+        client_id: clientId,
+        payment_method: payment || null,
+        lines: [{
+          product_pf_id: prodId,
+          quantity: qty,
+          unit_price_ht: Math.round(price * 100)
+        }]
+      };
+
+      try {
+        await tauri('create_invoice', { data: data });
+        hideModal();
+        alert('Facture creee!');
+        page = 'factures'; render();
+      } catch (e) { alert('Erreur: ' + e); }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════════════════
+
     render();
   </script>
 </body>

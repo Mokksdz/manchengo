@@ -156,7 +156,7 @@ export class StockService {
   }
 
   getStockStatus(stock: number, minStock: number): 'OK' | 'ALERTE' | 'RUPTURE' {
-    if (stock === 0) return 'RUPTURE';
+    if (stock <= 0) return 'RUPTURE';
     if (stock <= minStock) return 'ALERTE';
     return 'OK';
   }
@@ -193,40 +193,45 @@ export class StockService {
       throw new BadRequestException('La quantité doit être strictement positive');
     }
 
-    // 4. Vérification stock suffisant pour les sorties
-    if (data.movementType === 'OUT') {
-      const currentStock = await this.calculateStock(data.productType, data.productId);
-      if (currentStock < data.quantity) {
-        throw new BadRequestException(
-          `Stock insuffisant: disponible ${currentStock}, requis ${data.quantity}`,
-        );
+    // 4-6. Transaction: stock check + movement creation (atomic)
+    const { movement, stockBefore } = await this.prisma.$transaction(async (tx) => {
+      // Vérification stock suffisant pour les sorties
+      if (data.movementType === 'OUT') {
+        const currentStock = await this.calculateStockInTransaction(tx, data.productType, data.productId);
+        if (currentStock < data.quantity) {
+          throw new BadRequestException(
+            `Stock insuffisant: disponible ${currentStock}, requis ${data.quantity}`,
+          );
+        }
       }
-    }
 
-    // 5. Capture before state for audit
-    const stockBefore = await this.calculateStock(data.productType, data.productId);
+      // Capture before state for audit
+      const txStockBefore = await this.calculateStockInTransaction(tx, data.productType, data.productId);
 
-    // 6. Création du mouvement
-    const movement = await this.prisma.stockMovement.create({
-      data: {
-        movementType: data.movementType,
-        productType: data.productType,
-        origin: data.origin,
-        productMpId: data.productType === 'MP' ? data.productId : null,
-        productPfId: data.productType === 'PF' ? data.productId : null,
-        lotMpId: data.productType === 'MP' ? data.lotId : null,
-        lotPfId: data.productType === 'PF' ? data.lotId : null,
-        quantity: data.quantity,
-        unitCost: data.unitCost,
-        referenceType: data.referenceType,
-        referenceId: data.referenceId,
-        reference: data.reference,
-        note: data.note,
-        userId,
-      },
+      // Création du mouvement
+      const txMovement = await tx.stockMovement.create({
+        data: {
+          movementType: data.movementType,
+          productType: data.productType,
+          origin: data.origin,
+          productMpId: data.productType === 'MP' ? data.productId : null,
+          productPfId: data.productType === 'PF' ? data.productId : null,
+          lotMpId: data.productType === 'MP' ? data.lotId : null,
+          lotPfId: data.productType === 'PF' ? data.lotId : null,
+          quantity: data.quantity,
+          unitCost: data.unitCost,
+          referenceType: data.referenceType,
+          referenceId: data.referenceId,
+          reference: data.reference,
+          note: data.note,
+          userId,
+        },
+      });
+
+      return { movement: txMovement, stockBefore: txStockBefore };
     });
 
-    // 7. Audit log - CRITICAL for traceability
+    // 7. Audit log - CRITICAL for traceability (outside transaction is fine)
     const stockAfter = stockBefore + (data.movementType === 'IN' ? data.quantity : -data.quantity);
     await this.auditService.log({
       actor: { id: userId, role: userRole },
@@ -275,6 +280,13 @@ export class StockService {
   ) {
     // Validation rôle
     this.validateRoleForOrigin('RECEPTION', userRole);
+
+    // Validation quantités strictement positives
+    for (const line of data.lines) {
+      if (!line.quantity || line.quantity <= 0) {
+        throw new BadRequestException('La quantité de chaque ligne doit être strictement positive');
+      }
+    }
 
     // Validation TVA - taux autorisés: 0, 9, 19
     const validTvaRates = [0, 9, 19];
@@ -436,6 +448,10 @@ export class StockService {
   ) {
     this.validateRoleForOrigin('PRODUCTION_OUT', userRole);
 
+    if (quantityProduced <= 0) {
+      throw new BadRequestException('La quantité produite doit être strictement positive');
+    }
+
     // Transaction avec isolation SERIALIZABLE pour éviter race conditions
     const result = await this.prisma.$transaction(
       async (tx) => {
@@ -564,6 +580,7 @@ export class StockService {
 
     // Invalidate stock cache after production
     await this.cacheService.invalidateProductionCache();
+    await this.cacheService.invalidateStockCache();
 
     return result;
   }
@@ -610,52 +627,59 @@ export class StockService {
     lines: Array<{ productPfId: number; quantity: number }>,
     userId: string,
     userRole: UserRole,
+    existingTx?: Prisma.TransactionClient,
   ) {
     this.validateRoleForOrigin('VENTE', userRole);
 
-    const result = await this.prisma.$transaction(
-      async (tx) => {
-        // Vérifier stock PF disponible pour CHAQUE ligne
-        for (const line of lines) {
-          const stockPf = await this.calculateStockInTransaction(tx, 'PF', line.productPfId);
+    const executeLogic = async (tx: Prisma.TransactionClient) => {
+      // Vérifier stock PF disponible pour CHAQUE ligne
+      for (const line of lines) {
+        const stockPf = await this.calculateStockInTransaction(tx, 'PF', line.productPfId);
 
-          if (stockPf < line.quantity) {
-            const product = await tx.productPf.findUnique({
-              where: { id: line.productPfId },
-              select: { name: true },
-            });
-            throw new BadRequestException(
-              `Stock PF insuffisant pour ${product?.name}: ` +
-              `disponible ${stockPf}, requis ${line.quantity}`,
-            );
-          }
-        }
-
-        // Créer mouvements OUT pour chaque ligne
-        for (const line of lines) {
-          await tx.stockMovement.create({
-            data: {
-              movementType: 'OUT',
-              productType: 'PF',
-              origin: 'VENTE',
-              productPfId: line.productPfId,
-              quantity: line.quantity,
-              referenceType: 'INVOICE',
-              referenceId: invoiceId,
-              reference: invoiceReference,
-              userId,
-              note: `Vente facture ${invoiceReference}`,
-            },
+        if (stockPf < line.quantity) {
+          const product = await tx.productPf.findUnique({
+            where: { id: line.productPfId },
+            select: { name: true },
           });
+          throw new BadRequestException(
+            `Stock PF insuffisant pour ${product?.name}: ` +
+            `disponible ${stockPf}, requis ${line.quantity}`,
+          );
         }
+      }
 
-        return { success: true, linesProcessed: lines.length };
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        timeout: 10000,
-      },
-    );
+      // Créer mouvements OUT pour chaque ligne
+      for (const line of lines) {
+        await tx.stockMovement.create({
+          data: {
+            movementType: 'OUT',
+            productType: 'PF',
+            origin: 'VENTE',
+            productPfId: line.productPfId,
+            quantity: line.quantity,
+            referenceType: 'INVOICE',
+            referenceId: invoiceId,
+            reference: invoiceReference,
+            userId,
+            note: `Vente facture ${invoiceReference}`,
+          },
+        });
+      }
+
+      return { success: true, linesProcessed: lines.length };
+    };
+
+    // Si un tx externe est fourni, l'utiliser (atomicité avec l'appelant)
+    // Sinon, créer notre propre transaction Serializable
+    const result = existingTx
+      ? await executeLogic(existingTx)
+      : await this.prisma.$transaction(
+          async (tx) => executeLogic(tx),
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+            timeout: 10000,
+          },
+        );
 
     // Invalidate stock + sales cache after sale
     await this.cacheService.invalidateStockCache();
@@ -870,19 +894,19 @@ export class StockService {
     // 2. Valider combinaison mouvement
     this.validateMovementCombination(data.productType, 'PERTE', 'OUT');
 
-    // 3. Vérifier stock suffisant
-    const currentStock = await this.calculateStock(data.productType, data.productId);
-    if (currentStock < data.quantity) {
-      throw new BadRequestException({
-        code: 'INSUFFICIENT_STOCK',
-        message: `Stock insuffisant pour déclarer cette perte. Stock actuel: ${currentStock}, Quantité demandée: ${data.quantity}`,
-        currentStock,
-        requested: data.quantity,
-      });
-    }
-
-    // 4. Créer mouvement de perte dans une transaction
+    // 3-4. Créer mouvement de perte dans une transaction (stock check inside)
     const result = await this.prisma.$transaction(async (tx) => {
+      // Vérifier stock suffisant (inside transaction to prevent race condition)
+      const currentStock = await this.calculateStockInTransaction(tx, data.productType, data.productId);
+      if (currentStock < data.quantity) {
+        throw new BadRequestException({
+          code: 'INSUFFICIENT_STOCK',
+          message: `Stock insuffisant pour déclarer cette perte. Stock actuel: ${currentStock}, Quantité demandée: ${data.quantity}`,
+          currentStock,
+          requested: data.quantity,
+        });
+      }
+
       // Créer le mouvement OUT
       const movement = await tx.stockMovement.create({
         data: {
@@ -897,13 +921,17 @@ export class StockService {
           quantity: data.quantity,
           userId,
           note: `[${data.reason}] ${data.description}`,
-          idempotencyKey: `LOSS-${data.productType}-${data.productId}-${Date.now()}`,
+          idempotencyKey: `LOSS-${data.productType}-${data.productId}-${userId}-${data.quantity}`,
         },
       });
 
-      // Si lot spécifié, mettre à jour la quantité restante
+      // Si lot spécifié, vérifier quantité restante puis mettre à jour
       if (data.lotId) {
         if (data.productType === 'MP') {
+          const lot = await tx.lotMp.findUnique({ where: { id: data.lotId }, select: { quantityRemaining: true } });
+          if (!lot || lot.quantityRemaining < data.quantity) {
+            throw new BadRequestException('Quantité restante du lot insuffisante pour cette perte');
+          }
           await tx.lotMp.update({
             where: { id: data.lotId },
             data: {
@@ -911,6 +939,10 @@ export class StockService {
             },
           });
         } else {
+          const lot = await tx.lotPf.findUnique({ where: { id: data.lotId }, select: { quantityRemaining: true } });
+          if (!lot || lot.quantityRemaining < data.quantity) {
+            throw new BadRequestException('Quantité restante du lot insuffisante pour cette perte');
+          }
           await tx.lotPf.update({
             where: { id: data.lotId },
             data: {

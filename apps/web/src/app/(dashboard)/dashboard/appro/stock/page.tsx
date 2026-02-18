@@ -391,10 +391,10 @@ export default function ApproStockPage() {
             </Link>
           ) : mp.state === 'A_COMMANDER' || mp.state === 'SOUS_SEUIL' ? (
             <Link
-              href={`/dashboard/appro/demandes/new?mpId=${mp.id}`}
+              href={`/dashboard/appro/bons/new?mpId=${mp.id}`}
               className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600"
             >
-              Créer Demande
+              Créer BC
             </Link>
           ) : (
             <span className="text-[#AEAEB2]">—</span>
@@ -611,10 +611,10 @@ export default function ApproStockPage() {
               </Link>
             ) : mp.state === 'A_COMMANDER' || mp.state === 'SOUS_SEUIL' ? (
               <Link
-                href={`/dashboard/appro/demandes/new?mpId=${mp.id}`}
+                href={`/dashboard/appro/bons/new?mpId=${mp.id}`}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600"
               >
-                Créer Demande
+                Créer BC
               </Link>
             ) : null}
           </div>

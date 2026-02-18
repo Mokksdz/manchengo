@@ -352,15 +352,16 @@ export class AdminController {
   async resetUserPassword(
     @Param('id') id: string,
     @Body() dto: ResetPasswordDto,
+    @Request() req: any,
   ) {
-    return this.adminService.resetUserPassword(id, dto.newPassword);
+    return this.adminService.resetUserPassword(id, dto.newPassword, req.user);
   }
 
   @Post('users/:id/toggle-status')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Toggle user active status' })
-  async toggleUserStatus(@Param('id') id: string) {
-    return this.adminService.toggleUserStatus(id);
+  async toggleUserStatus(@Param('id') id: string, @Request() req: any) {
+    return this.adminService.toggleUserStatus(id, req.user);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -422,7 +423,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Manual stock adjustment' })
   @ApiBody({ type: StockAdjustmentDto })
   async adjustStock(@Body() dto: StockAdjustmentDto, @Request() req: any) {
-    return this.adminService.adjustStock(dto, req.user.id);
+    return this.adminService.adjustStock(dto, req.user.id, req.user);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -435,16 +436,19 @@ export class AdminController {
 
   @Get('security-logs')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Get security audit logs' })
+  @ApiOperation({ summary: 'Get security audit logs (server-side pagination)' })
   @ApiQuery({ name: 'action', required: false })
   @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'page', required: false })
   async getSecurityLogs(
     @Query('action') action?: string,
     @Query('limit') limit?: string,
+    @Query('page') page?: string,
   ) {
     return this.adminService.getSecurityLogs({
       action,
-      limit: limit ? parseInt(limit) : 100,
+      limit: limit ? parseInt(limit) : 25,
+      page: page ? parseInt(page) : 1,
     });
   }
 
@@ -455,8 +459,9 @@ export class AdminController {
   async revokeDevice(
     @Param('id') id: string,
     @Body() dto: RevokeDeviceDto,
+    @Request() req: any,
   ) {
-    return this.adminService.revokeDevice(id, dto.reason);
+    return this.adminService.revokeDevice(id, req.user.id, dto.reason);
   }
 
   @Post('devices/:id/reactivate')

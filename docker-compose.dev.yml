@@ -1,9 +1,16 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # Manchengo Smart ERP - Docker Compose (Development)
-# Only infrastructure services — app runs locally via npm
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up              # Infrastructure only
+#   docker compose -f docker-compose.dev.yml --profile tools up  # With pgAdmin/Redis Commander
+#
+# Infrastructure runs in Docker, app runs locally via npm for hot reloading.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 services:
+  # ─── PostgreSQL ───────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: manchengo-db-dev
@@ -16,16 +23,73 @@ services:
       - "5432:5432"
     volumes:
       - postgres_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U manchengo -d manchengo_erp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
+  # ─── Redis ────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: manchengo-redis-dev
     restart: unless-stopped
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
       - redis_dev:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── pgAdmin (DB GUI) - Optional ──────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: manchengo-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@manchengo.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools
+
+  # ─── Redis Commander (Redis GUI) - Optional ───────────────────────────────
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: manchengo-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - tools
+
+  # ─── Mailhog (Email Testing) - Optional ───────────────────────────────────
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: manchengo-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    profiles:
+      - tools
 
 volumes:
   postgres_dev:
+    driver: local
   redis_dev:
+    driver: local

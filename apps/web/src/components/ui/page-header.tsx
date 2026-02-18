@@ -34,7 +34,7 @@ const badgeGlassStyles = {
   info: 'bg-[#007AFF]/8 text-[#007AFF]',
 };
 
-export function PageHeader({ title, subtitle, badge, actions, breadcrumb, className }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, icon, badge, actions, breadcrumb, className }: PageHeaderProps) {
   const variant = badge?.variant || 'default';
 
   return (
@@ -54,26 +54,35 @@ export function PageHeader({ title, subtitle, badge, actions, breadcrumb, classN
         </nav>
       )}
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-[28px] font-semibold text-[#1D1D1F] tracking-[-0.025em] leading-tight">{title}</h1>
-          {(subtitle || badge) && (
-            <div className="flex items-center gap-3">
-              {subtitle && (
-                <p className="text-[14px] text-[#86868B] leading-relaxed">{subtitle}</p>
-              )}
-              {badge && (
-                <span className={cn(
-                  'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold',
-                  badgeGlassStyles[variant],
-                )}>
-                  <span className={cn('w-[6px] h-[6px] rounded-full', dotColors[variant])} />
-                  {badge.text}
-                </span>
+        <div className="space-y-2 flex-1">
+          <div className="flex items-start gap-3">
+            {icon && (
+              <div className="mt-0.5 hidden sm:flex w-11 h-11 rounded-[14px] border border-white/70 bg-white/65 backdrop-blur-[18px] items-center justify-center text-[#1D1D1F] shadow-[0_10px_24px_rgba(18,22,33,0.08),inset_0_1px_0_rgba(255,255,255,0.45)]">
+                {icon}
+              </div>
+            )}
+            <div className="space-y-2">
+              <h1 className="font-display text-[28px] font-semibold text-[#1D1D1F] tracking-[-0.03em] leading-tight">{title}</h1>
+              {(subtitle || badge) && (
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {subtitle && (
+                    <p className="text-[14px] text-[#6E6E73] leading-relaxed">{subtitle}</p>
+                  )}
+                  {badge && (
+                    <span className={cn(
+                      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold',
+                      badgeGlassStyles[variant],
+                    )}>
+                      <span className={cn('w-[6px] h-[6px] rounded-full', dotColors[variant])} />
+                      {badge.text}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
-          )}
+          </div>
         </div>
-        {actions && <div className="flex items-center gap-2.5">{actions}</div>}
+        {actions && <div className="flex items-center gap-2.5 shrink-0">{actions}</div>}
       </div>
     </div>
   );

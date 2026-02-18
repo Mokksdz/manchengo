@@ -35,7 +35,7 @@ export function Skeleton({
 // ── KPI Card Skeleton ──
 export function SkeletonKpiCard() {
   return (
-    <div className="bg-white rounded-[12px] border border-[#E5E5E5] p-5">
+    <div className="rounded-[14px] border border-white/75 bg-white/72 p-5 shadow-[0_10px_24px_rgba(18,22,33,0.06),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-[18px]">
       <Skeleton className="h-3 w-24 mb-3" />
       <Skeleton className="h-8 w-16 mb-2" />
       <Skeleton className="h-3 w-32" />
@@ -57,7 +57,7 @@ export function SkeletonKpiGrid({ count = 4 }: { count?: number }) {
 // ── Chart Skeleton ──
 export function SkeletonChart({ height = 300 }: { height?: number }) {
   return (
-    <div className="bg-white rounded-[12px] border border-[#E5E5E5] p-5">
+    <div className="rounded-[14px] border border-white/75 bg-white/72 p-5 shadow-[0_10px_24px_rgba(18,22,33,0.06),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-[18px]">
       <Skeleton className="h-4 w-40 mb-4" />
       <div className="flex items-end gap-2" style={{ height }}>
         {Array.from({ length: 7 }).map((_, i) => (
@@ -90,9 +90,9 @@ export function SkeletonTableRow({ columns = 5 }: { columns?: number }) {
 // ── Table Skeleton ──
 export function SkeletonTable({ rows = 5, columns = 5 }: { rows?: number; columns?: number }) {
   return (
-    <div className="bg-white rounded-[12px] border border-[#E5E5E5] overflow-hidden">
+    <div className="rounded-[14px] border border-white/75 bg-white/76 overflow-hidden shadow-[0_10px_24px_rgba(18,22,33,0.06),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-[18px]">
       {/* Header */}
-      <div className="flex items-center gap-4 py-3 px-4 bg-[#FAFAFA] border-b border-[#E5E5E5]">
+      <div className="flex items-center gap-4 py-3 px-4 bg-white/65 border-b border-white/70">
         {Array.from({ length: columns }).map((_, i) => (
           <Skeleton key={i} className="h-3" style={{ width: `${15 + Math.random() * 15}%` }} />
         ))}
@@ -108,7 +108,7 @@ export function SkeletonTable({ rows = 5, columns = 5 }: { rows?: number; column
 // ── Alert Card Skeleton ──
 export function SkeletonAlertCard() {
   return (
-    <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-4 flex items-start gap-3">
+    <div className="rounded-[12px] border border-white/75 bg-white/72 p-4 flex items-start gap-3 shadow-[0_8px_20px_rgba(18,22,33,0.06),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-[16px]">
       <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
       <div className="flex-1">
         <Skeleton className="h-4 w-48 mb-2" />

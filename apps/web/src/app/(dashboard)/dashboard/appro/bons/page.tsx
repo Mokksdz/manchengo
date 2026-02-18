@@ -71,12 +71,19 @@ export default function BonsCommandePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAllDone, setShowAllDone] = useState(false);
+  const [sendingBcId, setSendingBcId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const PAGE_SIZE = 50;
 
-  const loadData = useCallback(async (showRefresh = false) => {
+  const loadData = useCallback(async (showRefresh = false, pageNum = 1) => {
     try {
       if (showRefresh) setIsRefreshing(true);
-      const data = await appro.getPurchaseOrders({ limit: 100 });
-      setBons(Array.isArray(data) ? data : []);
+      const data = await appro.getPurchaseOrders({ limit: PAGE_SIZE + 1, offset: (pageNum - 1) * PAGE_SIZE });
+      const arr = Array.isArray(data) ? data : [];
+      setHasMore(arr.length > PAGE_SIZE);
+      setBons(arr.slice(0, PAGE_SIZE));
+      setPage(pageNum);
     } catch (err) {
       console.error('Failed to load BC:', err);
       toast.error('Erreur lors du chargement des bons de commande');
@@ -96,16 +103,21 @@ export default function BonsCommandePage() {
   ]);
 
   const handleSendBC = async (bcId: string) => {
+    if (sendingBcId) return; // Protection double-clic
+    setSendingBcId(bcId);
     try {
       await appro.sendPurchaseOrder(bcId, {
         sendVia: 'MANUAL',
-        proofNote: 'Envoi rapide depuis tableau de bord - a completer avec preuve'
+        proofNote: 'Envoi rapide depuis tableau de bord - a completer avec preuve',
+        idempotencyKey: `send-bc-${bcId}-${Date.now()}`,
       });
-      toast.success('BC envoye avec succes');
+      toast.success('BC envoyé avec succès');
       loadData(true);
     } catch (err) {
       console.error('Failed to send BC:', err);
       toast.error("Erreur lors de l'envoi du BC");
+    } finally {
+      setSendingBcId(null);
     }
   };
 
@@ -324,6 +336,27 @@ export default function BonsCommandePage() {
         </section>
       )}
 
+      {/* PAGINATION */}
+      {(page > 1 || hasMore) && (
+        <div className="flex items-center justify-center gap-3 pt-4">
+          <button
+            onClick={() => loadData(true, page - 1)}
+            disabled={page <= 1 || isRefreshing}
+            className="px-5 py-2 text-sm font-medium rounded-full border border-black/[0.04] bg-white/60 hover:bg-white/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            ← Précédent
+          </button>
+          <span className="text-sm text-[#86868B]">Page {page}</span>
+          <button
+            onClick={() => loadData(true, page + 1)}
+            disabled={!hasMore || isRefreshing}
+            className="px-5 py-2 text-sm font-medium rounded-full border border-black/[0.04] bg-white/60 hover:bg-white/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            Suivant →
+          </button>
+        </div>
+      )}
+
       {/* Etat vide */}
       {allOrders.length === 0 && (
         <div className="glass-empty p-16 animate-scale-in">
@@ -343,10 +376,10 @@ export default function BonsCommandePage() {
               Nouveau BC
             </Link>
             <Link
-              href="/dashboard/appro/demandes"
+              href="/dashboard/appro/fournisseurs"
               className="inline-flex items-center gap-2 px-5 py-2.5 border border-black/[0.04] rounded-full hover:bg-white/60 font-medium text-[14px] text-[#86868B] hover:text-[#1D1D1F] transition-all duration-200"
             >
-              Voir les Demandes
+              Voir les Fournisseurs
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>

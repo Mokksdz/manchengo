@@ -28,12 +28,12 @@ function StockLevelBar({ current, min }: { current: number; min: number }) {
   );
 }
 
-export function ZoneATraiter({ data, onAction }: ZoneATraiterProps) {
+export function ZoneATraiter({ data, onAction: _onAction }: ZoneATraiterProps) {
   const hasItems = data.totalCount > 0;
 
   return (
     <div className={cn(
-      'bg-white rounded-2xl border overflow-hidden transition-shadow h-full flex flex-col',
+      'glass-card rounded-2xl overflow-hidden transition-all h-full flex flex-col',
       hasItems ? 'border-[#FF9500]/20 shadow-[0_0_0_1px_rgba(255,149,0,0.05)]' : 'border-[#E5E5E5]'
     )}>
       {/* Accent bar */}
@@ -98,18 +98,18 @@ export function ZoneATraiter({ data, onAction }: ZoneATraiterProps) {
                           </div>
                           <StockLevelBar current={item.stock} min={item.minStock} />
                         </div>
-                        <button
-                          onClick={() => onAction?.('DEMANDE_MP', item.productId)}
+                        <Link
+                          href={`/dashboard/appro/bons/new?productMpId=${item.productId}`}
                           className="px-3 py-1.5 text-[12px] font-semibold bg-[#1D1D1F] text-white rounded-lg hover:bg-[#333] transition-all active:scale-95 ml-2 flex-shrink-0"
                         >
                           Commander
-                        </button>
+                        </Link>
                       </div>
                     </div>
                   ))}
                   {data.sousSeuilItems.length > 5 && (
                     <Link
-                      href="/dashboard/appro/demandes-mp"
+                      href="/dashboard/stock/mp"
                       className="block text-center py-2.5 text-[13px] font-medium text-[#8E8E93] hover:text-[#1D1D1F] transition-colors"
                     >
                       Voir les {data.sousSeuilItems.length} produits →

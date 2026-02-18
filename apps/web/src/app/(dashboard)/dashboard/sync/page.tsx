@@ -5,6 +5,8 @@ import { dashboard, DeviceSyncStatus, SyncEvent } from '@/lib/api';
 import { formatRelativeTime } from '@/lib/utils';
 import { RefreshCw, Smartphone, Activity, Clock, CheckCircle, Wifi, WifiOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton-loader';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 export default function SyncPage() {
   const [devices, setDevices] = useState<DeviceSyncStatus[]>([]);
@@ -92,27 +94,17 @@ export default function SyncPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#34C759]/20 to-[#34C759]/10 flex items-center justify-center shadow-lg shadow-[#34C759]/10">
-              <RefreshCw className="w-6 h-6 text-[#34C759]" />
-            </div>
-            <div>
-              <h1 className="text-[22px] font-bold text-[#1D1D1F] tracking-tight">Synchronisation</h1>
-              <p className="text-[13px] text-[#86868B]">État des appareils et événements récents</p>
-            </div>
-          </div>
-          <button
-            onClick={refresh}
-            disabled={isRefreshing}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#34C759] text-white text-sm font-semibold rounded-full hover:bg-[#2DA94E] shadow-lg shadow-[#34C759]/25 transition-all active:scale-[0.97] disabled:opacity-50"
-          >
+      <PageHeader
+        title="Synchronisation"
+        subtitle="État des appareils et événements récents"
+        icon={<RefreshCw className="w-5 h-5" />}
+        actions={
+          <Button onClick={refresh} disabled={isRefreshing} variant="outline">
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             Rafraîchir
-          </button>
-        </div>
-      </div>
+          </Button>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

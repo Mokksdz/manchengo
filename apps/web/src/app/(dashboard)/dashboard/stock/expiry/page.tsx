@@ -10,6 +10,8 @@ import {
   Calendar,
   Lock,
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 const defaultData: ExpiryStats = {
   stats: { expiredBlocked: 0, expiringJ1: 0, expiringJ3: 0, expiringJ7: 0 },
@@ -80,29 +82,23 @@ export default function ExpiryPage() {
 
   return (
     <div className="glass-bg space-y-6">
-      {/* ─── Header ─── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1D1D1F]">
-            Gestion DLC / Expiration
-          </h1>
-          <p className="text-[13px] text-[#86868B] mt-1">
-            Suivi des lots par date de péremption
-            {stats.expiredBlocked > 0 && (
-              <span className="ml-2 inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30]" />
-                <span className="text-[#FF3B30] font-medium">{stats.expiredBlocked} expiré(s)</span>
-              </span>
-            )}
-          </p>
-        </div>
-        <button
-          onClick={loadData}
-          className="glass-card-hover p-2.5 rounded-full transition-all text-[#86868B] hover:text-[#1D1D1F]"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
-      </div>
+      <PageHeader
+        title="Gestion DLC / Expiration"
+        subtitle="Suivi des lots par date de péremption"
+        icon={<Clock className="w-5 h-5" />}
+        badge={
+          stats.expiredBlocked > 0
+            ? { text: `${stats.expiredBlocked} expiré(s)`, variant: 'error' }
+            : stats.expiringJ1 > 0
+              ? { text: `${stats.expiringJ1} à J-1`, variant: 'warning' }
+              : { text: 'Sous contrôle', variant: 'success' }
+        }
+        actions={
+          <Button onClick={loadData} variant="outline" size="icon" className="rounded-full">
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        }
+      />
 
       {/* ─── KPI Strip ─── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

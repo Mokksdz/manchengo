@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { FileText, FileSpreadsheet, Download, Calendar, Loader2, Package, Factory } from 'lucide-react';
 import { authFetch } from '@/lib/api';
 import { useRequireRole } from '@/lib/hooks/use-require-role';
+import { PageHeader } from '@/components/ui/page-header';
 
 type ExportFormat = 'pdf' | 'excel';
 
@@ -158,17 +159,11 @@ export default function ExportsPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="glass-card p-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#007AFF]/20 to-[#007AFF]/10 flex items-center justify-center shadow-lg shadow-[#007AFF]/10">
-            <Download className="w-6 h-6 text-[#007AFF]" />
-          </div>
-          <div>
-            <h1 className="text-[22px] font-bold text-[#1D1D1F] tracking-tight">Exports</h1>
-            <p className="text-[13px] text-[#86868B]">Documents fiscaux, stocks et production — PDF & Excel</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Exports"
+        subtitle="Documents fiscaux, stocks et production — PDF & Excel"
+        icon={<Download className="w-5 h-5" />}
+      />
 
       {/* Date Range Picker */}
       <div className="glass-card p-5">

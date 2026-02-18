@@ -9,12 +9,14 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
+import { SecurityLogService } from '../security/security-log.service';
 import {
   LoginDto,
   RefreshTokenDto,
   CreateUserDto,
   AuthResponse,
   TokenPayload,
+  UserRole,
 } from './dto/auth.dto';
 
 @Injectable()
@@ -23,21 +25,59 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private securityLogService: SecurityLogService,
   ) {}
 
   // Login user (web or mobile)
-  async login(dto: LoginDto): Promise<AuthResponse> {
+  async login(dto: LoginDto, ipAddress?: string, userAgent?: string): Promise<AuthResponse> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
 
     if (!user || !user.isActive) {
+      // Log failed login attempt (user not found or inactive)
+      await this.securityLogService.logLoginFailure(
+        dto.email,
+        ipAddress || 'unknown',
+        userAgent || 'unknown',
+        !user ? 'User not found' : 'Account inactive',
+      ).catch(() => {}); // Never block login flow
       throw new UnauthorizedException('Identifiants invalides');
+    }
+
+    // Check account lockout (5 failed attempts in last 15 minutes)
+    if (user.failedLoginAttempts >= 5 && user.lastFailedLoginAt) {
+      const lockoutEnd = new Date(user.lastFailedLoginAt.getTime() + 15 * 60 * 1000);
+      if (new Date() < lockoutEnd) {
+        await this.securityLogService.logLoginFailure(
+          dto.email, ipAddress || 'unknown', userAgent || 'unknown', 'Account locked',
+        ).catch(() => {});
+        throw new UnauthorizedException('Compte temporairement verrouillé. Réessayez dans 15 minutes.');
+      }
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!isPasswordValid) {
+      // Log failed login attempt (bad password)
+      await this.securityLogService.logLoginFailure(
+        dto.email,
+        ipAddress || 'unknown',
+        userAgent || 'unknown',
+        'Invalid password',
+      ).catch(() => {}); // Never block login flow
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: { increment: 1 }, lastFailedLoginAt: new Date() },
+      });
       throw new UnauthorizedException('Identifiants invalides');
+    }
+
+    // Reset failed login counter on success
+    if (user.failedLoginAttempts > 0) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lastFailedLoginAt: null },
+      });
     }
 
     // Register device if mobile login
@@ -52,6 +92,14 @@ export class AuthService {
 
     // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email, user.role, dto.deviceId);
+
+    // Log successful login
+    await this.securityLogService.logLoginSuccess(
+      user.id,
+      dto.deviceId,
+      ipAddress || 'unknown',
+      userAgent || 'unknown',
+    ).catch(() => {}); // Never block login flow
 
     return {
       ...tokens,
@@ -140,6 +188,19 @@ export class AuthService {
       throw new UnauthorizedException('Compte désactivé');
     }
 
+    // Vérifier que l'appareil associé est toujours actif (sécurité anti-revocation race condition)
+    if (storedToken.deviceId) {
+      const device = await this.prisma.device.findUnique({
+        where: { id: storedToken.deviceId },
+        select: { isActive: true },
+      });
+      if (device && !device.isActive) {
+        // Appareil révoqué — supprimer le token orphelin et refuser
+        await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
+        throw new UnauthorizedException('Appareil révoqué');
+      }
+    }
+
     // Delete old token
     await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
 
@@ -154,9 +215,17 @@ export class AuthService {
 
   // Logout (invalidate refresh token)
   async logout(refreshToken: string): Promise<void> {
-    await this.prisma.refreshToken.deleteMany({
+    const storedToken = await this.prisma.refreshToken.findUnique({
       where: { token: refreshToken },
     });
+    if (storedToken) {
+      await this.prisma.refreshToken.deleteMany({
+        where: {
+          userId: storedToken.userId,
+          ...(storedToken.deviceId ? { deviceId: storedToken.deviceId } : { token: refreshToken }),
+        },
+      });
+    }
   }
 
   // Create new user (admin only)
@@ -213,7 +282,7 @@ export class AuthService {
     const payload: TokenPayload = {
       sub: userId,
       email,
-      role: role as any,
+      role: role as UserRole,
       deviceId,
     };
 

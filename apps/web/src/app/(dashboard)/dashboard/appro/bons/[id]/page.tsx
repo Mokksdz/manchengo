@@ -9,10 +9,12 @@
 import { toast } from 'sonner';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { appro, PurchaseOrder, PurchaseOrderStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import {
   Truck,
   Clock,
@@ -29,24 +31,23 @@ import {
 } from 'lucide-react';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
 
-function StatusBadge({ status }: { status: PurchaseOrderStatus }) {
-  const config: Record<PurchaseOrderStatus, { bg: string; text: string; label: string; icon: typeof Clock }> = {
-    DRAFT: { bg: 'bg-[#F5F5F5]', text: 'text-[#1D1D1F]', label: 'Brouillon', icon: Clock },
-    SENT: { bg: 'bg-[#007AFF]/10', text: 'text-[#007AFF]', label: 'Envoyé', icon: Send },
-    CONFIRMED: { bg: 'bg-indigo-100', text: 'text-indigo-700', label: 'Confirmé', icon: CheckCircle },
-    PARTIAL: { bg: 'bg-[#FF9500]/10', text: 'text-[#FF9500]', label: 'Partiel', icon: Package },
-    RECEIVED: { bg: 'bg-[#34C759]/10', text: 'text-[#34C759]', label: 'Reçu', icon: CheckCircle },
-    CANCELLED: { bg: 'bg-[#FF3B30]/10', text: 'text-[#FF3B30]', label: 'Annulé', icon: XCircle },
-  };
-  const { bg, text, label, icon: Icon } = config[status];
+const statusLabel: Record<PurchaseOrderStatus, string> = {
+  DRAFT: 'Brouillon',
+  SENT: 'Envoyé',
+  CONFIRMED: 'Confirmé',
+  PARTIAL: 'Partiel',
+  RECEIVED: 'Reçu',
+  CANCELLED: 'Annulé',
+};
 
-  return (
-    <span className={cn('inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium', bg, text)}>
-      <Icon className="w-4 h-4" />
-      {label}
-    </span>
-  );
-}
+const statusVariant: Record<PurchaseOrderStatus, 'default' | 'success' | 'warning' | 'error' | 'info'> = {
+  DRAFT: 'default',
+  SENT: 'info',
+  CONFIRMED: 'info',
+  PARTIAL: 'warning',
+  RECEIVED: 'success',
+  CANCELLED: 'error',
+};
 
 function HistoryItem({ 
   icon: Icon, 
@@ -79,8 +80,6 @@ function HistoryItem({
 
 export default function BcDetailPage() {
   const params = useParams();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _router = useRouter();
   const { user } = useAuth();
   const [bc, setBc] = useState<PurchaseOrder | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -287,88 +286,70 @@ export default function BcDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard/appro/bons"
-            className="p-2 hover:bg-[#F5F5F5] rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#86868B]" />
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-[#1D1D1F] font-mono">{bc.reference}</h1>
-              <StatusBadge status={bc.status} />
-            </div>
-            <p className="text-[#6E6E73]">Bon de commande fournisseur</p>
+      <PageHeader
+        title={bc.reference}
+        subtitle="Bon de commande fournisseur"
+        icon={<Truck className="w-5 h-5" />}
+        badge={{ text: statusLabel[bc.status], variant: statusVariant[bc.status] }}
+        actions={(
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button asChild variant="outline">
+              <Link href="/dashboard/appro/bons">
+                <ArrowLeft className="w-4 h-4" />
+                Retour
+              </Link>
+            </Button>
+
+            <Button onClick={handleDownloadPdf} disabled={isDownloading} variant="outline">
+              {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Télécharger PDF
+            </Button>
+
+            {bc.status === 'DRAFT' && (
+              <Button
+                onClick={() => {
+                  setSendEmail(bc.supplier.email || '');
+                  setShowSendModal(true);
+                }}
+                disabled={isActioning}
+                variant="amber"
+              >
+                <Send className="w-4 h-4" />
+                Envoyer
+              </Button>
+            )}
+
+            {isAdmin && ['DRAFT', 'SENT', 'CONFIRMED'].includes(bc.status) && (
+              <Button onClick={() => setShowCancelModal(true)} disabled={isCancelling} variant="destructive">
+                <Ban className="w-4 h-4" />
+                Annuler BC
+              </Button>
+            )}
+
+            {bc.status === 'SENT' && (
+              <Button onClick={handleConfirm} disabled={isActioning}>
+                {isActioning ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                Confirmer
+              </Button>
+            )}
+
+            {(bc.status === 'SENT' || bc.status === 'CONFIRMED' || bc.status === 'PARTIAL') && (
+              <Button asChild>
+                <Link href={`/dashboard/appro/bons/${bc.id}/receive`}>
+                  <Package className="w-4 h-4" />
+                  Réceptionner
+                </Link>
+              </Button>
+            )}
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleDownloadPdf}
-            disabled={isDownloading}
-            className="flex items-center gap-2 px-4 py-2 border border-[#E5E5E5] text-[#1D1D1F] rounded-lg hover:bg-[#FAFAFA] disabled:opacity-50"
-          >
-            {isDownloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Télécharger PDF
-          </button>
-
-          {bc.status === 'DRAFT' && (
-            <button
-              onClick={() => {
-                setSendEmail(bc.supplier.email || '');
-                setShowSendModal(true);
-              }}
-              disabled={isActioning}
-              className="flex items-center gap-2 px-4 py-2 bg-[#007AFF] text-white rounded-lg hover:bg-[#007AFF]/90 disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-              Envoyer
-            </button>
-          )}
-          
-          {/* P0.2: Bouton annulation (ADMIN uniquement) */}
-          {isAdmin && ['DRAFT', 'SENT', 'CONFIRMED'].includes(bc.status) && (
-            <button
-              onClick={() => setShowCancelModal(true)}
-              disabled={isCancelling}
-              className="flex items-center gap-2 px-4 py-2 bg-[#FF3B30]/10 text-[#FF3B30] border border-[#FF3B30]/30 rounded-lg hover:bg-[#FF3B30]/20 disabled:opacity-50"
-            >
-              <Ban className="w-4 h-4" />
-              Annuler BC
-            </button>
-          )}
-
-          {bc.status === 'SENT' && (
-            <button
-              onClick={handleConfirm}
-              disabled={isActioning}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {isActioning ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-              Confirmer
-            </button>
-          )}
-
-          {(bc.status === 'SENT' || bc.status === 'CONFIRMED' || bc.status === 'PARTIAL') && (
-            <Link
-              href={`/dashboard/appro/bons/${bc.id}/receive`}
-              className="flex items-center gap-2 px-4 py-2 bg-[#34C759] text-white rounded-lg hover:bg-[#34C759]/90"
-            >
-              <Package className="w-4 h-4" />
-              Réceptionner
-            </Link>
-          )}
-        </div>
-      </div>
+        )}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Informations principales */}
         <div className="lg:col-span-2 space-y-6">
           {/* Fournisseur & Demande source */}
-          <div className="bg-white rounded-xl border p-6">
+          <div className="glass-card rounded-xl p-6">
             <h2 className="font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
               <Truck className="w-5 h-5 text-primary-600" />
               Informations
@@ -378,19 +359,6 @@ export default function BcDetailPage() {
                 <p className="text-sm text-[#86868B]">Fournisseur</p>
                 <p className="font-medium text-[#1D1D1F]">{bc.supplier.name}</p>
                 <p className="text-xs text-[#86868B]">{bc.supplier.code}</p>
-              </div>
-              <div>
-                <p className="text-sm text-[#86868B]">Demande source</p>
-                {bc.linkedDemand ? (
-                  <Link
-                    href={`/dashboard/appro/demandes?id=${bc.linkedDemandId}`}
-                    className="font-medium text-primary-600 hover:underline"
-                  >
-                    {bc.linkedDemand.reference}
-                  </Link>
-                ) : (
-                  <p className="font-medium text-[#1D1D1F]">#{bc.linkedDemandId}</p>
-                )}
               </div>
               {bc.expectedDelivery && (
                 <div>
@@ -416,7 +384,7 @@ export default function BcDetailPage() {
           </div>
 
           {/* Articles */}
-          <div className="bg-white rounded-xl border overflow-hidden">
+          <div className="glass-card rounded-xl overflow-hidden">
             <div className="p-4 border-b flex items-center justify-between">
               <h2 className="font-semibold text-[#1D1D1F] flex items-center gap-2">
                 <Package className="w-5 h-5 text-primary-600" />
@@ -482,7 +450,7 @@ export default function BcDetailPage() {
 
         {/* Sidebar - Historique */}
         <div className="space-y-6">
-          <div className="bg-white rounded-xl border p-6">
+          <div className="glass-card rounded-xl p-6">
             <h2 className="font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
               <History className="w-5 h-5 text-primary-600" />
               Historique
@@ -543,7 +511,7 @@ export default function BcDetailPage() {
       ══════════════════════════════════════════════════════════════════════ */}
       {showSendModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-[16px] shadow-apple-elevated max-w-lg w-full mx-4 overflow-hidden">
+          <div className="glass-card rounded-[18px] max-w-lg w-full mx-4 overflow-hidden">
             <div className="bg-[#007AFF] px-6 py-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Send className="w-5 h-5" />
@@ -657,7 +625,7 @@ export default function BcDetailPage() {
       ══════════════════════════════════════════════════════════════════════ */}
       {showCancelModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-[16px] shadow-apple-elevated max-w-lg w-full mx-4 overflow-hidden">
+          <div className="glass-card rounded-[18px] max-w-lg w-full mx-4 overflow-hidden">
             <div className="bg-[#FF3B30] px-6 py-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Ban className="w-5 h-5" />

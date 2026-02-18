@@ -57,8 +57,9 @@ export class ProductionService {
 
       let sequence = 1;
       if (lastOrder) {
-        const lastSeq = parseInt(lastOrder.reference.split('-')[2]);
-        sequence = lastSeq + 1;
+        const part = lastOrder.reference.split('-')[2];
+        const lastSeq = part ? parseInt(part, 10) : 0;
+        sequence = isNaN(lastSeq) ? 1 : lastSeq + 1;
       }
 
       const reference = `OP-${dateStr}-${sequence.toString().padStart(3, '0')}`;
@@ -77,21 +78,25 @@ export class ProductionService {
       );
     }
 
-    // Fallback: use timestamp-based suffix to guarantee uniqueness
-    const ts = Date.now().toString(36).slice(-4);
-    return `OP-${dateStr}-${ts}`;
+    // Fallback: use timestamp-based suffix for near-guaranteed uniqueness
+    const ts = Date.now().toString(36).slice(-6);
+    const fallbackRef = `OP-${dateStr}-${ts}`;
+    this.logger.warn(`Using fallback reference: ${fallbackRef}`, 'ProductionService');
+    return fallbackRef;
   }
 
   /**
    * Générer un numéro de lot pour le PF produit
+   * Inclut un mécanisme de retry pour garantir l'unicité en cas de concurrence
    */
   private async generateLotNumber(productCode: string): Promise<string> {
     const today = new Date();
     const dateStr = today.toISOString().slice(2, 10).replace(/-/g, '');
-    
+    const prefix = `${productCode}-${dateStr}`;
+
     const lastLot = await this.prisma.lotPf.findFirst({
       where: {
-        lotNumber: { startsWith: `${productCode}-${dateStr}` },
+        lotNumber: { startsWith: prefix },
       },
       orderBy: { lotNumber: 'desc' },
     });
@@ -99,11 +104,32 @@ export class ProductionService {
     let sequence = 1;
     if (lastLot) {
       const parts = lastLot.lotNumber.split('-');
-      const lastSeq = parseInt(parts[parts.length - 1]);
-      sequence = lastSeq + 1;
+      const lastPart = parts[parts.length - 1];
+      const lastSeq = lastPart ? parseInt(lastPart, 10) : 0;
+      sequence = isNaN(lastSeq) ? 1 : lastSeq + 1;
     }
 
-    return `${productCode}-${dateStr}-${sequence.toString().padStart(3, '0')}`;
+    let lotNumber = `${prefix}-${sequence.toString().padStart(3, '0')}`;
+
+    // Vérification unicité avec retry (protection race condition)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const existing = await this.prisma.lotPf.findFirst({
+        where: { lotNumber },
+        select: { id: true },
+      });
+      if (!existing) return lotNumber;
+
+      // Collision détectée — incrémenter et réessayer
+      sequence++;
+      lotNumber = `${prefix}-${sequence.toString().padStart(3, '0')}`;
+      this.logger.warn(`Lot number collision, retry #${attempt + 1}: ${lotNumber}`, 'ProductionService');
+    }
+
+    // Fallback ultime avec timestamp
+    const ts = Date.now().toString(36).slice(-6);
+    const fallbackLot = `${prefix}-${ts}`;
+    this.logger.warn(`Using fallback lot number: ${fallbackLot}`, 'ProductionService');
+    return fallbackLot;
   }
 
   /**
@@ -204,7 +230,7 @@ export class ProductionService {
     // Vérifier que le produit PF existe
     const productPf = await this.prisma.productPf.findUnique({
       where: { id: dto.productPfId },
-      include: { recipe: true },
+      include: { recipe: { include: { items: true } } },
     });
 
     if (!productPf) {
@@ -219,6 +245,23 @@ export class ProductionService {
     }
 
     const recipe = productPf.recipe;
+
+    // Vérifier la complétude de la recette (aligné avec les checks frontend)
+    if (!recipe.items || recipe.items.length === 0) {
+      throw new BadRequestException(
+        `La recette "${recipe.name}" n'a aucun ingrédient. Ajoutez au moins une matière première.`
+      );
+    }
+    if (!recipe.batchWeight || Number(recipe.batchWeight) <= 0) {
+      throw new BadRequestException(
+        `La recette "${recipe.name}" n'a pas de poids de batch défini (batchWeight doit être > 0).`
+      );
+    }
+    if (!recipe.outputQuantity || Number(recipe.outputQuantity) <= 0) {
+      throw new BadRequestException(
+        `La recette "${recipe.name}" n'a pas de quantité de sortie définie (outputQuantity doit être > 0).`
+      );
+    }
 
     // Vérifier la disponibilité des stocks
     const stockCheck = await this.recipeService.checkStockAvailability(
@@ -298,7 +341,8 @@ export class ProductionService {
     for (const item of order.recipe.items) {
       if (!item.productMpId || !item.affectsStock) continue;
 
-      const requiredQty = Math.ceil(Number(item.quantity) * order.batchCount);
+      const qtyPerBatch = Number(item.quantity);
+      const requiredQty = Math.round(qtyPerBatch * order.batchCount * 100) / 100;
       const preview = await this.lotConsumption.previewFIFO(
         item.productMpId,
         requiredQty,
@@ -307,7 +351,7 @@ export class ProductionService {
       if (!preview.sufficient && item.isMandatory) {
         throw new BadRequestException({
           code: 'INSUFFICIENT_STOCK',
-          message: `Stock insuffisant pour ${item.productMp!.code}: besoin ${requiredQty}, disponible ${preview.availableStock}`,
+          message: `Stock insuffisant pour ${item.productMp?.code || 'MP#' + item.productMpId}: besoin ${requiredQty}, disponible ${preview.availableStock}`,
           productMpId: item.productMpId,
           required: requiredQty,
           available: preview.availableStock,
@@ -333,7 +377,7 @@ export class ProductionService {
           continue;
         }
 
-        const requiredQty = Math.ceil(item.quantity * order.batchCount);
+        const requiredQty = Math.round(Number(item.quantity) * order.batchCount * 100) / 100;
         const idempotencyKey = `PROD-${order.id}-${item.productMpId}`;
 
         const result = await this.lotConsumption.consumeFIFO(
@@ -377,7 +421,7 @@ export class ProductionService {
                 productionOrderId: order.id,
                 productMpId,
                 lotMpId: consumption.lotId,
-                quantityPlanned: requiredQty,
+                quantityPlanned: consumption.quantity,
                 quantityConsumed: consumption.quantity,
                 unitCost: lotCostMap.get(consumption.lotId) ?? null,
               },
@@ -392,6 +436,37 @@ export class ProductionService {
         error instanceof Error ? error.stack : String(error),
         'ProductionService',
       );
+
+      // Bug #2: Compensate already-committed FIFO consumptions
+      for (const { productMpId, result } of consumptionResults) {
+        try {
+          for (const c of result.consumptions) {
+            await this.prisma.lotMp.update({
+              where: { id: c.lotId },
+              data: {
+                quantityRemaining: { increment: c.quantity },
+                status: 'AVAILABLE',
+                consumedAt: null,
+              },
+            });
+            await this.prisma.stockMovement.create({
+              data: {
+                movementType: 'IN',
+                productType: 'MP',
+                origin: 'PRODUCTION_CANCEL',
+                productMpId,
+                lotMpId: c.lotId,
+                quantity: c.quantity,
+                userId,
+                reference: `ROLLBACK-${order.reference}`,
+              },
+            });
+          }
+        } catch (reverseErr) {
+          // Log but don't mask the original error
+        }
+      }
+
       throw error;
     }
 
@@ -449,6 +524,11 @@ export class ProductionService {
    * Terminer une production - Crée le lot PF
    */
   async complete(id: number, dto: CompleteProductionDto, userId: string) {
+    // Bug #38b: Validate quantityProduced
+    if (dto.quantityProduced <= 0) {
+      throw new BadRequestException('La quantité produite doit être strictement positive');
+    }
+
     const order = await this.findById(id);
 
     if (order.status !== 'IN_PROGRESS') {
@@ -457,8 +537,10 @@ export class ProductionService {
       );
     }
 
-    // Calculer le rendement
-    const yieldPercentage = (dto.quantityProduced / order.targetQuantity) * 100;
+    // Calculer le rendement (guard division par zéro)
+    const yieldPercentage = order.targetQuantity > 0
+      ? (dto.quantityProduced / order.targetQuantity) * 100
+      : 0;
 
     // Vérifier la tolérance de perte
     if (order.recipe) {
@@ -496,67 +578,72 @@ export class ProductionService {
       ? Math.round(totalCost / dto.quantityProduced) 
       : 0;
 
-    // Créer le lot PF avec status AVAILABLE
-    const lot = await this.prisma.lotPf.create({
-      data: {
-        productId: order.productPfId,
-        lotNumber,
-        quantityInitial: dto.quantityProduced,
-        quantityRemaining: dto.quantityProduced,
-        manufactureDate,
-        expiryDate,
-        productionOrderId: order.id,
-        unitCost,
-        isActive: true,
-        status: 'AVAILABLE',
-      },
-    });
-
-    // Créer le mouvement de stock
-    await this.prisma.stockMovement.create({
-      data: {
-        movementType: 'IN',
-        productType: 'PF',
-        origin: 'PRODUCTION_IN',
-        productPfId: order.productPfId,
-        lotPfId: lot.id,
-        quantity: dto.quantityProduced,
-        unitCost,
-        referenceType: 'PRODUCTION',
-        referenceId: order.id,
-        reference: order.reference,
-        userId,
-      },
-    });
-
-    // Mettre à jour l'ordre
-    const updated = await this.prisma.productionOrder.update({
-      where: { id },
-      data: {
-        status: 'COMPLETED',
-        quantityProduced: dto.quantityProduced,
-        batchWeightReal: dto.batchWeightReal,
-        yieldPercentage,
-        qualityNotes: dto.qualityNotes,
-        qualityStatus: dto.qualityStatus || 'OK',
-        completedAt: new Date(),
-        completedBy: userId,
-      },
-      include: {
-        productPf: {
-          select: { id: true, code: true, name: true, unit: true },
+    // Transaction atomique : lot PF + mouvement stock + mise à jour ordre
+    const { updated, lot } = await this.prisma.$transaction(async (tx) => {
+      // Créer le lot PF avec status AVAILABLE
+      const createdLot = await tx.lotPf.create({
+        data: {
+          productId: order.productPfId,
+          lotNumber,
+          quantityInitial: dto.quantityProduced,
+          quantityRemaining: dto.quantityProduced,
+          manufactureDate,
+          expiryDate,
+          productionOrderId: order.id,
+          unitCost,
+          isActive: true,
+          status: 'AVAILABLE',
         },
-        lots: {
-          select: {
-            id: true,
-            lotNumber: true,
-            quantityInitial: true,
-            manufactureDate: true,
-            expiryDate: true,
-            unitCost: true,
+      });
+
+      // Créer le mouvement de stock
+      await tx.stockMovement.create({
+        data: {
+          movementType: 'IN',
+          productType: 'PF',
+          origin: 'PRODUCTION_IN',
+          productPfId: order.productPfId,
+          lotPfId: createdLot.id,
+          quantity: dto.quantityProduced,
+          unitCost,
+          referenceType: 'PRODUCTION',
+          referenceId: order.id,
+          reference: order.reference,
+          userId,
+        },
+      });
+
+      // Mettre à jour l'ordre
+      const updatedOrder = await tx.productionOrder.update({
+        where: { id },
+        data: {
+          status: 'COMPLETED',
+          quantityProduced: dto.quantityProduced,
+          batchWeightReal: dto.batchWeightReal,
+          yieldPercentage,
+          qualityNotes: dto.qualityNotes,
+          qualityStatus: dto.qualityStatus || 'OK',
+          completedAt: new Date(),
+          completedBy: userId,
+        },
+        include: {
+          productPf: {
+            select: { id: true, code: true, name: true, unit: true },
+          },
+          lots: {
+            select: {
+              id: true,
+              lotNumber: true,
+              quantityInitial: true,
+              manufactureDate: true,
+              expiryDate: true,
+              unitCost: true,
+            },
           },
         },
-      },
+      });
+
+      return { updated: updatedOrder, lot: createdLot };
     });
 
     // P17: Invalidate cache after production complete
@@ -581,6 +668,10 @@ export class ProductionService {
       );
     }
 
+    if (order.status === 'CANCELLED') {
+      throw new BadRequestException('Cet ordre de production est déjà annulé');
+    }
+
     // Si la production était en cours, on doit reverser les consommations
     if (order.status === 'IN_PROGRESS') {
       // P10: Reverse consumptions in a transaction for atomicity
@@ -596,15 +687,24 @@ export class ProductionService {
 
           if (!lot) continue;
 
-          const newQty = Number(lot.quantityRemaining || 0) + Number(consumption.quantityConsumed);
+          const restoredQty = Number(consumption.quantityConsumed);
+          const newQty = Number(lot.quantityRemaining || 0) + restoredQty;
+
+          // Déterminer le nouveau statut du lot après restauration:
+          // - CONSUMED → AVAILABLE (le lot était entièrement consommé par cette production)
+          // - BLOCKED → reste BLOCKED mais quantité restaurée pour traçabilité
+          //   NOTE: Ne pas restaurer la quantité d'un lot BLOCKED (expiré/qualité),
+          //   car ce stock n'est pas utilisable. On crée le mouvement de retour
+          //   pour la traçabilité mais on ne rend pas le stock disponible.
+          const isBlocked = lot.status === 'BLOCKED';
 
           await tx.lotMp.update({
             where: { id: consumption.lotMpId },
             data: {
+              // Si le lot est BLOCKED, on restaure quand même la quantité pour cohérence comptable
+              // mais le stock reste inutilisable (status BLOCKED)
               quantityRemaining: newQty,
               isActive: true,
-              // Only restore to AVAILABLE if lot was CONSUMED (fully used by this production)
-              // Keep current status if lot was BLOCKED (quality hold)
               status: lot.status === 'CONSUMED' ? 'AVAILABLE' : lot.status,
               consumedAt: lot.status === 'CONSUMED' ? null : undefined,
             },
@@ -618,19 +718,22 @@ export class ProductionService {
               origin: 'PRODUCTION_CANCEL',
               productMpId: consumption.productMpId,
               lotMpId: consumption.lotMpId,
-              quantity: Number(consumption.quantityConsumed),
+              quantity: restoredQty,
               referenceType: 'PRODUCTION',
               referenceId: order.id,
               reference: `ANNUL-${order.reference}`,
               userId,
-              note: reason || 'Annulation production',
+              note: isBlocked
+                ? `[LOT BLOQUÉ] ${reason || 'Annulation production'} — Lot ${consumption.lotMpId} bloqué, stock non disponible`
+                : (reason || 'Annulation production'),
             },
           });
         }
 
-        // Supprimer les consommations
-        await tx.productionConsumption.deleteMany({
-          where: { productionOrderId: id },
+        // Marquer les consommations comme annulées (traçabilité — ne PAS supprimer)
+        await tx.productionConsumption.updateMany({
+          where: { productionOrderId: id, isReversed: false },
+          data: { isReversed: true, reversedAt: new Date() },
         });
       });
 
@@ -788,7 +891,8 @@ export class ProductionService {
     });
 
     for (const lot of expiringLots) {
-      const daysLeft = Math.ceil((lot.expiryDate!.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      if (!lot.expiryDate) continue; // Sécurité: filtré par la query mais TypeScript ne le sait pas
+      const daysLeft = Math.ceil((lot.expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       alerts.push({
         id: `dlc-${lot.id}`,
         type: 'DLC_PROCHE',
@@ -1084,6 +1188,7 @@ export class ProductionService {
           product: { select: { id: true, code: true, name: true, unit: true } },
           supplier: { select: { id: true, code: true, name: true } },
           productionConsumptions: {
+            where: { isReversed: false },
             include: {
               productionOrder: {
                 select: {
@@ -1177,9 +1282,10 @@ export class ProductionService {
     const productionByProduct: Record<number, { product: any; quantity: number; orders: number; avgYield: number }> = {};
 
     for (const order of orders) {
+      if (!order.completedAt) continue; // Sécurité: filtré par query mais TypeScript ne le sait pas
       const dateKey = groupBy === 'month'
-        ? order.completedAt!.toISOString().slice(0, 7)
-        : order.completedAt!.toISOString().slice(0, 10);
+        ? order.completedAt.toISOString().slice(0, 7)
+        : order.completedAt.toISOString().slice(0, 10);
 
       if (!productionByDate[dateKey]) {
         productionByDate[dateKey] = { date: dateKey, quantity: 0, orders: 0, avgYield: 0, yields: [] };

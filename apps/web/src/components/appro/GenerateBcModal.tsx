@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { appro, GenerateBcResponse } from '@/lib/api';
@@ -61,38 +61,36 @@ interface SupplierGroup {
 export function GenerateBcModal({ demande, isOpen, onClose, onSuccess }: GenerateBcModalProps) {
   const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [supplierGroups, setSupplierGroups] = useState<SupplierGroup[]>([]);
 
-  useEffect(() => {
-    if (isOpen && demande) {
-      const groups = new Map<number | null, SupplierGroup>();
-      
-      for (const ligne of demande.lignes) {
-        const supplierId = ligne.productMp?.fournisseurPrincipal?.id ?? null;
-        const supplierName = ligne.productMp?.fournisseurPrincipal?.name ?? 'Fournisseur non défini';
-        const supplierCode = ligne.productMp?.fournisseurPrincipal?.code ?? '-';
-        
-        if (!groups.has(supplierId)) {
-          groups.set(supplierId, {
-            supplierId,
-            supplierName,
-            supplierCode,
-            lignes: [],
-            totalHT: 0,
-          });
-        }
-        
-        const group = groups.get(supplierId)!;
-        group.lignes.push(ligne);
-        
-        const qty = ligne.quantiteValidee ?? ligne.quantiteDemandee;
-        const price = ligne.productMp?.dernierPrixAchat ?? 0;
-        group.totalHT += qty * price;
+  const supplierGroups = useMemo<SupplierGroup[]>(() => {
+    if (!demande) return [];
+    const groups = new Map<number | null, SupplierGroup>();
+
+    for (const ligne of demande.lignes) {
+      const supplierId = ligne.productMp?.fournisseurPrincipal?.id ?? null;
+      const supplierName = ligne.productMp?.fournisseurPrincipal?.name ?? 'Fournisseur non défini';
+      const supplierCode = ligne.productMp?.fournisseurPrincipal?.code ?? '-';
+
+      if (!groups.has(supplierId)) {
+        groups.set(supplierId, {
+          supplierId,
+          supplierName,
+          supplierCode,
+          lignes: [],
+          totalHT: 0,
+        });
       }
-      
-      setSupplierGroups(Array.from(groups.values()));
+
+      const group = groups.get(supplierId)!;
+      group.lignes.push(ligne);
+
+      const qty = ligne.quantiteValidee ?? ligne.quantiteDemandee;
+      const price = ligne.productMp?.dernierPrixAchat ?? 0;
+      group.totalHT += qty * price;
     }
-  }, [isOpen, demande]);
+
+    return Array.from(groups.values());
+  }, [demande]);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
@@ -159,9 +157,9 @@ export function GenerateBcModal({ demande, isOpen, onClose, onSuccess }: Generat
       />
       
       {/* Modal */}
-      <div className="relative bg-white rounded-[16px] shadow-apple-elevated max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative glass-card rounded-[18px] max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#E5E5E5] bg-white">
+        <div className="flex items-center justify-between p-6 border-b border-white/70 bg-white/68 backdrop-blur-[18px]">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary-100 rounded-lg">
               <FileText className="w-6 h-6 text-primary-600" />

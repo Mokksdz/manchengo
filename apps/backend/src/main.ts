@@ -113,8 +113,8 @@ async function bootstrap() {
       if (!origin) {
         return callback(null, true);
       }
-      // Check if origin is in whitelist
-      if (allowedOrigins.includes(origin)) {
+      // Check if origin is in whitelist (supports both strings and RegExp)
+      if (allowedOrigins.some(o => o instanceof RegExp ? o.test(origin) : o === origin)) {
         return callback(null, true);
       }
       // In development, allow localhost and 127.0.0.1 variants
@@ -223,4 +223,7 @@ Les tokens sont aussi envoyés via cookies httpOnly.
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`, 'Bootstrap');
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('FATAL: Bootstrap failed:', err);
+  process.exit(1);
+});

@@ -10,6 +10,8 @@ import {
   Package, TrendingDown, Flame,
   Search, RefreshCw
 } from 'lucide-react';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import {
   DecisionStatusPill,
   getDecisionStatus,
@@ -86,46 +88,31 @@ export default function StockMpPage() {
 
   return (
     <div className="glass-bg space-y-6">
-      {/* ─── Header ─── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1D1D1F]">
-            Matières Premières
-          </h1>
-          <p className="text-[13px] text-[#86868B] mt-1">
-            Lait, sel, présure, ferments
-            {stats.rupture > 0 && (
-              <span className="ml-2 inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-pulse" />
-                <span className="text-[#FF3B30] font-medium">{stats.rupture} en rupture</span>
-              </span>
+      <PageHeader
+        title="Matières Premières"
+        subtitle="Lait, sel, présure, ferments"
+        icon={<Droplets className="w-5 h-5" />}
+        badge={
+          stats.rupture > 0
+            ? { text: `${stats.rupture} en rupture`, variant: 'error' }
+            : stats.alerte > 0
+              ? { text: `${stats.alerte} sous seuil`, variant: 'warning' }
+              : { text: 'Stocks OK', variant: 'success' }
+        }
+        actions={
+          <div className="flex items-center gap-2">
+            <Button onClick={() => refetch()} variant="outline" size="icon" className="rounded-full">
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+            {canCreateReception && (
+              <Button onClick={() => setShowReceptionModal(true)}>
+                <Plus className="w-4 h-4" />
+                Réception MP
+              </Button>
             )}
-            {stats.rupture === 0 && stats.alerte === 0 && (
-              <span className="ml-2 inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#34C759]" />
-                <span className="text-[#34C759] font-medium">Stocks OK</span>
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            className="p-2.5 rounded-full glass-card transition-all text-[#86868B] hover:text-[#1D1D1F]"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          {canCreateReception && (
-            <button
-              onClick={() => setShowReceptionModal(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1D1D1F] text-white rounded-full hover:bg-[#333336] transition-all font-medium text-[13px] shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Réception MP
-            </button>
-          )}
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Modal Réception */}
       <ReceptionModal

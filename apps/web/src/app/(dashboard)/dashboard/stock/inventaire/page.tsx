@@ -16,6 +16,8 @@ import {
   User,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 interface InventoryDeclaration {
   id: number;
@@ -160,49 +162,42 @@ export default function InventairePage() {
 
   return (
     <div className="glass-bg space-y-6">
-      {/* ─── Header ─── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[24px] font-semibold text-[#1D1D1F] tracking-[-0.02em]">
-            Gestion Inventaire
-          </h1>
-          <p className="text-[13px] text-[#86868B] mt-1">
-            Déclarations et validations
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => setFilter('pending')}
-              className={cn(
-                'px-3 py-1.5 text-[12px] font-medium rounded-full transition-all',
-                filter === 'pending'
-                  ? 'bg-[#1D1D1F] text-white'
-                  : 'glass-pill text-[#86868B] hover:text-[#1D1D1F]'
-              )}
-            >
-              En attente
-            </button>
-            <button
-              onClick={() => setFilter('all')}
-              className={cn(
-                'px-3 py-1.5 text-[12px] font-medium rounded-full transition-all',
-                filter === 'all'
-                  ? 'bg-[#1D1D1F] text-white'
-                  : 'glass-pill text-[#86868B] hover:text-[#1D1D1F]'
-              )}
-            >
-              Historique
-            </button>
+      <PageHeader
+        title="Gestion Inventaire"
+        subtitle="Déclarations et validations"
+        icon={<ClipboardList className="w-5 h-5" />}
+        actions={
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setFilter('pending')}
+                className={cn(
+                  'px-3 py-1.5 text-[12px] font-medium rounded-full transition-all',
+                  filter === 'pending'
+                    ? 'bg-[#1D1D1F] text-white'
+                    : 'glass-pill text-[#86868B] hover:text-[#1D1D1F]'
+                )}
+              >
+                En attente
+              </button>
+              <button
+                onClick={() => setFilter('all')}
+                className={cn(
+                  'px-3 py-1.5 text-[12px] font-medium rounded-full transition-all',
+                  filter === 'all'
+                    ? 'bg-[#1D1D1F] text-white'
+                    : 'glass-pill text-[#86868B] hover:text-[#1D1D1F]'
+                )}
+              >
+                Historique
+              </button>
+            </div>
+            <Button onClick={loadDeclarations} variant="outline" size="icon" className="rounded-full">
+              <RefreshCw className="w-4 h-4" />
+            </Button>
           </div>
-          <button
-            onClick={loadDeclarations}
-            className="glass-card-hover p-2.5 rounded-[14px] transition-all text-[#86868B] hover:text-[#1D1D1F]"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* ─── Search ─── */}
       <div className="relative max-w-md">

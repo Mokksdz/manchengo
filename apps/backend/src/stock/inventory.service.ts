@@ -663,7 +663,8 @@ export class InventoryService {
     productType: ProductType,
     productId: number,
   ): Promise<number> {
-    const result = await this.prisma.stockMovement.aggregate({
+    const movements = await this.prisma.stockMovement.groupBy({
+      by: ['movementType'],
       where: {
         productType,
         ...(productType === 'MP'
@@ -674,7 +675,17 @@ export class InventoryService {
       _sum: { quantity: true },
     });
 
-    return result._sum.quantity || 0;
+    let totalIn = 0;
+    let totalOut = 0;
+    for (const m of movements) {
+      if (m.movementType === 'IN') {
+        totalIn = m._sum.quantity ?? 0;
+      } else {
+        totalOut = m._sum.quantity ?? 0;
+      }
+    }
+
+    return totalIn - totalOut;
   }
 
   private async getProduct(

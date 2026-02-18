@@ -5,13 +5,14 @@ import { authFetch } from '@/lib/api';
 import { useRequireRole } from '@/lib/hooks/use-require-role';
 import {
   Smartphone,
-  Shield,
   ShieldOff,
   RefreshCw,
   Clock,
   User,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton-loader';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 /**
  * Device Management Page
@@ -121,18 +122,11 @@ export default function DevicesManagementPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      {/* Header */}
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#007AFF]/20 to-[#007AFF]/10 flex items-center justify-center shadow-lg shadow-[#007AFF]/10">
-              <Smartphone className="w-6 h-6 text-[#007AFF]" />
-            </div>
-            <div>
-              <h1 className="text-[22px] font-bold text-[#1D1D1F] tracking-tight">Gestion des Appareils</h1>
-              <p className="text-[13px] text-[#86868B]">{total} appareil{total !== 1 ? 's' : ''} enregistré{total !== 1 ? 's' : ''}</p>
-            </div>
-          </div>
+      <PageHeader
+        title="Gestion des Appareils"
+        subtitle={`${total} appareil${total !== 1 ? 's' : ''} enregistré${total !== 1 ? 's' : ''}`}
+        icon={<Smartphone className="w-5 h-5" />}
+        actions={
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 p-1 glass-card rounded-full">
               {(['all', 'active', 'revoked'] as const).map((f) => (
@@ -148,17 +142,13 @@ export default function DevicesManagementPage() {
                 </button>
               ))}
             </div>
-            <button
-              onClick={fetchDevices}
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-black/5 text-[#1D1D1F] rounded-full hover:bg-black/10 transition-all font-medium"
-            >
+            <Button onClick={fetchDevices} disabled={loading} variant="outline">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Actualiser
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Error */}
       {error && (

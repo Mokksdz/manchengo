@@ -12,7 +12,6 @@ import {
   HttpStatus,
   Res,
   StreamableFile,
-  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -22,6 +21,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '@prisma/client';
 import { ProductionService } from './production.service';
 import { ProductionSupplyRisksService } from './production-supply-risks.service';
+import { CreateProductionOrderDto, CompleteProductionDto, CancelProductionDto } from './dto/production.dto';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PRODUCTION CONTROLLER - Gestion des ordres de production
@@ -48,8 +48,8 @@ export class ProductionController {
   ) {
     return this.productionService.findAll({
       status,
-      productPfId: productPfId ? parseInt(productPfId) : undefined,
-      limit: limit ? parseInt(limit) : undefined,
+      productPfId: productPfId ? parseInt(productPfId, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
     });
   }
 
@@ -61,17 +61,9 @@ export class ProductionController {
   @Roles(UserRole.ADMIN, UserRole.PRODUCTION)
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Body() dto: {
-      productPfId: number;
-      batchCount: number;
-      notes?: string;
-      scheduledDate?: string;
-    },
+    @Body() dto: CreateProductionOrderDto,
     @CurrentUser() user: { id: string },
   ) {
-    if (!dto.batchCount || dto.batchCount < 1 || dto.batchCount > 1000) {
-      throw new BadRequestException('batchCount doit être compris entre 1 et 1000');
-    }
     return this.productionService.create(dto, user.id);
   }
 
@@ -96,17 +88,9 @@ export class ProductionController {
   @Roles(UserRole.ADMIN, UserRole.PRODUCTION)
   async complete(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: {
-      quantityProduced: number;
-      batchWeightReal?: number;
-      qualityNotes?: string;
-      qualityStatus?: string;
-    },
+    @Body() dto: CompleteProductionDto,
     @CurrentUser() user: { id: string },
   ) {
-    if (!dto.quantityProduced || dto.quantityProduced <= 0) {
-      throw new BadRequestException('quantityProduced doit être supérieur à 0');
-    }
     return this.productionService.complete(id, dto, user.id);
   }
 
@@ -115,10 +99,10 @@ export class ProductionController {
    * Annule une production
    */
   @Post(':id/cancel')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.PRODUCTION)
   async cancel(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: { reason?: string },
+    @Body() dto: CancelProductionDto,
     @CurrentUser() user: { id: string },
   ) {
     return this.productionService.cancel(id, user.id, dto.reason);
@@ -195,7 +179,7 @@ export class ProductionController {
   @Get('dashboard/calendar')
   @Roles(UserRole.ADMIN, UserRole.PRODUCTION)
   async getCalendar(@Query('days') days?: string) {
-    return this.productionService.getCalendar(days ? parseInt(days) : 7);
+    return this.productionService.getCalendar(days ? parseInt(days, 10) : 7);
   }
 
   /**
@@ -290,12 +274,12 @@ export class ProductionController {
     @Query('limit') limit?: string,
   ) {
     return this.productionService.getProductHistory(productPfId, {
-      year: year ? parseInt(year) : undefined,
-      month: month ? parseInt(month) : undefined,
+      year: year ? parseInt(year, 10) : undefined,
+      month: month ? parseInt(month, 10) : undefined,
       from: from ? new Date(from) : undefined,
       to: to ? new Date(to) : undefined,
-      page: page ? parseInt(page) : 1,
-      limit: limit ? parseInt(limit) : 20,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
     });
   }
 

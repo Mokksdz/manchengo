@@ -123,7 +123,7 @@ export class CreateClientDto {
   @ApiProperty({ example: '000000000000000', description: 'Numéro d\'Identification Fiscale (15 chiffres)' })
   @IsString()
   @IsNotEmpty({ message: 'Le NIF est obligatoire' })
-  @Matches(/^\d{15}$/, { message: 'NIF invalide – 15 chiffres requis' })
+  @Matches(/^(?!0{15}$)\d{15}$/, { message: 'NIF invalide – 15 chiffres requis, ne peut pas être tout zéros' })
   nif: string;
 
   @ApiProperty({ example: '17B0809707', description: 'Registre de Commerce (8-15 caractères, lettres et chiffres)' })
@@ -222,10 +222,37 @@ export class CreateSupplierDto {
   @IsString()
   phone?: string;
 
+  @ApiPropertyOptional({ example: 'fournisseur@example.com' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   @ApiPropertyOptional({ example: 'Zone industrielle, Tipaza' })
   @IsOptional()
   @IsString()
   address?: string;
+
+  @ApiPropertyOptional({ description: 'NIF fournisseur (15 chiffres)' })
+  @IsOptional()
+  @ValidateIf((o) => o.nif !== null && o.nif !== undefined && o.nif !== '')
+  @Matches(/^(?!0{15}$)\d{15}$/, { message: 'NIF invalide – 15 chiffres requis' })
+  nif?: string;
+
+  @ApiPropertyOptional({ description: 'Registre de Commerce' })
+  @IsOptional()
+  @IsString()
+  rc?: string;
+
+  @ApiPropertyOptional({ description: "Article d'Imposition" })
+  @IsOptional()
+  @IsString()
+  ai?: string;
+
+  @ApiPropertyOptional({ description: 'NIS fournisseur (15 chiffres si renseigné)' })
+  @IsOptional()
+  @ValidateIf((o) => o.nis !== null && o.nis !== undefined && o.nis !== '')
+  @Matches(/^\d{15}$/, { message: 'NIS invalide – 15 chiffres requis si renseigné' })
+  nis?: string;
 }
 
 export class UpdateSupplierDto {
@@ -239,10 +266,37 @@ export class UpdateSupplierDto {
   @IsString()
   phone?: string;
 
+  @ApiPropertyOptional({ example: 'fournisseur@example.com' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   @ApiPropertyOptional({ example: 'Zone industrielle, Tipaza' })
   @IsOptional()
   @IsString()
   address?: string;
+
+  @ApiPropertyOptional({ description: 'NIF fournisseur (15 chiffres)' })
+  @IsOptional()
+  @ValidateIf((o) => o.nif !== null && o.nif !== undefined && o.nif !== '')
+  @Matches(/^(?!0{15}$)\d{15}$/, { message: 'NIF invalide – 15 chiffres requis' })
+  nif?: string;
+
+  @ApiPropertyOptional({ description: 'Registre de Commerce' })
+  @IsOptional()
+  @IsString()
+  rc?: string;
+
+  @ApiPropertyOptional({ description: "Article d'Imposition" })
+  @IsOptional()
+  @IsString()
+  ai?: string;
+
+  @ApiPropertyOptional({ description: 'NIS fournisseur (15 chiffres si renseigné)' })
+  @IsOptional()
+  @ValidateIf((o) => o.nis !== null && o.nis !== undefined && o.nis !== '')
+  @Matches(/^\d{15}$/, { message: 'NIS invalide – 15 chiffres requis si renseigné' })
+  nis?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -265,9 +319,13 @@ export class CreateUserDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123', minLength: 6 })
+  @ApiProperty({ example: 'P@ssword1234!', minLength: 12, description: '12+ chars, MAJ + min + chiffre + spécial' })
   @IsString()
-  @MinLength(6)
+  @MinLength(12, { message: 'Le mot de passe doit contenir au moins 12 caractères' })
+  @Matches(/[A-Z]/, { message: 'Le mot de passe doit contenir au moins une majuscule' })
+  @Matches(/[a-z]/, { message: 'Le mot de passe doit contenir au moins une minuscule' })
+  @Matches(/[0-9]/, { message: 'Le mot de passe doit contenir au moins un chiffre' })
+  @Matches(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, { message: 'Le mot de passe doit contenir au moins un caractère spécial' })
   password: string;
 
   @ApiProperty({ example: 'Ahmed' })
@@ -311,9 +369,13 @@ export class UpdateUserDto {
 }
 
 export class ResetPasswordDto {
-  @ApiProperty({ example: 'newPassword123', minLength: 6 })
+  @ApiProperty({ example: 'P@ssword1234!', minLength: 12, description: '12+ chars, MAJ + min + chiffre + spécial' })
   @IsString()
-  @MinLength(6)
+  @MinLength(12, { message: 'Le mot de passe doit contenir au moins 12 caractères' })
+  @Matches(/[A-Z]/, { message: 'Le mot de passe doit contenir au moins une majuscule' })
+  @Matches(/[a-z]/, { message: 'Le mot de passe doit contenir au moins une minuscule' })
+  @Matches(/[0-9]/, { message: 'Le mot de passe doit contenir au moins un chiffre' })
+  @Matches(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, { message: 'Le mot de passe doit contenir au moins un caractère spécial' })
   newPassword: string;
 }
 
@@ -337,10 +399,10 @@ export class InvoiceLineDto {
   @Min(1)
   quantity: number;
 
-  @ApiPropertyOptional({ example: 85000, description: 'Prix unitaire HT en centimes (override)' })
+  @ApiPropertyOptional({ example: 85000, description: 'Prix unitaire HT en centimes (override, doit être > 0)' })
   @IsOptional()
   @IsNumber()
-  @Min(0)
+  @Min(1, { message: 'Le prix unitaire HT doit être supérieur à 0 centime' })
   unitPriceHt?: number;
 }
 

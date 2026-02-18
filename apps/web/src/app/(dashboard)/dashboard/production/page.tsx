@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { Factory, Clock, Package, Search, Zap, Calendar, RefreshCw, Activity, BarChart3 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import {
   NewProductModal,
   ProductionCalendarTab,
@@ -190,7 +192,7 @@ export default function ProductionPage() {
       const res = await authFetch('/production?limit=100', {
         credentials: 'include',
       });
-      if (!res.ok) { console.error('Orders API error:', res.status, await res.text()); return; }
+      if (!res.ok) { console.error('Orders API error:', res.status, await res.text()); toast.error('Erreur chargement des ordres de production'); return; }
       {
         const data = await res.json();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -211,6 +213,7 @@ export default function ProductionPage() {
       }
     } catch (error: unknown) {
       console.error('Failed to load orders:', (error as Error)?.message || error);
+      toast.error('Impossible de charger les ordres de production');
     }
   }, []);
 
@@ -220,7 +223,7 @@ export default function ProductionPage() {
         authFetch('/products/pf', { credentials: 'include' }),
         authFetch('/recipes', { credentials: 'include' }),
       ]);
-      if (!productsRes.ok) { console.error('Products API error:', productsRes.status, await productsRes.text()); return; }
+      if (!productsRes.ok) { console.error('Products API error:', productsRes.status, await productsRes.text()); toast.error('Erreur chargement des produits'); return; }
       {
         const productsData = await productsRes.json();
         const recipesData = recipesRes.ok ? await recipesRes.json() : [];
@@ -242,6 +245,7 @@ export default function ProductionPage() {
       }
     } catch (error: unknown) {
       console.error('Failed to load products:', (error as Error)?.message || error);
+      toast.error('Impossible de charger les produits finis');
     }
   }, []);
 
@@ -265,6 +269,7 @@ export default function ProductionPage() {
       } else toast.error('Erreur chargement calendrier');
     } catch (error: unknown) {
       console.error('Failed to load dashboard data:', (error as Error)?.message || error);
+      toast.error('Erreur réseau — impossible de charger le tableau de bord');
     }
   }, []);
 
@@ -278,6 +283,7 @@ export default function ProductionPage() {
       }
     } catch (error: unknown) {
       console.error('Failed to load supply risks:', (error as Error)?.message || error);
+      toast.error('Impossible de charger les risques supply chain');
     } finally {
       setIsLoadingSupplyRisks(false);
     }
@@ -294,6 +300,7 @@ export default function ProductionPage() {
       }
     } catch (error: unknown) {
       console.error('Failed to load productions at risk:', (error as Error)?.message || error);
+      toast.error('Impossible de charger les productions à risque');
     } finally {
       setIsLoadingAtRisk(false);
     }
@@ -325,8 +332,10 @@ export default function ProductionPage() {
     try {
       const res = await authFetch(`/production/dashboard/analytics?period=${period}`, { credentials: 'include' });
       if (res.ok) setAnalytics(await res.json());
+      else toast.error('Erreur chargement analytics production');
     } catch (error: unknown) {
       console.error('Failed to load analytics:', (error as Error)?.message || error);
+      toast.error('Impossible de charger les analytics');
     }
   }, []);
 
@@ -440,45 +449,31 @@ export default function ProductionPage() {
 
   return (
     <div className="glass-bg space-y-6">
-      {/* ─── Header ─── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-[14px] bg-gradient-to-br from-[#AF52DE]/10 to-[#AF52DE]/5 flex items-center justify-center">
-              <Factory className="w-5 h-5 text-[#AF52DE]" />
-            </div>
-            <div>
-              <h1 className="text-[24px] font-semibold tracking-[-0.02em] text-[#1D1D1F]">
-                Production
-              </h1>
-              <p className="text-[13px] text-[#86868B] mt-0.5">
-                Centre de commande production
-                {alertsData && alertsData.critical > 0 && (
-                  <span className="ml-2 inline-flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF3B30] animate-pulse" />
-                    <span className="text-[#FF3B30] font-medium">{alertsData.critical} alerte(s)</span>
-                  </span>
-                )}
-              </p>
-            </div>
+      <PageHeader
+        title="Production"
+        subtitle="Centre de commande production"
+        icon={<Factory className="w-5 h-5" />}
+        badge={alertsData && alertsData.critical > 0
+          ? { text: `${alertsData.critical} alerte(s) critique(s)`, variant: 'error' }
+          : undefined}
+        actions={(
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={refreshDashboard}
+              disabled={isRefreshing}
+              variant="outline"
+              size="icon"
+              aria-label="Actualiser la production"
+            >
+              <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
+            </Button>
+            <Button onClick={() => openWizard()}>
+              <Zap className="w-4 h-4" />
+              Nouvelle production
+            </Button>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={refreshDashboard}
-            disabled={isRefreshing}
-            className="p-2.5 rounded-full glass-card-hover transition-all text-[#86868B] hover:text-[#1D1D1F] disabled:opacity-50"
-          >
-            <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
-          </button>
-          <button
-            onClick={() => openWizard()}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1D1D1F] text-white rounded-full hover:bg-[#333336] transition-all font-medium text-[13px] shadow-sm"
-          >
-            <Zap className="w-4 h-4" /> Nouvelle production
-          </button>
-        </div>
-      </div>
+        )}
+      />
 
       {/* Main Tabs Container */}
       <div className="glass-card overflow-hidden">

@@ -144,9 +144,9 @@ export function CreateProductMpModal({ isOpen, onClose, onCreated }: CreateProdu
       />
       
       {/* Modal */}
-      <div className="relative bg-white rounded-[16px] shadow-apple-elevated w-full max-w-lg mx-4 overflow-hidden">
+      <div className="relative glass-card rounded-[18px] w-full max-w-lg mx-4 overflow-hidden">
         {/* Header */}
-        <div className="bg-white border-b border-[#E5E5E5] px-6 py-4">
+        <div className="bg-white/70 backdrop-blur-[18px] border-b border-white/70 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-[#F5F5F5] rounded-[10px]">

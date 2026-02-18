@@ -458,18 +458,17 @@ export class ApproService {
       return StockState.RUPTURE;
     }
 
-    // Stock sous seuil de commande
-    if (currentStock <= effectiveSeuilCommande) {
-      // Si critique, vérifier si bloquant
-      if (criticite === MpCriticite.BLOQUANTE && currentStock < effectiveSeuilSecurite) {
+    // Stock sous seuil de sécurité (plus critique, vérifier en premier)
+    if (currentStock <= effectiveSeuilSecurite) {
+      if (criticite === MpCriticite.BLOQUANTE) {
         return StockState.BLOQUANT_PRODUCTION;
       }
-      return StockState.A_COMMANDER;
+      return StockState.SOUS_SEUIL;
     }
 
-    // Stock sous seuil de sécurité
-    if (currentStock <= effectiveSeuilSecurite) {
-      return StockState.SOUS_SEUIL;
+    // Stock sous seuil de commande
+    if (currentStock <= effectiveSeuilCommande) {
+      return StockState.A_COMMANDER;
     }
 
     return StockState.SAIN;
@@ -568,7 +567,7 @@ export class ApproService {
    */
   private calculateRecommendedQuantity(mp: StockMpWithState): number {
     // Si quantité de commande définie, l'utiliser
-    if (mp.seuilCommande) {
+    if (mp.seuilCommande != null) {
       const deficit = mp.seuilCommande - mp.currentStock;
       return Math.max(deficit, 0);
     }
@@ -598,7 +597,7 @@ export class ApproService {
 
     // ELEVEE: jours de couverture < lead time ou A_COMMANDER avec criticité haute
     if (mp.joursCouverture !== null && mp.joursCouverture < mp.leadTimeFournisseur) {
-      return SuggestionPriority.CRITIQUE;
+      return SuggestionPriority.ELEVEE;
     }
 
     if (mp.state === StockState.A_COMMANDER || mp.criticiteEffective === MpCriticite.HAUTE) {
@@ -692,35 +691,68 @@ export class ApproService {
    * À appeler après chaque réception validée
    */
   async updateSupplierPerformance(supplierId: number): Promise<void> {
-    // Récupérer toutes les réceptions validées du fournisseur
-    const receptions = await this.prisma.receptionMp.findMany({
+    // Récupérer les BC reçus avec items pour calcul conformité quantité
+    const purchaseOrders = await this.prisma.purchaseOrder.findMany({
       where: {
         supplierId,
-        status: 'VALIDATED',
+        status: { in: ['RECEIVED', 'PARTIAL'] },
+        receivedAt: { not: null },
       },
-      orderBy: { date: 'desc' },
-      take: 50, // Dernières 50 réceptions pour le calcul
+      select: {
+        expectedDelivery: true,
+        receivedAt: true,
+        items: {
+          select: { quantity: true, quantityReceived: true },
+        },
+      },
+      orderBy: { receivedAt: 'desc' },
+      take: 50,
     });
 
-    if (receptions.length === 0) return;
+    if (purchaseOrders.length === 0) return;
 
-    // TODO: Implémenter le calcul des métriques basé sur:
-    // - Délai réel = date réception - date demande
-    // - Écart quantité = quantité reçue vs quantité demandée
-    // - Retards = réceptions après date attendue
+    const totalLivraisons = purchaseOrders.length;
+    let onTimeCount = 0;
+    let scorableDeliveries = 0;
+    let totalQuantityScore = 0;
 
-    // Pour l'instant, mettre à jour les compteurs de base
-    const totalLivraisons = receptions.length;
-    
-    // Calculer le score (simplifié)
-    const scorePerformance = 75; // Placeholder - à calculer avec les vraies métriques
-    const grade = scorePerformance >= 90 ? SupplierGrade.A : 
+    for (const po of purchaseOrders) {
+      // Score ponctualité (50% du score total)
+      // À l'heure si receivedAt <= expectedDelivery + 1 jour de tolérance
+      if (po.expectedDelivery && po.receivedAt) {
+        scorableDeliveries++;
+        const expected = new Date(po.expectedDelivery).getTime();
+        const received = new Date(po.receivedAt).getTime();
+        if (received <= expected + 86400000) {
+          onTimeCount++;
+        }
+      }
+
+      // Score conformité quantité (50% du score total)
+      // Ratio quantité reçue / quantité commandée, plafonné à 1
+      const totalOrdered = po.items.reduce((sum, l) => sum + Number(l.quantity), 0);
+      const totalReceived = po.items.reduce((sum, l) => sum + Number(l.quantityReceived), 0);
+      if (totalOrdered > 0) {
+        totalQuantityScore += Math.min(totalReceived / totalOrdered, 1);
+      }
+    }
+
+    // Score final (0-100): 50% ponctualité + 50% conformité quantité
+    const onTimeRate = scorableDeliveries > 0 ? (onTimeCount / scorableDeliveries) : 0.75;
+    const quantityRate = totalLivraisons > 0 ? (totalQuantityScore / totalLivraisons) : 0.75;
+    const scorePerformance = Math.round((onTimeRate * 50) + (quantityRate * 50));
+
+    const grade = scorePerformance >= 90 ? SupplierGrade.A :
                   scorePerformance >= 70 ? SupplierGrade.B : SupplierGrade.C;
+
+    const lateCount = scorableDeliveries - onTimeCount;
 
     await this.prisma.supplier.update({
       where: { id: supplierId },
       data: {
         totalLivraisons,
+        livraisonsRetard: lateCount,
+        tauxRetard: scorableDeliveries > 0 ? (1 - onTimeRate) : null,
         scorePerformance,
         grade,
         lastPerformanceUpdate: new Date(),

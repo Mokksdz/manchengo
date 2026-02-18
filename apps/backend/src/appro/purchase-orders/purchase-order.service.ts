@@ -19,6 +19,7 @@ import { PurchaseOrderStatus } from '@prisma/client';
 import {
   SendBcDto,
   SendBcResponseDto,
+  SendVia,
   ReceiveBcDto,
   ReceiveBcResponseDto,
 } from './dto';
@@ -71,6 +72,9 @@ export class PurchaseOrderService {
       if (line.quantity <= 0) {
         throw new BadRequestException(`Quantité invalide pour ${mp.name}`);
       }
+      if (line.unitPrice !== undefined && line.unitPrice < 0) {
+        throw new BadRequestException(`Prix unitaire invalide pour ${mp.name} (doit être ≥ 0)`);
+      }
     }
 
     // Créer le BC dans une transaction
@@ -96,6 +100,13 @@ export class PurchaseOrderService {
         },
       });
 
+      // Compute and update totalHT from items
+      const totalHT = dto.lines.reduce((sum, line) => sum + (line.unitPrice || 0) * line.quantity, 0);
+      await tx.purchaseOrder.update({
+        where: { id: created.id },
+        data: { totalHT },
+      });
+
       // Audit
       await tx.auditLog.create({
         data: {
@@ -110,6 +121,7 @@ export class PurchaseOrderService {
             supplierName: supplier.name,
             linesCount: dto.lines.length,
             createdDirectly: true,
+            totalHT,
           },
         },
       });
@@ -178,7 +190,7 @@ export class PurchaseOrderService {
           reference: po.reference,
           status: po.status,
           sentAt: po.sentAt!,
-          sentVia: po.sentVia as any,
+          sentVia: (po.sentVia as SendVia) ?? SendVia.MANUAL,
           emailSent: po.sentVia === 'EMAIL',
           message: `BC ${po.reference} déjà envoyé (idempotence)`,
         };
@@ -549,6 +561,15 @@ export class PurchaseOrderService {
         const itemUnitPrice = Number(item.unitPrice);
         const newQtyReceived = currentQtyReceived + line.quantityReceived;
 
+        // Guard: empêcher la sur-réception (ne pas recevoir plus que commandé)
+        if (newQtyReceived > itemQuantity) {
+          throw new BadRequestException(
+            `Sur-réception pour ${item.productMp?.name || `item #${item.id}`} : ` +
+            `déjà reçu ${currentQtyReceived}, commandé ${itemQuantity}, ` +
+            `tentative de recevoir ${line.quantityReceived} supplémentaires`
+          );
+        }
+
         // Mettre à jour la ligne du BC
         await tx.purchaseOrderItem.update({
           where: { id: line.itemId },
@@ -566,7 +587,7 @@ export class PurchaseOrderService {
             data: {
               receptionId: reception.id,
               productMpId: item.productMpId,
-              quantity: Math.round(line.quantityReceived),
+              quantity: line.quantityReceived,
               unitCost: Math.round(itemUnitPrice * 100), // Convertir DA en centimes
               lotNumber: line.lotNumber,
               expiryDate: line.expiryDate ? new Date(line.expiryDate) : null,
@@ -590,8 +611,8 @@ export class PurchaseOrderService {
             data: {
               productId: item.productMpId,
               lotNumber: `${lotNumber}-${Date.now()}`, // Unique
-              quantityInitial: Math.round(line.quantityReceived),
-              quantityRemaining: Math.round(line.quantityReceived),
+              quantityInitial: line.quantityReceived,
+              quantityRemaining: line.quantityReceived,
               expiryDate: line.expiryDate ? new Date(line.expiryDate) : null,
               supplierId: po.supplierId,
               receptionId: reception.id,
@@ -608,7 +629,7 @@ export class PurchaseOrderService {
               origin: 'RECEPTION',
               productMpId: item.productMpId,
               lotMpId: lot.id,
-              quantity: Math.round(line.quantityReceived),
+              quantity: line.quantityReceived,
               unitCost: Math.round(itemUnitPrice * 100),
               referenceType: 'RECEPTION',
               referenceId: reception.id,
@@ -625,7 +646,7 @@ export class PurchaseOrderService {
       // Vérifier si des items n'ont pas été mentionnés
       for (const item of po.items) {
         const lineInDto = dto.lines.find((l) => l.itemId === item.id);
-        if (!lineInDto && item.quantityReceived < item.quantity) {
+        if (!lineInDto && Number(item.quantityReceived) < Number(item.quantity)) {
           allFullyReceived = false;
         }
       }
@@ -639,7 +660,7 @@ export class PurchaseOrderService {
         where: { id: poId },
         data: {
           status: newStatus,
-          receptionMpId: reception.id,
+          ...(po.receptionMpId ? {} : { receptionMpId: reception.id }),
           ...(allFullyReceived
             ? {
                 receivedAt: new Date(),
@@ -814,8 +835,10 @@ export class PurchaseOrderService {
       const daysLate = Math.ceil((now.getTime() - expectedDate.getTime()) / (1000 * 60 * 60 * 24));
       const isCritical = daysLate >= criticalThresholdDays;
       
-      // Calculer si MP critique impactée (HAUTE = niveau le plus critique)
-      const hasCriticalMp = po.items.some((item) => item.productMp.criticite === 'HAUTE');
+      // Calculer si MP critique impactée (BLOQUANTE ou HAUTE)
+      const hasCriticalMp = po.items.some((item) =>
+        item.productMp.criticite === 'BLOQUANTE' || item.productMp.criticite === 'HAUTE'
+      );
 
       return {
         ...po,

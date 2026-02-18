@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditAction, AuditSeverity, UserRole, Prisma } from '@prisma/client';
 import { LoggerService } from '../logger';
+import * as crypto from 'crypto';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -66,30 +67,60 @@ export class AuditService {
    */
   async log(entry: AuditLogEntry): Promise<void> {
     try {
+      const now = new Date();
+
+      // Serialize hash chain writes to prevent race conditions
+      await this.prisma.$executeRaw`SELECT pg_advisory_xact_lock(42)`;
+
+      // P1.1-F: Hash chain — retrieve previous hash for immutability chain
+      const lastLog = await this.prisma.auditLog.findFirst({
+        orderBy: { timestamp: 'desc' },
+        select: { hash: true },
+      });
+      const previousHash = lastLog?.hash || 'GENESIS';
+
+      // Compute hash of this entry (includes previousHash for chain integrity)
+      const hashPayload = JSON.stringify({
+        previousHash,
+        actorId: entry.actor.id,
+        action: entry.action,
+        entityType: entry.entityType,
+        entityId: String(entry.entityId),
+        timestamp: now.toISOString(),
+      });
+      const hash = crypto.createHash('sha256').update(hashPayload).digest('hex');
+
       await this.prisma.auditLog.create({
         data: {
           // WHO
           actorId: entry.actor.id,
           actorRole: entry.actor.role,
           actorEmail: entry.actor.email,
-          
+
           // WHAT
           action: entry.action,
           severity: entry.severity || AuditSeverity.INFO,
-          
+
           // ON WHAT
           entityType: entry.entityType,
           entityId: String(entry.entityId),
-          
+
           // CONTEXT
           requestId: entry.context?.requestId,
           ipAddress: entry.context?.ipAddress,
           userAgent: entry.context?.userAgent,
-          
+
           // STATE CAPTURE
           beforeState: entry.beforeState as Prisma.InputJsonValue,
           afterState: entry.afterState as Prisma.InputJsonValue,
           metadata: entry.metadata as Prisma.InputJsonValue,
+
+          // TIMESTAMP (consistent with hash)
+          timestamp: now,
+
+          // HASH CHAIN (P1.1-F: non-falsifiable)
+          hash,
+          previousHash,
         },
       });
 

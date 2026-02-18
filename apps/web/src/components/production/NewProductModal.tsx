@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, AlertTriangle, Check } from 'lucide-react';
 import { authFetch } from '@/lib/api';
 
@@ -14,6 +14,14 @@ export function NewProductModal({ isOpen, onClose, onSuccess }: NewProductModalP
   const [form, setForm] = useState({ code: '', name: '', unit: 'unité' });
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState('');
+
+  // Réinitialiser le formulaire à chaque ouverture
+  useEffect(() => {
+    if (isOpen) {
+      setForm({ code: '', name: '', unit: 'unité' });
+      setError('');
+    }
+  }, [isOpen]);
 
   const handleCreate = async () => {
     if (!form.code || !form.name) {
@@ -48,7 +56,7 @@ export function NewProductModal({ isOpen, onClose, onSuccess }: NewProductModalP
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative glass-card w-full max-w-md overflow-hidden shadow-apple-elevated">
+      <div className="relative glass-card w-full max-w-md overflow-hidden">
         <div className="px-6 py-5 border-b border-black/[0.04]">
           <div className="flex items-center justify-between">
             <h2 className="text-[17px] font-semibold text-[#1D1D1F] flex items-center gap-2">

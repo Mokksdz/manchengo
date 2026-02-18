@@ -77,7 +77,7 @@ export function BlockingPurchaseOrderCard({
   const ActionIcon = order.status === 'NOT_SENT' ? Send : Phone;
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E5E5] p-4 hover:shadow-md transition-shadow">
+    <div className="glass-card-hover rounded-xl p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">

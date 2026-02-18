@@ -16,7 +16,9 @@ import {
   Pencil,
 } from 'lucide-react';
 import { useRequireRole } from '@/lib/hooks/use-require-role';
-import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
+import { Skeleton } from '@/components/ui/skeleton-loader';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 interface User {
   id: string;
@@ -31,6 +33,36 @@ interface User {
 }
 
 const roles = ['ADMIN', 'APPRO', 'PRODUCTION', 'COMMERCIAL'] as const;
+
+// Password strength indicator
+function PasswordStrength({ password }: { password: string }) {
+  if (!password) return null;
+  const checks = [
+    { label: '12+ caractères', ok: password.length >= 12 },
+    { label: 'Majuscule', ok: /[A-Z]/.test(password) },
+    { label: 'Minuscule', ok: /[a-z]/.test(password) },
+    { label: 'Chiffre', ok: /[0-9]/.test(password) },
+    { label: 'Spécial (!@#...)', ok: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
+  ];
+  const score = checks.filter(c => c.ok).length;
+  const color = score <= 2 ? '#FF3B30' : score <= 4 ? '#FF9500' : '#34C759';
+  return (
+    <div className="space-y-1.5 mt-2">
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} className="h-1 flex-1 rounded-full transition-all" style={{ backgroundColor: i <= score ? color : '#E5E5EA' }} />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+        {checks.map(c => (
+          <span key={c.label} className={`text-[10px] font-medium ${c.ok ? 'text-[#34C759]' : 'text-[#AEAEB2]'}`}>
+            {c.ok ? '✓' : '○'} {c.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 const roleColors: Record<string, string> = {
   ADMIN: 'bg-[#FF3B30]/10 text-[#FF3B30]',
   APPRO: 'bg-[#007AFF]/10 text-[#007AFF]',
@@ -51,6 +83,9 @@ export default function UsersManagementPage() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Confirmation dialog state
+  const [confirmToggle, setConfirmToggle] = useState<User | null>(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -97,10 +132,16 @@ export default function UsersManagementPage() {
     fetchUsers();
   }, []);
 
-  const handleToggleStatus = async (user: User) => {
-    setActionLoading(user.id);
+  const handleToggleStatus = (user: User) => {
+    setConfirmToggle(user);
+  };
+
+  const confirmToggleStatus = async () => {
+    if (!confirmToggle) return;
+    setActionLoading(confirmToggle.id);
+    setConfirmToggle(null);
     try {
-      await authFetch(`/admin/users/${user.id}/toggle-status`, {
+      await authFetch(`/admin/users/${confirmToggle.id}/toggle-status`, {
         method: 'POST',
         credentials: 'include',
       });
@@ -240,36 +281,23 @@ export default function UsersManagementPage() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="glass-card p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF3B30]/20 to-[#FF3B30]/10 flex items-center justify-center shadow-lg shadow-[#FF3B30]/10">
-              <Users className="w-6 h-6 text-[#FF3B30]" />
-            </div>
-            <div>
-              <h1 className="text-[22px] font-bold text-[#1D1D1F] tracking-tight">Gestion des Utilisateurs</h1>
-              <p className="text-[13px] text-[#86868B]">{users.length} utilisateur{users.length !== 1 ? 's' : ''} au total</p>
-            </div>
-          </div>
+      <PageHeader
+        title="Gestion des Utilisateurs"
+        subtitle={`${users.length} utilisateur${users.length !== 1 ? 's' : ''} au total`}
+        icon={<Users className="w-5 h-5" />}
+        actions={
           <div className="flex items-center gap-2">
-            <button
-              onClick={fetchUsers}
-              disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-black/5 text-[#1D1D1F] rounded-full hover:bg-black/10 transition-all font-medium"
-            >
+            <Button onClick={fetchUsers} disabled={loading} variant="outline">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Actualiser
-            </button>
-            <button
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#FF3B30] text-white text-sm font-semibold rounded-full hover:bg-[#D62D22] shadow-lg shadow-[#FF3B30]/25 transition-all active:scale-[0.97]"
-            >
+            </Button>
+            <Button onClick={openCreateModal}>
               <Plus className="h-4 w-4" />
               Ajouter
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -467,7 +495,8 @@ export default function UsersManagementPage() {
               </div>
               <div>
                 <label className="block text-[13px] font-medium text-[#86868B] mb-1.5">Mot de passe *</label>
-                <input type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full px-3 py-2.5 border border-black/[0.04] rounded-xl bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF3B30]/20 focus:border-[#FF3B30] transition-all" minLength={6} required />
+                <input type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="w-full px-3 py-2.5 border border-black/[0.04] rounded-xl bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF3B30]/20 focus:border-[#FF3B30] transition-all" minLength={12} required />
+                <PasswordStrength password={formData.password} />
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 text-[#86868B] bg-black/5 rounded-full hover:bg-black/10 transition-all font-medium">Annuler</button>
@@ -528,6 +557,45 @@ export default function UsersManagementPage() {
         </div>
       )}
 
+      {/* Confirm Toggle Status Dialog */}
+      {confirmToggle && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 w-full max-w-sm mx-4 animate-scale-in p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${confirmToggle.isActive ? 'bg-[#FF3B30]/10' : 'bg-[#34C759]/10'}`}>
+                {confirmToggle.isActive ? <ShieldOff className="w-5 h-5 text-[#FF3B30]" /> : <Shield className="w-5 h-5 text-[#34C759]" />}
+              </div>
+              <div>
+                <h3 className="font-semibold text-[#1D1D1F]">
+                  {confirmToggle.isActive ? 'Bloquer' : 'Activer'} l&apos;utilisateur ?
+                </h3>
+                <p className="text-sm text-[#86868B]">
+                  {confirmToggle.firstName} {confirmToggle.lastName} ({confirmToggle.email})
+                </p>
+              </div>
+            </div>
+            {confirmToggle.isActive && (
+              <p className="text-sm text-[#FF3B30]/80 bg-[#FF3B30]/5 rounded-xl p-3">
+                L&apos;utilisateur ne pourra plus se connecter ni accéder au système.
+              </p>
+            )}
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setConfirmToggle(null)} className="px-5 py-2.5 text-[#86868B] bg-black/5 rounded-full hover:bg-black/10 transition-all font-medium">Annuler</button>
+              <button
+                onClick={confirmToggleStatus}
+                className={`px-5 py-2.5 text-white rounded-full font-semibold transition-all shadow-lg ${
+                  confirmToggle.isActive
+                    ? 'bg-[#FF3B30] hover:bg-[#D62D22] shadow-[#FF3B30]/25'
+                    : 'bg-[#34C759] hover:bg-[#2DA44E] shadow-[#34C759]/25'
+                }`}
+              >
+                {confirmToggle.isActive ? 'Bloquer' : 'Activer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Reset Password Modal */}
       {showPasswordModal && selectedUser && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
@@ -544,7 +612,8 @@ export default function UsersManagementPage() {
               </p>
               <div>
                 <label className="block text-[13px] font-medium text-[#86868B] mb-1.5">Nouveau mot de passe *</label>
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2.5 border border-black/[0.04] rounded-xl bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF3B30]/20 focus:border-[#FF3B30] transition-all" minLength={6} required />
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2.5 border border-black/[0.04] rounded-xl bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-[#FF3B30]/20 focus:border-[#FF3B30] transition-all" minLength={12} required />
+                <PasswordStrength password={newPassword} />
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <button type="button" onClick={() => setShowPasswordModal(false)} className="px-5 py-2.5 text-[#86868B] bg-black/5 rounded-full hover:bg-black/10 transition-all font-medium">Annuler</button>

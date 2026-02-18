@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import type React from 'react';
 import { Users, Building2, Search } from 'lucide-react';
 import { KeyboardHint } from '@/components/ui/keyboard-hint';
 import { type Client } from './types';

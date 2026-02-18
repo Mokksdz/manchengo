@@ -15,6 +15,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { appro, authFetch } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 import {
   ArrowLeft,
   FileText,
@@ -48,6 +50,7 @@ interface ProductMp {
   currentStock: number;
   state: string;
   minStock?: number;
+  seuilCommande?: number;
   supplierId?: number | null;
   supplierName?: string | null;
   lastPrice?: number;
@@ -550,15 +553,30 @@ export default function NewBonCommandePage() {
             <FileText className="w-5 h-5" />
             Voir le BC
           </Link>
-          <a
-            href={`/api/appro/purchase-orders/${success.id}/pdf`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={async () => {
+              try {
+                const res = await authFetch(`/appro/purchase-orders/${success.id}/pdf`);
+                if (res.ok) {
+                  const blob = await res.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `BC-${success.reference || success.id}.pdf`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(url);
+                }
+              } catch (err) {
+                console.error('Erreur téléchargement PDF:', err);
+              }
+            }}
             className="glass-btn flex items-center justify-center gap-2 w-full px-4 py-3.5 border border-black/[0.04] rounded-full hover:bg-white/80 transition-colors text-[#1D1D1F]"
           >
             <Download className="w-5 h-5" />
             Télécharger PDF
-          </a>
+          </button>
           <Link
             href="/dashboard/appro"
             className="block w-full px-4 py-3 text-[#86868B] hover:text-[#1D1D1F] transition-colors"
@@ -574,29 +592,19 @@ export default function NewBonCommandePage() {
 
   return (
     <div className="max-w-3xl mx-auto py-6 px-4 animate-slide-up">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => router.back()}
-          className="p-2.5 hover:bg-white/60 backdrop-blur-sm rounded-full transition-colors border border-black/[0.04]"
-        >
-          <ArrowLeft className="w-5 h-5 text-[#1D1D1F]" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-[#1D1D1F] flex items-center gap-2">
-            {isUrgent && <AlertOctagon className="w-6 h-6 text-[#FF3B30]" />}
-            {isUrgent ? 'Créer BC URGENT' : 'Nouveau Bon de Commande'}
-          </h1>
-          <p className="text-[#86868B] text-sm">
-            {hasContext ? 'Formulaire pré-rempli — Vérifiez et confirmez' : 'Sélectionnez les produits et le fournisseur'}
-          </p>
-        </div>
-        {!hasContext && (
-          <span className="px-3 py-1.5 rounded-full bg-gradient-to-br from-[#EC7620]/15 to-[#EC7620]/5 text-[#EC7620] text-xs font-semibold border border-[#EC7620]/10">
-            Mode libre
-          </span>
+      <PageHeader
+        title={isUrgent ? 'Créer BC URGENT' : 'Nouveau Bon de Commande'}
+        subtitle={hasContext ? 'Formulaire pré-rempli — Vérifiez et confirmez' : 'Sélectionnez les produits et le fournisseur'}
+        icon={isUrgent ? <AlertOctagon className="w-5 h-5 text-[#FF3B30]" /> : <FileText className="w-5 h-5" />}
+        badge={!hasContext ? { text: 'Mode libre', variant: 'warning' } : undefined}
+        className="mb-6"
+        actions={(
+          <Button onClick={() => router.back()} variant="outline">
+            <ArrowLeft className="w-4 h-4" />
+            Retour
+          </Button>
         )}
-      </div>
+      />
 
       {/* MP Context Banner (context mode only) */}
       {hasContext && selectedMp && (
@@ -732,7 +740,7 @@ export default function NewBonCommandePage() {
                     className={inputClass}
                   />
                   <p className="text-xs text-[#86868B] mt-1.5">
-                    Recommandé: {Math.max(0, (selectedMp.minStock || 100) - selectedMp.currentStock)} {selectedMp.unit}
+                    Recommandé: {Math.max(0, (selectedMp.seuilCommande || selectedMp.minStock || 0) - selectedMp.currentStock)} {selectedMp.unit}
                   </p>
                 </div>
                 <div>

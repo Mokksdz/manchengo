@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Zap, Package, ChevronRight, AlertTriangle, Check, CheckCircle, XCircle, Sparkles } from 'lucide-react';
+import { X, Zap, Package, ChevronRight, AlertTriangle, Check, CheckCircle, XCircle, Sparkles, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authFetch } from '@/lib/api';
 
@@ -40,30 +40,46 @@ interface ProductionWizardModalProps {
   onClose: () => void;
   products: ProductPf[];
   initialProduct?: ProductPf | null;
+  initialDate?: string | null; // Date ISO pré-sélectionnée (pour planification)
   onSuccess: () => void;
 }
 
 const formatDate = (date: string) => new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
 const formatWeight = (grams: number) => grams >= 1000 ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g`;
 
-export function ProductionWizardModal({ isOpen, onClose, products, initialProduct, onSuccess }: ProductionWizardModalProps) {
+export function ProductionWizardModal({ isOpen, onClose, products, initialProduct, initialDate, onSuccess }: ProductionWizardModalProps) {
   const router = useRouter();
   const [wizardStep, setWizardStep] = useState(initialProduct?.hasRecipe ? 2 : 1);
-  const [wizardData, setWizardData] = useState<{ product: ProductPf | null; batchCount: number; stockCheck: StockCheck | null }>({
+  const [wizardData, setWizardData] = useState<{ product: ProductPf | null; batchCount: number; stockCheck: StockCheck | null; scheduledDate: string | null }>({
     product: initialProduct || null,
     batchCount: 1,
     stockCheck: null,
+    scheduledDate: initialDate || null,
   });
   const [wizardError, setWizardError] = useState('');
   const [isCheckingStock, setIsCheckingStock] = useState(false);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+
+  // Réinitialiser tout le state quand la modale s'ouvre
+  useEffect(() => {
+    if (isOpen) {
+      setWizardStep(initialProduct?.hasRecipe ? 2 : 1);
+      setWizardData({
+        product: initialProduct || null,
+        batchCount: 1,
+        stockCheck: null,
+        scheduledDate: initialDate || null,
+      });
+      setWizardError('');
+    }
+  }, [isOpen, initialProduct, initialDate]);
 
   const selectProduct = (product: ProductPf) => {
     if (!product.hasRecipe) {
       setWizardError('Ce produit n\'a pas de recette configurée.');
       return;
     }
-    setWizardData({ ...wizardData, product });
+    setWizardData(prev => ({ ...prev, product }));
     setWizardError('');
     setWizardStep(2);
   };
@@ -76,7 +92,7 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
       const res = await authFetch(`/recipes/${wizardData.product.recipeId}/check-stock?batchCount=${wizardData.batchCount}`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setWizardData({ ...wizardData, stockCheck: data });
+        setWizardData(prev => ({ ...prev, stockCheck: data }));
         setWizardStep(3);
       }
     } catch {
@@ -94,7 +110,11 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productPfId: wizardData.product.id, batchCount: wizardData.batchCount }),
+        body: JSON.stringify({
+          productPfId: wizardData.product.id,
+          batchCount: wizardData.batchCount,
+          scheduledDate: wizardData.scheduledDate || undefined,
+        }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -116,7 +136,7 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative glass-card w-full max-w-2xl overflow-hidden shadow-apple-elevated">
+      <div className="relative glass-card w-full max-w-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-black/[0.04]">
           <div className="flex items-center justify-between">
             <h2 className="text-[17px] font-semibold text-[#1D1D1F] flex items-center gap-2">
@@ -189,11 +209,27 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
               <div className="mb-6">
                 <label className="block text-[13px] font-medium text-[#1D1D1F] mb-1.5">Nombre de batchs</label>
                 <div className="flex items-center gap-4">
-                  <button onClick={() => setWizardData({ ...wizardData, batchCount: Math.max(1, wizardData.batchCount - 1) })} className="w-12 h-12 rounded-[14px] border border-black/[0.06] text-2xl hover:bg-white/60 glass-card transition-colors">-</button>
-                  <input type="number" min="1" max="100" value={wizardData.batchCount} onChange={(e) => setWizardData({ ...wizardData, batchCount: Math.max(1, parseInt(e.target.value) || 1) })} className="w-24 h-12 text-center text-2xl font-bold px-3 py-2.5 border border-black/[0.06] rounded-[14px] bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-[#AF52DE]/15 focus:border-[#AF52DE] transition-all" />
-                  <button onClick={() => setWizardData({ ...wizardData, batchCount: wizardData.batchCount + 1 })} className="w-12 h-12 rounded-[14px] border border-black/[0.06] text-2xl hover:bg-white/60 glass-card transition-colors">+</button>
+                  <button onClick={() => setWizardData(prev => ({ ...prev, batchCount: Math.max(1, prev.batchCount - 1) }))} className="w-12 h-12 rounded-[14px] border border-black/[0.06] text-2xl hover:bg-white/60 glass-card transition-colors">-</button>
+                  <input type="number" min="1" max="100" value={wizardData.batchCount} onChange={(e) => setWizardData(prev => ({ ...prev, batchCount: Math.max(1, parseInt(e.target.value) || 1) }))} className="w-24 h-12 text-center text-2xl font-bold px-3 py-2.5 border border-black/[0.06] rounded-[14px] bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-[#AF52DE]/15 focus:border-[#AF52DE] transition-all" />
+                  <button onClick={() => setWizardData(prev => ({ ...prev, batchCount: prev.batchCount + 1 }))} className="w-12 h-12 rounded-[14px] border border-black/[0.06] text-2xl hover:bg-white/60 glass-card transition-colors">+</button>
                 </div>
               </div>
+              {/* Date planifiée */}
+              <div className="mb-6">
+                <label className="block text-[13px] font-medium text-[#1D1D1F] mb-1.5">
+                  <Calendar className="w-4 h-4 inline-block mr-1.5 text-[#AF52DE]" />
+                  Date de production planifiée
+                </label>
+                <input
+                  type="date"
+                  value={wizardData.scheduledDate ? wizardData.scheduledDate.split('T')[0] : ''}
+                  onChange={(e) => setWizardData(prev => ({ ...prev, scheduledDate: e.target.value || null }))}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-3 border border-black/[0.06] rounded-[14px] bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-[#AF52DE]/15 focus:border-[#AF52DE] transition-all text-[15px]"
+                />
+                <p className="text-[12px] text-[#86868B] mt-1">Optionnel — laissez vide pour ne pas planifier</p>
+              </div>
+
               <div className="grid grid-cols-3 gap-4 bg-black/[0.03] rounded-[14px] p-4">
                 <div className="text-center">
                   <p className="text-[13px] text-[#86868B] mb-1">Quantité</p>
@@ -285,6 +321,12 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
                 <div className="flex justify-between"><span className="text-[13px] text-[#86868B]">Produit</span><span className="font-semibold text-[13px] text-[#1D1D1F]">{wizardData.product.name}</span></div>
                 <div className="flex justify-between"><span className="text-[13px] text-[#86868B]">Batchs</span><span className="font-semibold text-[13px] text-[#1D1D1F]">{wizardData.batchCount}</span></div>
                 <div className="flex justify-between"><span className="text-[13px] text-[#86868B]">Quantité</span><span className="font-semibold text-[13px] text-[#AF52DE]">{wizardData.product.recipeOutputQty * wizardData.batchCount} {wizardData.product.unit}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-[13px] text-[#86868B]">Date planifiée</span>
+                  <span className="font-semibold text-[13px] text-[#1D1D1F]">
+                    {wizardData.scheduledDate ? formatDate(wizardData.scheduledDate) : 'Non planifiée'}
+                  </span>
+                </div>
               </div>
             </div>
           )}

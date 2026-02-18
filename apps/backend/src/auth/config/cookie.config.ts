@@ -14,6 +14,7 @@ import { CookieOptions } from 'express';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const isProduction = process.env.NODE_ENV === 'production';
+const sameSitePolicy: 'strict' | 'lax' = isProduction ? 'strict' : 'lax';
 
 /**
  * Cookie name prefix strategy:
@@ -35,7 +36,7 @@ const REFRESH_PREFIX = isProduction ? '__Secure-' : '';
 export const ACCESS_TOKEN_COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'lax',
+  sameSite: sameSitePolicy,
   path: '/',
   maxAge: 15 * 60 * 1000, // 15 minutes in milliseconds
   // NOTE: __Host- prefix requires NO domain attribute — omit domain entirely
@@ -53,7 +54,7 @@ export const ACCESS_TOKEN_COOKIE_OPTIONS: CookieOptions = {
 export const REFRESH_TOKEN_COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'lax',
+  sameSite: sameSitePolicy,
   path: '/api/auth', // Only sent to auth endpoints
   maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day — aligned with JWT_REFRESH_EXPIRES_IN
 };
@@ -74,7 +75,7 @@ export const COOKIE_NAMES = {
 export const CLEAR_COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'lax',
+  sameSite: sameSitePolicy,
   path: '/',
   maxAge: 0,
 };
@@ -82,7 +83,7 @@ export const CLEAR_COOKIE_OPTIONS: CookieOptions = {
 export const CLEAR_REFRESH_COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'lax',
+  sameSite: sameSitePolicy,
   path: '/api/auth',
   maxAge: 0,
 };

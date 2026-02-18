@@ -1,5 +1,8 @@
-import { Controller, Get, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { AuditService } from '../common/audit';
 import { AuditAction, AuditSeverity, UserRole } from '@prisma/client';
 import { Request } from 'express';
@@ -23,6 +26,8 @@ import { Request } from 'express';
 @ApiTags('Security - Audit')
 @ApiBearerAuth()
 @Controller('security/audit')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class AuditController {
   constructor(private auditService: AuditService) {}
 
@@ -67,8 +72,8 @@ export class AuditController {
   @Get('entity/:entityType/:entityId')
   @ApiOperation({ summary: 'Get audit history for a specific entity' })
   async getEntityHistory(
-    @Query('entityType') entityType: string,
-    @Query('entityId') entityId: string,
+    @Param('entityType') entityType: string,
+    @Param('entityId') entityId: string,
     @Query('limit') limit?: string,
   ) {
     return this.auditService.getEntityHistory(
@@ -80,7 +85,7 @@ export class AuditController {
 
   @Get('request/:requestId')
   @ApiOperation({ summary: 'Get all audit logs for a specific request (correlation)' })
-  async getByRequestId(@Query('requestId') requestId: string) {
+  async getByRequestId(@Param('requestId') requestId: string) {
     return this.auditService.getByRequestId(requestId);
   }
 

@@ -1,7 +1,10 @@
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get, Logger, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService } from '../../cache/cache.service';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -36,7 +39,9 @@ export class MetricsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Prometheus metrics endpoint' })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Prometheus metrics endpoint (ADMIN only)' })
   async getMetrics() {
     const lines: string[] = [];
     const now = Date.now();

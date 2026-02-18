@@ -1,9 +1,10 @@
 'use client';
 
-import { ReactNode, useCallback } from 'react';
+import { ReactNode, useCallback, useId, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { useFocusTrap, useEscapeKey } from '@/lib/hooks/use-focus-trap';
 import { cn } from '@/lib/utils';
+import { useEscapeKey, useFocusTrap } from '@/hooks/use-accessibility';
+import { announce } from '@/lib/accessibility';
 
 interface ModalProps {
   open: boolean;
@@ -16,6 +17,10 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl';
   /** Hide the default close (X) button */
   hideClose?: boolean;
+  /** Description ID for accessibility (screen readers) */
+  'aria-describedby'?: string;
+  /** Announce opening to screen readers */
+  announceOnOpen?: boolean;
 }
 
 const sizeClasses: Record<string, string> = {
@@ -28,14 +33,13 @@ const sizeClasses: Record<string, string> = {
 };
 
 /**
- * Shared glass-design Modal with focus trap, Escape key, and ARIA attributes.
- *
- * Usage:
- * ```tsx
- * <Modal open={show} onClose={() => setShow(false)} title="My Modal">
- *   <p>Content here</p>
- * </Modal>
- * ```
+ * Accessible Modal with focus trap, Escape key, and ARIA attributes.
+ * WCAG 2.1 AA Compliant:
+ * - Focus trapped within modal
+ * - Focus returns to trigger on close
+ * - Escape key closes
+ * - Proper ARIA labeling
+ * - Screen reader announcements
  */
 export function Modal({
   open,
@@ -46,41 +50,83 @@ export function Modal({
   footer,
   size = 'lg',
   hideClose = false,
+  'aria-describedby': ariaDescribedBy,
+  announceOnOpen = true,
 }: ModalProps) {
   const modalRef = useFocusTrap<HTMLDivElement>(open);
+  const titleId = useId();
+  const descriptionId = useId();
   const handleClose = useCallback(() => onClose(), [onClose]);
+
+  // Escape key handling
   useEscapeKey(handleClose, open);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (open) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      // Announce to screen readers
+      if (announceOnOpen) {
+        announce(`Dialogue ouvert: ${title}`);
+      }
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [open, title, announceOnOpen]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in overflow-y-auto py-8"
+      onClick={(e) => {
+        // Close on backdrop click
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+      role="presentation"
+    >
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={titleId}
+        aria-describedby={ariaDescribedBy || (subtitle ? descriptionId : undefined)}
         className={cn(
-          'relative w-full bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 animate-scale-in',
+          'relative w-full bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 animate-scale-in mx-4',
           sizeClasses[size]
         )}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
           <div>
-            <h2 id="modal-title" className="text-[17px] font-semibold text-[#1D1D1F]">
+            <h2
+              id={titleId}
+              className="text-[17px] font-semibold text-[#1D1D1F]"
+            >
               {title}
             </h2>
             {subtitle && (
-              <p className="text-[13px] text-[#86868B] mt-0.5">{subtitle}</p>
+              <p
+                id={descriptionId}
+                className="text-[13px] text-[#86868B] mt-0.5"
+              >
+                {subtitle}
+              </p>
             )}
           </div>
           {!hideClose && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-black/5 transition-colors text-[#AEAEB2] hover:text-[#1D1D1F]"
+              aria-label="Fermer le dialogue"
+              className="p-1.5 rounded-full hover:bg-black/5 transition-colors text-[#AEAEB2] hover:text-[#1D1D1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#EC7620]"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -129,19 +175,7 @@ const variantStyles: Record<string, string> = {
 };
 
 /**
- * Drop-in replacement for `window.confirm()`.
- *
- * Usage:
- * ```tsx
- * <ConfirmDialog
- *   open={showConfirm}
- *   onClose={() => setShowConfirm(false)}
- *   onConfirm={handleDelete}
- *   title="Supprimer ce fournisseur ?"
- *   message="Cette action est irréversible."
- *   variant="danger"
- * />
- * ```
+ * Accessible replacement for `window.confirm()`.
  */
 export function ConfirmDialog({
   open,
@@ -154,14 +188,41 @@ export function ConfirmDialog({
   variant = 'primary',
   loading = false,
 }: ConfirmDialogProps) {
+  const messageId = useId();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  // Focus cancel button on open (safer default)
+  useEffect(() => {
+    if (open && cancelRef.current) {
+      setTimeout(() => cancelRef.current?.focus(), 0);
+    }
+  }, [open]);
+
   return (
-    <Modal open={open} onClose={onClose} title={title} size="sm" hideClose>
-      <p className="text-[14px] text-[#86868B] leading-relaxed">{message}</p>
-      <div className="flex items-center justify-end gap-3 mt-6">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      size="sm"
+      hideClose
+      aria-describedby={messageId}
+    >
+      <p
+        id={messageId}
+        className="text-[14px] text-[#86868B] leading-relaxed"
+      >
+        {message}
+      </p>
+      <div
+        className="flex items-center justify-end gap-3 mt-6"
+        role="group"
+        aria-label="Actions du dialogue"
+      >
         <button
+          ref={cancelRef}
           onClick={onClose}
           disabled={loading}
-          className="px-5 py-2.5 text-[#86868B] bg-black/5 rounded-full hover:bg-black/10 transition-all font-medium text-sm"
+          className="px-5 py-2.5 text-[#86868B] bg-black/5 rounded-full hover:bg-black/10 transition-all font-medium text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#EC7620]"
         >
           {cancelLabel}
         </button>
@@ -170,14 +231,19 @@ export function ConfirmDialog({
             onConfirm();
           }}
           disabled={loading}
+          aria-busy={loading}
           className={cn(
-            'px-5 py-2.5 text-sm font-semibold rounded-full transition-all active:scale-[0.97] disabled:opacity-50',
+            'px-5 py-2.5 text-sm font-semibold rounded-full transition-all active:scale-[0.97] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white/50',
             variantStyles[variant]
           )}
         >
           {loading ? (
             <span className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span
+                className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                aria-hidden="true"
+              />
+              <span className="sr-only">Chargement, </span>
               {confirmLabel}
             </span>
           ) : (
@@ -211,7 +277,7 @@ interface PromptDialogProps {
 }
 
 /**
- * Drop-in replacement for `window.prompt()`.
+ * Accessible replacement for `window.prompt()`.
  */
 export function PromptDialog({
   open,
@@ -227,6 +293,9 @@ export function PromptDialog({
   loading = false,
   required = true,
 }: PromptDialogProps) {
+  const messageId = useId();
+  const inputId = useId();
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -236,48 +305,79 @@ export function PromptDialog({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={title} size="sm" hideClose>
-      <form onSubmit={handleSubmit}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      size="sm"
+      hideClose
+      aria-describedby={message ? messageId : undefined}
+    >
+      <form onSubmit={handleSubmit} noValidate>
         {message && (
-          <p className="text-[14px] text-[#86868B] leading-relaxed mb-4">{message}</p>
+          <p
+            id={messageId}
+            className="text-[14px] text-[#86868B] leading-relaxed mb-4"
+          >
+            {message}
+          </p>
         )}
+
+        <label htmlFor={inputId} className="sr-only">
+          {title}
+        </label>
+
         {multiline ? (
           <textarea
+            id={inputId}
             name="prompt-value"
             placeholder={placeholder}
             rows={3}
             autoFocus
+            aria-required={required}
             className="w-full px-4 py-2.5 border border-black/[0.06] rounded-[10px] text-[#1D1D1F] bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] text-sm resize-none"
           />
         ) : (
           <input
+            id={inputId}
             name="prompt-value"
             type="text"
             placeholder={placeholder}
             autoFocus
+            aria-required={required}
             className="w-full px-4 py-2.5 border border-black/[0.06] rounded-[10px] text-[#1D1D1F] bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] text-sm"
           />
         )}
-        <div className="flex items-center justify-end gap-3 mt-6">
+
+        <div
+          className="flex items-center justify-end gap-3 mt-6"
+          role="group"
+          aria-label="Actions du dialogue"
+        >
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-5 py-2.5 text-[#86868B] bg-black/5 rounded-full hover:bg-black/10 transition-all font-medium text-sm"
+            className="px-5 py-2.5 text-[#86868B] bg-black/5 rounded-full hover:bg-black/10 transition-all font-medium text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#EC7620]"
           >
             {cancelLabel}
           </button>
           <button
             type="submit"
             disabled={loading}
+            aria-busy={loading}
             className={cn(
-              'px-5 py-2.5 text-sm font-semibold rounded-full transition-all active:scale-[0.97] disabled:opacity-50',
+              'px-5 py-2.5 text-sm font-semibold rounded-full transition-all active:scale-[0.97] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white/50',
               variantStyles[variant]
             )}
           >
             {loading ? (
               <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span
+                  className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                  aria-hidden="true"
+                />
+                <span className="sr-only">Chargement, </span>
                 {submitLabel}
               </span>
             ) : (

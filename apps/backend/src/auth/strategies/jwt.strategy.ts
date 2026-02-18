@@ -93,13 +93,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
           if (payload?.sub) {
             this.logger.warn(
               `Token verified with N-1 secret for user ${payload.sub}. ` +
-              'This user should refresh soon.',
+              'Rejecting — user must re-login to get a token signed with the current secret.',
             );
-            // Return a minimal user object — validate() will enrich it
-            return { ...payload, _usedPreviousSecret: true };
+            // Force re-login: token is valid but signed with deprecated secret
+            throw new UnauthorizedException(
+              'Session expirée suite à une mise à jour de sécurité — veuillez vous reconnecter',
+            );
           }
         }
-      } catch {
+      } catch (e) {
+        // If it's our own UnauthorizedException, re-throw it
+        if (e instanceof UnauthorizedException) throw e;
         // N-1 also failed — fall through to normal error
       }
     }
