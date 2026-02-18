@@ -1089,7 +1089,6 @@ export class AdminService {
     // Timbre fiscal dynamique selon législation algérienne
     const timbre = this.calculateTimbreFiscal(totalTtc, dto.paymentMethod, dto.applyTimbre ?? true);
     const timbreFiscal = timbre.amount;
-    const timbreRate = timbre.rate;
     const netToPay = totalTtc + timbreFiscal;
 
     // Create invoice with lines
@@ -1154,7 +1153,7 @@ export class AdminService {
   /**
    * Met à jour une facture (uniquement si status = DRAFT)
    */
-  async updateInvoice(id: number, dto: UpdateInvoiceDto, userId: string) {
+  async updateInvoice(id: number, dto: UpdateInvoiceDto, _userId: string) {
     const invoice = await this.prisma.invoice.findUnique({ 
       where: { id },
       include: { lines: true },

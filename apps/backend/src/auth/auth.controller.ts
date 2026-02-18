@@ -187,7 +187,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get current user info' })
   async getMe(@Req() req: Request & { user: { passwordHash: string; [key: string]: unknown } }) {
-    const { passwordHash, ...user } = req.user;
+    const { passwordHash: _hash, ...user } = req.user;
     return user;
   }
 

@@ -4,11 +4,10 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-import { IsInt, IsOptional, IsEnum, IsNumber, Min, Max, ValidateIf } from 'class-validator';
+import { IsInt, IsOptional, IsEnum, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MpCriticite } from '@prisma/client';
-import { BadRequestException } from '@nestjs/common';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // UPDATE PRODUCT MP (APPRO FIELDS)

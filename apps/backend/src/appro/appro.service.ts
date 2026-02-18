@@ -567,7 +567,7 @@ export class ApproService {
    */
   private calculateRecommendedQuantity(mp: StockMpWithState): number {
     // Si quantité de commande définie, l'utiliser
-    if (mp.seuilCommande != null) {
+    if (mp.seuilCommande !== null && mp.seuilCommande !== undefined) {
       const deficit = mp.seuilCommande - mp.currentStock;
       return Math.max(deficit, 0);
     }

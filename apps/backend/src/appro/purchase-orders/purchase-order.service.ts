@@ -1074,10 +1074,11 @@ export class PurchaseOrderService {
     const po = await this.getById(poId);
 
     // Import pdfmake dynamiquement
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    /* eslint-disable @typescript-eslint/no-require-imports */
     const PdfPrinter = require('pdfmake');
     const path = require('path');
     const fs = require('fs');
+    /* eslint-enable @typescript-eslint/no-require-imports */
 
     // Trouver les fonts
     const srcFontsDir = path.join(process.cwd(), 'src/assets/fonts');
