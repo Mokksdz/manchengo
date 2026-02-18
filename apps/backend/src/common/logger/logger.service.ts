@@ -1,4 +1,4 @@
-import { Injectable, LoggerService as NestLoggerService, Scope } from '@nestjs/common';
+import { Injectable, LoggerService as NestLoggerService } from '@nestjs/common';
 import pino, { Logger } from 'pino';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -271,6 +271,7 @@ export class LoggerService implements NestLoggerService {
    * Usage: const log = logger.forRequest(correlationId, userId);
    */
   forRequest(correlationId: string, userId?: string, userEmail?: string) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     return {
       info: (action: string, entityType?: BusinessLogContext['entityType'], entityId?: string | number, meta?: Record<string, unknown>) => {

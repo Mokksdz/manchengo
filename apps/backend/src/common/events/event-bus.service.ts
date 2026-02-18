@@ -108,7 +108,7 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
    * Se désabonne d'un événement
    */
   unsubscribe(subscriptionId: string): boolean {
-    for (const [type, subs] of this.subscriptions) {
+    for (const [_type, subs] of this.subscriptions) {
       const index = subs.findIndex((s) => s.id === subscriptionId);
       if (index !== -1) {
         subs.splice(index, 1);
