@@ -112,6 +112,9 @@ model Device {
   syncStates    SyncState[]
   syncEvents    SyncEvent[]
 
+  @@index([userId])
+  @@index([userId, isActive])
+  @@index([lastSyncAt, isActive])
   @@map("devices")
 }
 
@@ -1059,10 +1062,10 @@ model Delivery {
   invoice             Invoice        @relation(fields: [invoiceId], references: [id])
   client              Client         @relation(fields: [clientId], references: [id])
 
-  @@unique([id, status]) // Anti-double validation constraint
   @@index([status])
   @@index([invoiceId])
   @@index([clientId, status])
+  @@index([status, validatedAt])
   @@index([scheduledDate, status])
   @@index([qrChecksum])
   @@map("deliveries")
@@ -1345,6 +1348,8 @@ model PurchaseOrder {
   @@index([status])
   @@index([supplierId])
   @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([createdById, createdAt])
   @@map("purchase_orders")
 }
 

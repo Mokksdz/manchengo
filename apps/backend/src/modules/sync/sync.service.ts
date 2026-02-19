@@ -130,6 +130,19 @@ export class SyncService {
       await this.prisma.$transaction(
         async (tx) => {
           for (const event of newEvents) {
+            // Re-check idempotency inside transaction to prevent race conditions
+            const existsInTx = await tx.syncEvent.findUnique({
+              where: { clientEventId: event.id },
+              select: { id: true, status: true },
+            });
+            if (existsInTx) {
+              if (existsInTx.status === 'APPLIED' || existsInTx.status === 'ACKED') {
+                ackedEventIds.push(event.id);
+                serverEventIds[event.id] = existsInTx.id;
+              }
+              continue;
+            }
+
             // Verify payload hash
             const isValidHash = this.idempotencyService.verifyPayloadHash(
               event.payload,

@@ -80,10 +80,12 @@ impl SyncQueue {
                     let priority_val: i32 = row.get(2)?;
                     Ok(SyncQueueItem {
                         id: EntityId::from_uuid(
-                            uuid::Uuid::parse_str(&row.get::<_, String>(0)?).unwrap(),
+                            uuid::Uuid::parse_str(&row.get::<_, String>(0)?)
+                                .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         ),
                         event_id: EntityId::from_uuid(
-                            uuid::Uuid::parse_str(&row.get::<_, String>(1)?).unwrap(),
+                            uuid::Uuid::parse_str(&row.get::<_, String>(1)?)
+                                .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         ),
                         priority: match priority_val {
                             0 => SyncPriority::Low,
@@ -98,7 +100,7 @@ impl SyncQueue {
                             .map(|dt| dt.with_timezone(&Utc)),
                         error_message: row.get(5)?,
                         created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?)
-                            .unwrap()
+                            .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?
                             .with_timezone(&Utc),
                     })
                 })

@@ -58,9 +58,19 @@ export function skipWaitingAndReload(): void {
     }
   });
 
-  // Reload after the new service worker takes over
+  // Reload after the new service worker takes over, but check for unsaved work
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload();
+    const activeElement = document.activeElement;
+    const hasUnsavedInput = activeElement instanceof HTMLInputElement ||
+      activeElement instanceof HTMLTextAreaElement;
+
+    if (hasUnsavedInput) {
+      dispatchPWAEvent('update-ready', {
+        message: 'Une mise à jour est disponible. Rechargez quand vous êtes prêt.',
+      });
+    } else {
+      window.location.reload();
+    }
   });
 }
 

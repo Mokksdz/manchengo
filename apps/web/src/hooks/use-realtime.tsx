@@ -67,6 +67,14 @@ function getSocket(): Socket {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 10000,
+      auth: {
+        token: document.cookie
+          .split('; ')
+          .find((c) => c.startsWith('access_token=') || c.startsWith('__Host-access_token='))
+          ?.split('=')
+          .slice(1)
+          .join('=') || '',
+      },
     });
 
     socket.on('connect', () => {
@@ -215,8 +223,10 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
       optionsRef.current.onDashboardRefresh?.(data);
 
       if (optionsRef.current.autoInvalidateQueries) {
-        // Invalidate all cached data on dashboard refresh
-        queryClient.invalidateQueries();
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['stock'] });
+        queryClient.invalidateQueries({ queryKey: ['appro'] });
+        queryClient.invalidateQueries({ queryKey: ['admin', 'stock'] });
       }
     };
 
@@ -239,6 +249,15 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
       ws.off('production:update', handleProductionUpdate);
       ws.off('delivery:validated', handleDeliveryValidated);
       ws.off('dashboard:update', handleDashboardUpdate);
+
+      // Disconnect socket if no more listeners are attached
+      if (ws.listeners('stock:alert').length === 0 &&
+          ws.listeners('production:update').length === 0 &&
+          ws.listeners('delivery:validated').length === 0 &&
+          ws.listeners('dashboard:update').length === 0) {
+        ws.disconnect();
+        socket = null;
+      }
     };
   }, [queryClient, addNotification]);
 

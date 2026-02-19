@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr">
+    <html lang="fr" dir="ltr" suppressHydrationWarning>
       <body className={`${manrope.variable} ${spaceGrotesk.variable} font-body`}>
         <SkipToContent />
         <Providers>{children}</Providers>

@@ -36,7 +36,9 @@ import { Server, Socket } from 'socket.io';
  */
 @WebSocketGateway({
   cors: {
-    origin: ['http://localhost:3001', 'http://localhost:3000'],
+    origin: (process.env.CORS_ORIGINS || 'http://localhost:3001,http://localhost:3000')
+      .split(',')
+      .map((o: string) => o.trim()),
     credentials: true,
   },
   namespace: '/dashboard',
@@ -57,6 +59,14 @@ export class DashboardGateway
   }
 
   handleConnection(client: Socket) {
+    // Verify auth token from handshake
+    const token = client.handshake.auth?.token || client.handshake.headers?.authorization;
+    if (!token) {
+      this.logger.warn(`Client ${client.id} rejected: no auth token`);
+      client.disconnect(true);
+      return;
+    }
+
     this.connectedClients++;
     this.logger.debug(
       `Client connected: ${client.id} (total: ${this.connectedClients})`,

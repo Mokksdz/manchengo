@@ -56,6 +56,7 @@ impl BackgroundScheduler {
         let sync_task = Arc::new(sync_task);
         let expiry_task = Arc::new(expiry_task);
         let connectivity_task = Arc::new(connectivity_task);
+        let sync_running = Arc::new(AtomicBool::new(false));
 
         tokio::spawn(async move {
             let mut sync_timer = interval(sync_interval);
@@ -76,10 +77,13 @@ impl BackgroundScheduler {
                         break;
                     }
                     _ = sync_timer.tick() => {
-                        if running.load(Ordering::SeqCst) {
+                        if running.load(Ordering::SeqCst) && !sync_running.load(Ordering::SeqCst) {
+                            sync_running.store(true, Ordering::SeqCst);
                             let task = sync_task.clone();
+                            let flag = sync_running.clone();
                             tokio::task::spawn_blocking(move || {
                                 task();
+                                flag.store(false, Ordering::SeqCst);
                             });
                         }
                     }

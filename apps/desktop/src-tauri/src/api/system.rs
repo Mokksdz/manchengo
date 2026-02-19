@@ -47,6 +47,10 @@ pub fn get_health_status(state: State<AppState>) -> Result<HealthStatus, String>
 /// Get database statistics
 #[tauri::command]
 pub fn get_database_stats(state: State<AppState>) -> Result<DatabaseStats, String> {
+    let _user_id = state.session
+        .require_user()
+        .map_err(|e| e.to_string())?;
+
     let config = state.config.blocking_read();
 
     let size = std::fs::metadata(&config.database_path)

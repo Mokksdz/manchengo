@@ -3,9 +3,16 @@
 //! Tauri commands for invoice and payment management.
 
 use tauri::State;
+use uuid::Uuid;
 
 use crate::dto::invoice::*;
 use crate::state::AppState;
+
+/// Validate that a string is a valid UUID
+fn validate_uuid(id: &str) -> Result<(), String> {
+    Uuid::parse_str(id).map_err(|_| format!("Invalid UUID: {}", id))?;
+    Ok(())
+}
 
 // ============================================================================
 // INVOICE COMMANDS
@@ -26,6 +33,7 @@ pub fn list_invoices(
 /// Get single invoice
 #[tauri::command]
 pub fn get_invoice(state: State<AppState>, id: String) -> Result<Option<InvoiceDto>, String> {
+    validate_uuid(&id)?;
     state
         .invoice_service
         .get_invoice(&id)
@@ -44,6 +52,7 @@ pub fn create_invoice(state: State<AppState>, data: CreateInvoiceDto) -> Result<
 /// Validate invoice (DRAFT -> VALIDATED)
 #[tauri::command]
 pub fn validate_invoice(state: State<AppState>, id: String) -> Result<InvoiceDto, String> {
+    validate_uuid(&id)?;
     state
         .invoice_service
         .validate_invoice(&id)
@@ -57,6 +66,7 @@ pub fn void_invoice(
     id: String,
     reason: Option<String>,
 ) -> Result<(), String> {
+    validate_uuid(&id)?;
     state
         .invoice_service
         .void_invoice(&id, reason.as_deref())
@@ -115,6 +125,7 @@ pub fn get_outstanding_invoices(
     state: State<AppState>,
     client_id: String,
 ) -> Result<Vec<InvoiceDto>, String> {
+    validate_uuid(&client_id)?;
     state
         .invoice_service
         .get_outstanding_invoices(&client_id)

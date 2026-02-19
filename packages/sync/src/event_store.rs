@@ -18,13 +18,16 @@ impl EventStore {
     }
 
     /// Append an event to the store
+    /// NOTE: version is computed atomically via subquery to prevent race conditions
     pub fn append(&self, event: &EventEnvelope) -> Result<()> {
         self.db.with_connection(|conn| {
             conn.execute(
                 "INSERT INTO _events (
                     id, aggregate_type, aggregate_id, event_type, payload,
                     occurred_at, user_id, device_id, version, synced
-                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
+                    COALESCE((SELECT MAX(version) FROM _events WHERE aggregate_type = ?2 AND aggregate_id = ?3), 0) + 1,
+                    ?10)",
                 rusqlite::params![
                     event.id.to_string(),
                     event.aggregate_type,
@@ -34,7 +37,7 @@ impl EventStore {
                     event.occurred_at.to_rfc3339(),
                     event.user_id.to_string(),
                     event.device_id.to_string(),
-                    event.version,
+                    event.version, // ?9 unused in query but keeps param indexing for ?10
                     event.synced as i32,
                 ],
             )
@@ -63,22 +66,27 @@ impl EventStore {
                 .query_map([limit], |row| {
                     Ok(EventEnvelope {
                         id: EntityId::from_uuid(
-                            uuid::Uuid::parse_str(&row.get::<_, String>(0)?).unwrap(),
+                            uuid::Uuid::parse_str(&row.get::<_, String>(0)?)
+                                .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         ),
                         aggregate_type: row.get(1)?,
                         aggregate_id: EntityId::from_uuid(
-                            uuid::Uuid::parse_str(&row.get::<_, String>(2)?).unwrap(),
+                            uuid::Uuid::parse_str(&row.get::<_, String>(2)?)
+                                .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         ),
                         event_type: row.get(3)?,
-                        payload: serde_json::from_str(&row.get::<_, String>(4)?).unwrap(),
+                        payload: serde_json::from_str(&row.get::<_, String>(4)?)
+                            .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         occurred_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
-                            .unwrap()
+                            .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?
                             .with_timezone(&Utc),
                         user_id: EntityId::from_uuid(
-                            uuid::Uuid::parse_str(&row.get::<_, String>(6)?).unwrap(),
+                            uuid::Uuid::parse_str(&row.get::<_, String>(6)?)
+                                .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         ),
                         device_id: EntityId::from_uuid(
-                            uuid::Uuid::parse_str(&row.get::<_, String>(7)?).unwrap(),
+                            uuid::Uuid::parse_str(&row.get::<_, String>(7)?)
+                                .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         ),
                         version: row.get(8)?,
                         synced: row.get::<_, i32>(9)? != 0,
@@ -138,22 +146,27 @@ impl EventStore {
                 .query_map([aggregate_type, &aggregate_id.to_string()], |row| {
                     Ok(EventEnvelope {
                         id: EntityId::from_uuid(
-                            uuid::Uuid::parse_str(&row.get::<_, String>(0)?).unwrap(),
+                            uuid::Uuid::parse_str(&row.get::<_, String>(0)?)
+                                .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         ),
                         aggregate_type: row.get(1)?,
                         aggregate_id: EntityId::from_uuid(
-                            uuid::Uuid::parse_str(&row.get::<_, String>(2)?).unwrap(),
+                            uuid::Uuid::parse_str(&row.get::<_, String>(2)?)
+                                .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         ),
                         event_type: row.get(3)?,
-                        payload: serde_json::from_str(&row.get::<_, String>(4)?).unwrap(),
+                        payload: serde_json::from_str(&row.get::<_, String>(4)?)
+                            .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         occurred_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(5)?)
-                            .unwrap()
+                            .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?
                             .with_timezone(&Utc),
                         user_id: EntityId::from_uuid(
-                            uuid::Uuid::parse_str(&row.get::<_, String>(6)?).unwrap(),
+                            uuid::Uuid::parse_str(&row.get::<_, String>(6)?)
+                                .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         ),
                         device_id: EntityId::from_uuid(
-                            uuid::Uuid::parse_str(&row.get::<_, String>(7)?).unwrap(),
+                            uuid::Uuid::parse_str(&row.get::<_, String>(7)?)
+                                .map_err(|e| rusqlite::Error::InvalidParameterName(e.to_string()))?,
                         ),
                         version: row.get(8)?,
                         synced: row.get::<_, i32>(9)? != 0,

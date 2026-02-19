@@ -154,7 +154,7 @@ export class SyncEventApplier {
       await tx.auditLog.create({
         data: {
           actorId: userId,
-          actorRole: 'COMMERCIAL',
+          actorRole: (await tx.user.findUnique({ where: { id: userId }, select: { role: true } }))?.role || 'COMMERCIAL',
           action: 'STOCK_SALE_PROCESSED',
           severity: 'INFO',
           entityType: 'Delivery',
@@ -282,7 +282,7 @@ export class SyncEventApplier {
       await tx.auditLog.create({
         data: {
           actorId: userId,
-          actorRole: 'COMMERCIAL',
+          actorRole: (await tx.user.findUnique({ where: { id: userId }, select: { role: true } }))?.role || 'COMMERCIAL',
           action: 'STOCK_SALE_PROCESSED',
           severity: 'INFO',
           entityType: 'Invoice',
@@ -397,7 +397,7 @@ export class SyncEventApplier {
       await tx.auditLog.create({
         data: {
           actorId: userId,
-          actorRole: 'COMMERCIAL',
+          actorRole: (await tx.user.findUnique({ where: { id: userId }, select: { role: true } }))?.role || 'COMMERCIAL',
           action: 'STOCK_SALE_PROCESSED',
           severity: 'INFO',
           entityType: 'Payment',

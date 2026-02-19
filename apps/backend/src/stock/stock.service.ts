@@ -146,9 +146,9 @@ export class StockService {
 
     for (const m of movements) {
       if (m.movementType === 'IN') {
-        totalIn = m._sum.quantity || 0;
+        totalIn += m._sum.quantity || 0;
       } else {
-        totalOut = m._sum.quantity || 0;
+        totalOut += m._sum.quantity || 0;
       }
     }
 
@@ -608,9 +608,9 @@ export class StockService {
 
     for (const m of movements) {
       if (m.movementType === 'IN') {
-        totalIn = m._sum.quantity || 0;
+        totalIn += m._sum.quantity || 0;
       } else {
-        totalOut = m._sum.quantity || 0;
+        totalOut += m._sum.quantity || 0;
       }
     }
 

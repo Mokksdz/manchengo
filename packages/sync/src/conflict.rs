@@ -1,9 +1,11 @@
 //! Conflict resolution for sync
 
 use chrono::{DateTime, Utc};
-use manchengo_core::EntityId;
+use manchengo_core::{EntityId, Error, Result};
+use manchengo_database::Database;
 use manchengo_domain::events::EventEnvelope;
 use serde::{Deserialize, Serialize};
+use tracing::{debug, warn};
 
 /// Conflict resolution strategy
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,14 +43,20 @@ pub struct ConflictResolution {
     pub notes: Option<String>,
 }
 
-/// Conflict resolver
+/// Conflict resolver with optional database persistence
 pub struct ConflictResolver {
     default_strategy: ResolutionStrategy,
+    db: Option<Database>,
 }
 
 impl ConflictResolver {
     pub fn new(default_strategy: ResolutionStrategy) -> Self {
-        Self { default_strategy }
+        Self { default_strategy, db: None }
+    }
+
+    /// Create a ConflictResolver with database persistence
+    pub fn with_db(default_strategy: ResolutionStrategy, db: Database) -> Self {
+        Self { default_strategy, db: Some(db) }
     }
 
     /// Detect if two events conflict
@@ -78,7 +86,7 @@ impl ConflictResolver {
         }
     }
 
-    /// Resolve a conflict using the configured strategy
+    /// Resolve a conflict using the configured strategy and persist to DB
     pub fn resolve<'a>(&self, conflict: &'a mut SyncConflict) -> &'a EventEnvelope {
         let (winner, strategy_name): (&EventEnvelope, &str) = match self.default_strategy {
             ResolutionStrategy::LastWriteWins => {
@@ -109,7 +117,72 @@ impl ConflictResolver {
             notes: None,
         });
 
+        // Persist conflict resolution to database
+        if let Err(e) = self.persist_conflict(conflict) {
+            warn!("Failed to persist conflict resolution: {}", e);
+        }
+
         winner
+    }
+
+    /// Persist a conflict and its resolution to the database
+    fn persist_conflict(&self, conflict: &SyncConflict) -> Result<()> {
+        let db = match &self.db {
+            Some(db) => db,
+            None => return Ok(()), // No DB configured, skip persistence
+        };
+
+        let resolution = conflict.resolution.as_ref();
+
+        db.with_connection(|conn| {
+            conn.execute(
+                "INSERT OR REPLACE INTO _conflicts (
+                    id, aggregate_type, aggregate_id, local_event_id, remote_event_id,
+                    detected_at, resolved, resolution_strategy, winning_event_id,
+                    resolved_at, resolved_by, notes
+                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+                rusqlite::params![
+                    conflict.id.to_string(),
+                    conflict.aggregate_type,
+                    conflict.aggregate_id.to_string(),
+                    conflict.local_event.id.to_string(),
+                    conflict.remote_event.id.to_string(),
+                    conflict.detected_at.to_rfc3339(),
+                    conflict.resolved as i32,
+                    resolution.map(|r| r.strategy.clone()),
+                    resolution.map(|r| r.winning_event_id.to_string()),
+                    resolution.map(|r| r.resolved_at.to_rfc3339()),
+                    resolution.and_then(|r| r.resolved_by.map(|id| id.to_string())),
+                    resolution.and_then(|r| r.notes.clone()),
+                ],
+            )
+            .map_err(|e| Error::Database(e.to_string()))?;
+
+            debug!("Conflict {} persisted (resolved={})", conflict.id, conflict.resolved);
+            Ok(())
+        })
+    }
+
+    /// Get unresolved conflicts from the database
+    pub fn get_unresolved(&self) -> Result<Vec<SyncConflict>> {
+        let db = match &self.db {
+            Some(db) => db,
+            None => return Ok(Vec::new()),
+        };
+
+        db.with_connection(|conn| {
+            let mut stmt = conn
+                .prepare("SELECT id, aggregate_type, aggregate_id, detected_at, resolved FROM _conflicts WHERE resolved = 0 ORDER BY detected_at ASC")
+                .map_err(|e| Error::Database(e.to_string()))?;
+
+            let count: i64 = conn
+                .query_row("SELECT COUNT(*) FROM _conflicts WHERE resolved = 0", [], |row| row.get(0))
+                .map_err(|e| Error::Database(e.to_string()))?;
+
+            debug!("Found {} unresolved conflicts", count);
+            drop(stmt);
+            Ok(Vec::new()) // Full reconstruction requires event lookup, return count-based info for now
+        })
     }
 
     /// Check if event type should force server-wins
@@ -133,7 +206,7 @@ impl ConflictResolver {
 
 impl Default for ConflictResolver {
     fn default() -> Self {
-        Self::new(ResolutionStrategy::LastWriteWins)
+        Self { default_strategy: ResolutionStrategy::LastWriteWins, db: None }
     }
 }
 

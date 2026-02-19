@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   UnauthorizedException,
   ConflictException,
   BadRequestException,
@@ -21,6 +22,8 @@ import {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -41,7 +44,7 @@ export class AuthService {
         ipAddress || 'unknown',
         userAgent || 'unknown',
         !user ? 'User not found' : 'Account inactive',
-      ).catch(() => {}); // Never block login flow
+      ).catch((err) => this.logger.error(`Security log failed: ${err.message}`));
       throw new UnauthorizedException('Identifiants invalides');
     }
 
@@ -51,7 +54,7 @@ export class AuthService {
       if (new Date() < lockoutEnd) {
         await this.securityLogService.logLoginFailure(
           dto.email, ipAddress || 'unknown', userAgent || 'unknown', 'Account locked',
-        ).catch(() => {});
+        ).catch((err) => this.logger.error(`Security log failed: ${err.message}`));
         throw new UnauthorizedException('Compte temporairement verrouillé. Réessayez dans 15 minutes.');
       }
     }
@@ -64,7 +67,7 @@ export class AuthService {
         ipAddress || 'unknown',
         userAgent || 'unknown',
         'Invalid password',
-      ).catch(() => {}); // Never block login flow
+      ).catch((err) => this.logger.error(`Security log failed: ${err.message}`));
       await this.prisma.user.update({
         where: { id: user.id },
         data: { failedLoginAttempts: { increment: 1 }, lastFailedLoginAt: new Date() },
@@ -99,7 +102,7 @@ export class AuthService {
       dto.deviceId,
       ipAddress || 'unknown',
       userAgent || 'unknown',
-    ).catch(() => {}); // Never block login flow
+    ).catch((err) => this.logger.error(`Security log failed: ${err.message}`));
 
     return {
       ...tokens,

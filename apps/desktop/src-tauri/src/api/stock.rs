@@ -4,9 +4,16 @@
 //! All business logic is in StockService - commands just delegate.
 
 use tauri::State;
+use uuid::Uuid;
 
 use crate::dto::*;
 use crate::state::AppState;
+
+/// Validate that a string is a valid UUID
+fn validate_uuid(id: &str) -> Result<(), String> {
+    Uuid::parse_str(id).map_err(|_| format!("Invalid UUID: {}", id))?;
+    Ok(())
+}
 
 // ============================================================================
 // PRODUCT COMMANDS
@@ -29,6 +36,7 @@ pub fn get_product_mp(
     state: State<AppState>,
     id: String,
 ) -> Result<Option<ProductMpDto>, String> {
+    validate_uuid(&id)?;
     state.product_repo
         .get_mp(&id)
         .map_err(|e| e.to_string())
@@ -51,6 +59,7 @@ pub fn get_product_pf(
     state: State<AppState>,
     id: String,
 ) -> Result<Option<ProductPfDto>, String> {
+    validate_uuid(&id)?;
     state.product_repo
         .get_pf(&id)
         .map_err(|e| e.to_string())
@@ -77,6 +86,7 @@ pub fn get_lot_mp(
     state: State<AppState>,
     id: String,
 ) -> Result<Option<LotMpDto>, String> {
+    validate_uuid(&id)?;
     state.lot_repo
         .get_mp(&id)
         .map_err(|e| e.to_string())
@@ -99,6 +109,7 @@ pub fn get_lot_pf(
     state: State<AppState>,
     id: String,
 ) -> Result<Option<LotPfDto>, String> {
+    validate_uuid(&id)?;
     state.lot_repo
         .get_pf(&id)
         .map_err(|e| e.to_string())
@@ -112,6 +123,7 @@ pub fn block_lot(
     product_type: String,
     reason: String,
 ) -> Result<(), String> {
+    validate_uuid(&lot_id)?;
     state.stock_service
         .block_lot(&lot_id, &product_type, &reason)
         .map_err(|e| e.to_string())
@@ -124,6 +136,7 @@ pub fn unblock_lot(
     lot_id: String,
     product_type: String,
 ) -> Result<(), String> {
+    validate_uuid(&lot_id)?;
     state.stock_service
         .unblock_lot(&lot_id, &product_type)
         .map_err(|e| e.to_string())

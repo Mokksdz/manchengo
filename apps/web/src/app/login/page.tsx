@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
 // Redirection par rôle après connexion
@@ -23,16 +24,16 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const currentYear = new Date().getFullYear();
+  const router = useRouter();
   const { login, user, isAuthenticated, isLoading: authLoading } = useAuth();
 
-  // Redirect if already authenticated - use window.location for reliable redirect
+  // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated && user) {
       const targetRoute = getDefaultRoute(user.role);
-      // Use window.location for more reliable redirect (avoids Next.js router issues)
-      window.location.href = targetRoute;
+      router.replace(targetRoute);
     }
-  }, [isAuthenticated, authLoading, user]);
+  }, [isAuthenticated, authLoading, user, router]);
 
   // Show loading while checking auth status or redirecting
   if (authLoading || isAuthenticated) {
@@ -54,9 +55,9 @@ export default function LoginPage() {
     try {
       const loggedUser = await login(email, password);
       if (loggedUser?.role) {
-        window.location.href = getDefaultRoute(loggedUser.role);
+        router.replace(getDefaultRoute(loggedUser.role));
       } else {
-        window.location.href = '/dashboard';
+        router.replace('/dashboard');
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erreur de connexion';

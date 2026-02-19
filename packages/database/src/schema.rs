@@ -5,6 +5,7 @@ pub mod core {
     pub const MIGRATIONS: &str = "_migrations";
     pub const EVENTS: &str = "_events";
     pub const SYNC_QUEUE: &str = "_sync_queue";
+    pub const CONFLICTS: &str = "_conflicts";
     pub const CONFIG: &str = "_config";
     pub const AUDIT_LOG: &str = "audit_log";
 }

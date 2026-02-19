@@ -108,11 +108,13 @@ export class SyncDeviceGuard implements CanActivate {
 export class SyncRateLimitGuard implements CanActivate {
   private readonly logger = new Logger(SyncRateLimitGuard.name);
   private readonly requestCounts = new Map<string, { count: number; resetAt: number }>();
-  
+  private lastCleanup = Date.now();
+
   // Rate limits
   private readonly PUSH_LIMIT = 100; // requests per window
   private readonly PULL_LIMIT = 200;
   private readonly WINDOW_MS = 60000; // 1 minute
+  private readonly CLEANUP_INTERVAL_MS = 120000; // Clean expired entries every 2 minutes
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -127,6 +129,12 @@ export class SyncRateLimitGuard implements CanActivate {
     const key = `${deviceId}:${method}:${path}`;
     const now = Date.now();
     const limit = method === 'POST' ? this.PUSH_LIMIT : this.PULL_LIMIT;
+
+    // Periodically purge expired entries to prevent memory leak
+    if (now - this.lastCleanup > this.CLEANUP_INTERVAL_MS) {
+      this.cleanupExpiredEntries(now);
+      this.lastCleanup = now;
+    }
 
     let record = this.requestCounts.get(key);
 
@@ -145,5 +153,18 @@ export class SyncRateLimitGuard implements CanActivate {
     }
 
     return true;
+  }
+
+  private cleanupExpiredEntries(now: number): void {
+    let cleaned = 0;
+    for (const [key, record] of this.requestCounts) {
+      if (now > record.resetAt) {
+        this.requestCounts.delete(key);
+        cleaned++;
+      }
+    }
+    if (cleaned > 0) {
+      this.logger.debug(`Rate limiter cleanup: removed ${cleaned} expired entries`);
+    }
   }
 }

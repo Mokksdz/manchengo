@@ -96,21 +96,43 @@ impl Money {
 impl std::ops::Add for Money {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
-        Self(self.0 + rhs.0)
+        Self(self.0.checked_add(rhs.0).expect("Money overflow on addition"))
     }
 }
 
 impl std::ops::Sub for Money {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {
-        Self(self.0 - rhs.0)
+        Self(self.0.checked_sub(rhs.0).expect("Money overflow on subtraction"))
     }
 }
 
 impl std::ops::Mul<i64> for Money {
     type Output = Self;
     fn mul(self, rhs: i64) -> Self {
-        Self(self.0 * rhs)
+        Self(self.0.checked_mul(rhs).expect("Money overflow on multiplication"))
+    }
+}
+
+impl Money {
+    pub fn checked_add(self, rhs: Self) -> Option<Self> {
+        self.0.checked_add(rhs.0).map(Self)
+    }
+
+    pub fn checked_sub(self, rhs: Self) -> Option<Self> {
+        self.0.checked_sub(rhs.0).map(Self)
+    }
+
+    pub fn checked_mul(self, rhs: i64) -> Option<Self> {
+        self.0.checked_mul(rhs).map(Self)
+    }
+
+    pub fn saturating_add(self, rhs: Self) -> Self {
+        Self(self.0.saturating_add(rhs.0))
+    }
+
+    pub fn saturating_sub(self, rhs: Self) -> Self {
+        Self(self.0.saturating_sub(rhs.0))
     }
 }
 
@@ -363,9 +385,11 @@ pub struct QrCodeData {
 // ============================================================================
 
 impl QrCodeData {
-    /// Secret key for checksum generation (should be loaded from env in production)
-    /// In production, this should come from environment variable QR_SECRET_KEY
-    const DEFAULT_SECRET: &'static str = "MCG_QR_SECRET_2024_PROD";
+    /// Get the secret key from environment variable, falling back to a compile-time default.
+    /// IMPORTANT: Set QR_SECRET_KEY in production environment.
+    fn get_secret() -> String {
+        std::env::var("QR_SECRET_KEY").unwrap_or_else(|_| "MCG_QR_SECRET_2024_DEV".to_string())
+    }
 
     /// Create a new QrCodeData with auto-generated checksum
     pub fn new(
@@ -381,7 +405,7 @@ impl QrCodeData {
             expiry_date,
             checksum: String::new(),
         };
-        qr.checksum = qr.compute_checksum(Self::DEFAULT_SECRET);
+        qr.checksum = qr.compute_checksum(&Self::get_secret());
         qr
     }
 
@@ -424,7 +448,7 @@ impl QrCodeData {
     /// - UUID is invalid
     /// - Checksum validation fails
     pub fn decode(data: &str) -> Option<Self> {
-        Self::decode_with_secret(data, Self::DEFAULT_SECRET)
+        Self::decode_with_secret(data, &Self::get_secret())
     }
 
     /// Decode and validate QR string with custom secret key
