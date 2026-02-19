@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SyncStatus } from '@prisma/client';
 import { SyncIdempotencyService } from './sync.idempotency';
-import { SyncEventApplier, ApplyResult } from './sync.applier';
+import { SyncEventApplier } from './sync.applier';
 import {
   PushSyncDto,
   PushSyncResponseDto,
@@ -16,7 +16,6 @@ import {
   FailedEventDto,
   ServerEventDto,
   ConflictErrorCode,
-  SyncEventDto,
 } from './sync.dto';
 
 @Injectable()
@@ -447,9 +446,9 @@ export class SyncService {
    */
   async bootstrap(
     dto: BootstrapRequestDto,
-    userId: string,
+    _userId: string,
   ): Promise<BootstrapResponseDto> {
-    const { deviceId, entities, forceFull } = dto;
+    const { deviceId, entities, forceFull: _forceFull } = dto;
     const result: BootstrapResponseDto = {
       serverTime: new Date().toISOString(),
       dataVersion: new Date().toISOString().split('T')[0],
@@ -573,7 +572,7 @@ export class SyncService {
    */
   async acknowledgeEvents(
     dto: AckEventsDto,
-    userId: string,
+    _userId: string,
   ): Promise<AckEventsResponseDto> {
     const { deviceId, eventIds } = dto;
 

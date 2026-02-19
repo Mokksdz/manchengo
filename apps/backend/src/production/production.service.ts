@@ -414,7 +414,7 @@ export class ProductionService {
 
       // Create detailed consumption records in a single transaction
       await this.prisma.$transaction(
-        consumptionResults.flatMap(({ productMpId, requiredQty, result }) =>
+        consumptionResults.flatMap(({ productMpId, requiredQty: _requiredQty, result }) =>
           result.consumptions.map((consumption: any) =>
             this.prisma.productionConsumption.create({
               data: {
@@ -1708,7 +1708,7 @@ export class ProductionService {
   /**
    * Mettre à jour la date planifiée d'un ordre de production
    */
-  async updateScheduledDate(id: number, scheduledDate: string | null, userId: string) {
+  async updateScheduledDate(id: number, scheduledDate: string | null, _userId: string) {
     const order = await this.findById(id);
 
     // Seuls les ordres PENDING peuvent être replanifiés

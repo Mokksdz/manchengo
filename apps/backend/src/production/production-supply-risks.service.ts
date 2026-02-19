@@ -463,7 +463,7 @@ export class ProductionSupplyRisksService {
     for (const order of activeOrders) {
       const reasons: ProductionRiskReason[] = [];
       let hasBlocking = false;
-      let hasWarning = false;
+      let _hasWarning = false;
 
       // Vérifier chaque MP de la recette
       if (order.recipe?.items) {
@@ -489,7 +489,7 @@ export class ProductionSupplyRisksService {
                 daysCover: critMp.joursCouverture ?? 0,
               });
             } else if (critMp.joursCouverture !== null && critMp.joursCouverture < 2) {
-              hasWarning = true;
+              _hasWarning = true;
               reasons.push({
                 type: 'MP',
                 label: `${item.productMp.name} : couverture ${critMp.joursCouverture.toFixed(1)} jour (seuil min: 2j)`,
@@ -497,7 +497,7 @@ export class ProductionSupplyRisksService {
                 daysCover: critMp.joursCouverture,
               });
             } else if (critMp.joursCouverture !== null && critMp.joursCouverture < 3 && !canCover) {
-              hasWarning = true;
+              _hasWarning = true;
               reasons.push({
                 type: 'MP',
                 label: `${item.productMp.name} : couverture ${critMp.joursCouverture.toFixed(1)} jours`,
@@ -521,7 +521,7 @@ export class ProductionSupplyRisksService {
                   supplierName: bc.supplierName,
                 });
               } else if (bc.daysLate > 0) {
-                hasWarning = true;
+                _hasWarning = true;
                 reasons.push({
                   type: 'BC',
                   label: `BC ${bc.reference} retardé (+${bc.daysLate}j) - ${bc.supplierName}`,

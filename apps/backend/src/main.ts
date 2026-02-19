@@ -224,6 +224,7 @@ Les tokens sont aussi envoyés via cookies httpOnly.
 }
 
 bootstrap().catch((err) => {
+  // eslint-disable-next-line no-console
   console.error('FATAL: Bootstrap failed:', err);
   process.exit(1);
 });

@@ -141,6 +141,7 @@ export class QueueService implements OnModuleDestroy {
 
     try {
       // Test Redis connection first
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const IORedis = require('ioredis');
       const testConn = new IORedis({ ...connection, lazyConnect: true, connectTimeout: 5000 });
       await testConn.connect();

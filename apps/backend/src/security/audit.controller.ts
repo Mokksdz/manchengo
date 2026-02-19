@@ -1,11 +1,10 @@
-import { Controller, Get, Param, Query, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AuditService } from '../common/audit';
 import { AuditAction, AuditSeverity, UserRole } from '@prisma/client';
-import { Request } from 'express';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════

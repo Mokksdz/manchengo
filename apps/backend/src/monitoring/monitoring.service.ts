@@ -108,7 +108,7 @@ export class MonitoringService {
       include: { lots: { select: { quantityRemaining: true } } },
     });
 
-    let totalMpProducts = mpProducts.length;
+    const totalMpProducts = mpProducts.length;
     let lowStockMp = 0;
     let totalMpQuantity = 0;
 
@@ -123,7 +123,7 @@ export class MonitoringService {
       include: { lots: { select: { quantityRemaining: true } } },
     });
 
-    let totalPfProducts = pfProducts.length;
+    const totalPfProducts = pfProducts.length;
     let lowStockPf = 0;
     let totalPfQuantity = 0;
 
@@ -184,7 +184,7 @@ export class MonitoringService {
     let todayTva = 0;
     let todayTimbre = 0;
     let todayCashSales = 0;
-    let todayInvoiceCount = todayInvoices.length;
+    const todayInvoiceCount = todayInvoices.length;
 
     for (const inv of todayInvoices) {
       todaySalesHt += inv.totalHt;

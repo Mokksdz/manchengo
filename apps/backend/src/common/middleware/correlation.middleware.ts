@@ -14,6 +14,7 @@ export const CORRELATION_ID_HEADER = 'X-Correlation-Id';
  * Extension de l'interface Request Express pour inclure le contexte de corrélation
  */
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       correlationId: string;

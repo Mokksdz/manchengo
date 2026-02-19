@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma, SyncStatus, DeliveryStatus, InvoiceStatus } from '@prisma/client';
-import { SyncConflictResolver, ConflictCheckResult } from './sync.conflict';
+import { Prisma, DeliveryStatus, InvoiceStatus } from '@prisma/client';
+import { SyncConflictResolver } from './sync.conflict';
 import {
   SyncEntityType,
   SyncAction,

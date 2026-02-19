@@ -30,7 +30,6 @@ import {
 import {
   CursorPaginationDto,
   OffsetPaginationDto,
-  SortDirection,
 } from './pagination.dto';
 
 @ApiTags('Pagination')

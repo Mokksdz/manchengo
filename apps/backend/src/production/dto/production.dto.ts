@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsString, IsOptional, IsNotEmpty, MinLength, Min, Max, IsDateString, IsNumber, IsEnum } from 'class-validator';
+import { IsInt, IsString, IsOptional, IsNotEmpty, MinLength, Min, Max, IsDateString, IsNumber } from 'class-validator';
 
 /**
  * DTO pour créer un ordre de production

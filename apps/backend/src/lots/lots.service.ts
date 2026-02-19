@@ -1,10 +1,8 @@
 import {
   Injectable,
   BadRequestException,
-  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOTS SERVICE - V1.1 FIFO + DLC Management

@@ -2,7 +2,6 @@ import {
   IsInt,
   IsPositive,
   IsString,
-  IsEnum,
   Min,
   Max,
   MinLength,
@@ -11,7 +10,6 @@ import {
   IsArray,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ProductType } from '@prisma/client';
 
 /**
  * DTO ajustement inventaire MP/PF

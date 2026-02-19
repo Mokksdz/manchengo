@@ -5,7 +5,6 @@ import {
   IsEnum,
   IsOptional,
   IsArray,
-  Min,
   Max,
   MinLength,
   MaxLength,

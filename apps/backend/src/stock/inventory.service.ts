@@ -550,7 +550,7 @@ export class InventoryService {
   private async checkInventoryCooldown(
     productType: ProductType,
     productId: number,
-    countedById: string,
+    _countedById: string,
   ): Promise<void> {
     const cooldownDate = new Date();
     cooldownDate.setHours(cooldownDate.getHours() - INVENTORY_COOLDOWN_HOURS);

@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuditService, AuditContext } from '../common/audit';
+import { AuditService } from '../common/audit';
 import { CacheService, CacheTTL } from '../cache/cache.service';
 import { MovementOrigin, MovementType, ProductType, UserRole, Prisma, AuditAction, AuditSeverity } from '@prisma/client';
 

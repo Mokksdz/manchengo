@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSupplierDto, UpdateSupplierDto, SupplierResponseDto } from './dto/supplier.dto';
-import { SupplierGrade, PurchaseOrderStatus } from '@prisma/client';
+import { PurchaseOrderStatus } from '@prisma/client';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES — Chaîne d'impact fournisseur
@@ -592,7 +592,7 @@ export class SuppliersService {
       
       for (const mp of supplier.productsMpPrincipaux) {
         // Vérifier stock réel via mouvements
-        const stockResult = await this.prisma.stockMovement.aggregate({
+        const _stockResult = await this.prisma.stockMovement.aggregate({
           where: { productMpId: mp.id, isDeleted: false },
           _sum: { quantity: true },
         });

@@ -84,7 +84,7 @@ export class SyncProcessor implements OnModuleInit {
    * Traite un job de synchronisation
    */
   async process(job: Job<SyncJobData>): Promise<SyncResult> {
-    const { type, entities, since, metadata } = job.data;
+    const { type, entities, since, metadata: _metadata } = job.data;
     const startTime = Date.now();
 
     this.logger.info(`Processing sync job: ${type}`, 'SyncProcessor', {
@@ -337,20 +337,20 @@ export class SyncProcessor implements OnModuleInit {
       _sum: { quantity: true },
     });
 
-    let stock = 0;
+    let _stock = 0;
     movements.forEach((m) => {
       const qty = m._sum.quantity ?? 0;
       if (m.movementType === 'IN') {
-        stock += qty;
+        _stock += qty;
       } else {
-        stock -= qty;
+        _stock -= qty;
       }
     });
 
     // Mettre à jour le stock calculé (si champ existe)
     // await this.prisma.productMp.update({
     //   where: { id: mpId },
-    //   data: { calculatedStock: stock },
+    //   data: { calculatedStock: _stock },
     // });
   }
 
@@ -419,13 +419,13 @@ export class SyncProcessor implements OnModuleInit {
       _sum: { quantity: true },
     });
 
-    let stock = 0;
+    let _stock = 0;
     movements.forEach((m) => {
       const qty = m._sum.quantity ?? 0;
       if (m.movementType === 'IN') {
-        stock += qty;
+        _stock += qty;
       } else {
-        stock -= qty;
+        _stock -= qty;
       }
     });
 

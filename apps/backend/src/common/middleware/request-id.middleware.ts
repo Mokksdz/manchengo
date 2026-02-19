@@ -22,6 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Extend Express Request type
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       requestId: string;

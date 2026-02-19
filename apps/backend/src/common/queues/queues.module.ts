@@ -20,7 +20,7 @@
  */
 
 import { Module, Global, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { QueueService } from './queue.service';
 import { ReportProcessor } from './processors/report.processor';
 import { NotificationProcessor } from './processors/notification.processor';

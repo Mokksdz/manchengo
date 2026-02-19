@@ -317,7 +317,7 @@ export class DashboardService {
   // KPIs spécifiques production - AUCUNE donnée financière
   // ═══════════════════════════════════════════════════════════════════════════
 
-  async getProductionDashboard(userId: string) {
+  async getProductionDashboard(_userId: string) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 

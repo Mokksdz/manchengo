@@ -145,7 +145,7 @@ export class ReportProcessor implements OnModuleInit {
     }));
   }
 
-  private async generateStockPfReport(filters?: Record<string, unknown>): Promise<unknown[]> {
+  private async generateStockPfReport(_filters?: Record<string, unknown>): Promise<unknown[]> {
     const products = await this.prisma.productPf.findMany({
       where: {
         isActive: true,
@@ -208,7 +208,7 @@ export class ReportProcessor implements OnModuleInit {
     }));
   }
 
-  private async generateSupplierReport(filters?: Record<string, unknown>): Promise<unknown[]> {
+  private async generateSupplierReport(_filters?: Record<string, unknown>): Promise<unknown[]> {
     const suppliers = await this.prisma.supplier.findMany({
       where: {
         isActive: true,

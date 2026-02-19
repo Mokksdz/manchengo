@@ -240,7 +240,7 @@ export class PerformanceService implements OnModuleInit {
   /**
    * Capture a custom metric to Sentry
    */
-  captureMetric(name: string, value: number, unit: string, tags?: Record<string, string>): void {
+  captureMetric(name: string, value: number, unit: string, _tags?: Record<string, string>): void {
     if (!this.enabled) return;
 
     // Use Sentry metrics if available

@@ -70,7 +70,7 @@ export class SyncConflictResolver {
     db: Prisma.TransactionClient | PrismaService,
     entityId: string,
     action: SyncAction,
-    payload: Record<string, unknown>,
+    _payload: Record<string, unknown>,
   ): Promise<ConflictCheckResult> {
     const delivery = await db.delivery.findUnique({
       where: { id: entityId },

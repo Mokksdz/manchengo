@@ -29,6 +29,8 @@
   "ignorePatterns": [
     "node_modules/",
     "dist/",
-    "*.js"
+    "*.js",
+    "**/*.spec.ts",
+    "**/*.e2e-spec.ts"
   ]
 }

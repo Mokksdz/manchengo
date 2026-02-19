@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { StockDashboardService } from './stock-dashboard.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

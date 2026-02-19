@@ -10,15 +10,6 @@ import { LoggerService } from '../logger/logger.service';
 import * as crypto from 'crypto';
 
 /**
- * Interface pour les entités vérifiables (P1.1-C)
- */
-interface EntityStatusCheck {
-  entityType: 'PURCHASE_ORDER';
-  entityId: string;
-  getCurrentStatus: () => Promise<string | null>;
-}
-
-/**
  * ═══════════════════════════════════════════════════════════════════════════════
  * IDEMPOTENCY MIDDLEWARE — Protection double-clic / refresh / retry
  * ═══════════════════════════════════════════════════════════════════════════════
