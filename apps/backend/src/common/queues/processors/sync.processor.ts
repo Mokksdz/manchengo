@@ -43,12 +43,13 @@ export class SyncProcessor implements OnModuleInit {
     this.logger.setContext('SyncProcessor');
   }
 
-  onModuleInit() {
+  async onModuleInit() {
     this.queueService.registerProcessor(QueueName.SYNC, this.process.bind(this));
     this.logger.info('Sync processor registered', 'SyncProcessor');
 
-    // Planifier la sync quotidienne
-    this.scheduleAutomaticSync();
+    // Attendre l'initialisation des queues avant de planifier
+    await this.queueService.waitForInitialization();
+    await this.scheduleAutomaticSync();
   }
 
   /**

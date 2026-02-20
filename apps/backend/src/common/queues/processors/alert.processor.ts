@@ -45,12 +45,13 @@ export class AlertProcessor implements OnModuleInit {
     this.logger.setContext('AlertProcessor');
   }
 
-  onModuleInit() {
+  async onModuleInit() {
     this.queueService.registerProcessor(QueueName.ALERTS, this.process.bind(this));
     this.logger.info('Alert processor registered', 'AlertProcessor');
 
-    // Planifier les scans automatiques
-    this.scheduleAutomaticScans();
+    // Attendre l'initialisation des queues avant de planifier
+    await this.queueService.waitForInitialization();
+    await this.scheduleAutomaticScans();
   }
 
   /**

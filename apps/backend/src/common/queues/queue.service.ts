@@ -104,12 +104,27 @@ export class QueueService implements OnModuleDestroy {
   private queueEvents: Map<QueueName, QueueEvents> = new Map();
   private processors: Map<QueueName, (job: Job) => Promise<unknown>> = new Map();
   private isInitialized = false;
+  private initPromise: Promise<void> | null = null;
+  private resolveInit!: () => void;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
   ) {
     this.logger.setContext('QueueService');
+    this.initPromise = new Promise<void>((resolve) => {
+      this.resolveInit = resolve;
+    });
+  }
+
+  /**
+   * Attend que les queues soient initialisées.
+   * Les processors appellent cette méthode avant de planifier des jobs.
+   */
+  async waitForInitialization(): Promise<boolean> {
+    if (this.isInitialized) return true;
+    await this.initPromise;
+    return this.isInitialized;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -173,12 +188,14 @@ export class QueueService implements OnModuleDestroy {
       }
 
       this.isInitialized = true;
+      this.resolveInit();
     } catch (error) {
       this.logger.warn(
         `Redis not available, BullMQ queues disabled: ${error instanceof Error ? error.message : 'Connection failed'}`,
         'QueueService',
       );
       this.isInitialized = false;
+      this.resolveInit(); // Unblock waiters even on failure
     }
   }
 
