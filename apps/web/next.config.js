@@ -69,14 +69,22 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self' data:",
-              "connect-src 'self' " + (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') + " " + (() => {
-                try {
-                  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-                  const host = new URL(apiUrl).host;
-                  return `wss://${host} ws://${host}`;
-                } catch {
-                  return 'ws://localhost:3000 wss://localhost:3000';
+              (() => {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+                // Build connect-src with specific WebSocket URLs (no wildcards)
+                const parts = ["'self'"];
+                if (apiUrl && apiUrl.startsWith('http')) {
+                  parts.push(apiUrl);
+                  try {
+                    const host = new URL(apiUrl).host;
+                    parts.push(`wss://${host}`);
+                    parts.push(`ws://${host}`);
+                  } catch { /* ignore parse errors */ }
+                } else {
+                  // Relative API URL (e.g. /api via proxy rewrite) — no external WS needed
+                  parts.push('/api');
                 }
+                return "connect-src " + parts.join(' ');
               })(),
               "frame-ancestors 'none'",
               "base-uri 'self'",

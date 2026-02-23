@@ -46,6 +46,8 @@ describe('ProductionService - Invariants metier', () => {
     productionConsumption: {
       create: jest.fn(),
       deleteMany: jest.fn(),
+      updateMany: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
     },
     stockMovement: {
       create: jest.fn(),
@@ -145,7 +147,7 @@ describe('ProductionService - Invariants metier', () => {
         id: 1,
         code: 'PF-001',
         name: 'Fromage',
-        recipe: { id: 1, outputQuantity: 10, batchWeight: 5 },
+        recipe: { id: 1, outputQuantity: 10, batchWeight: 5, name: 'Recette fromage', items: [{ id: 1, quantity: 100, productMpId: 1, productMp: { code: 'MP-LAIT', unit: 'L' } }] },
       });
       mockRecipeService.checkStockAvailability.mockResolvedValue({
         canProduce: false,
@@ -168,7 +170,7 @@ describe('ProductionService - Invariants metier', () => {
     });
 
     it('devrait creer un ordre avec les bonnes donnees', async () => {
-      const recipe = { id: 1, outputQuantity: 10, batchWeight: 5, name: 'Recette fromage' };
+      const recipe = { id: 1, outputQuantity: 10, batchWeight: 5, name: 'Recette fromage', items: [{ id: 1, quantity: 100, productMpId: 1, productMp: { code: 'MP-LAIT', unit: 'L' } }] };
       mockPrisma.productPf.findUnique.mockResolvedValue({
         id: 1,
         code: 'PF-001',
@@ -462,7 +464,7 @@ describe('ProductionService - Invariants metier', () => {
       });
       mockPrisma.lotMp.update.mockResolvedValue({});
       mockPrisma.stockMovement.create.mockResolvedValue({});
-      mockPrisma.productionConsumption.deleteMany.mockResolvedValue({});
+      mockPrisma.productionConsumption.updateMany.mockResolvedValue({ count: 1 });
       mockPrisma.productionOrder.update.mockResolvedValue({
         ...orderCompleted,
         status: 'CANCELLED',
@@ -482,9 +484,10 @@ describe('ProductionService - Invariants metier', () => {
           }),
         }),
       );
-      // Verifie que les consommations sont supprimees
-      expect(mockPrisma.productionConsumption.deleteMany).toHaveBeenCalledWith({
-        where: { productionOrderId: 1 },
+      // Verifie que les consommations sont marquees comme reversees (soft delete)
+      expect(mockPrisma.productionConsumption.updateMany).toHaveBeenCalledWith({
+        where: { productionOrderId: 1, isReversed: false },
+        data: expect.objectContaining({ isReversed: true }),
       });
       // Verifie l'audit log
       expect(mockAudit.log).toHaveBeenCalledWith(

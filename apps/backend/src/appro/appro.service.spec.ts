@@ -150,8 +150,8 @@ describe('ApproService - Business Invariants', () => {
         false,
       );
 
-      // 50 <= 150 (default seuilCommande) → A_COMMANDER
-      expect(state).toBe(StockState.A_COMMANDER);
+      // 50 <= 100 (default seuilSecurite = minStock) → SOUS_SEUIL (checked before seuilCommande)
+      expect(state).toBe(StockState.SOUS_SEUIL);
     });
   });
 

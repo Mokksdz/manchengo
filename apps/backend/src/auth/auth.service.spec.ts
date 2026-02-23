@@ -25,6 +25,7 @@ import {
 import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SecurityLogService } from '../security/security-log.service';
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -55,6 +56,11 @@ describe('AuthService', () => {
     get: jest.fn().mockReturnValue('7d'),
   };
 
+  const mockSecurityLogService = {
+    logLoginFailure: jest.fn().mockResolvedValue(undefined),
+    logLoginSuccess: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -62,6 +68,7 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: SecurityLogService, useValue: mockSecurityLogService },
       ],
     }).compile();
 
@@ -314,7 +321,7 @@ describe('AuthService', () => {
       await authService.changePassword('user-1', 'AncienMdp1!x', 'NouveauMdp1!x');
 
       const updateCall = mockPrisma.user.update.mock.calls[0][0];
-      expect(updateCall.data.passwordHash).toMatch(/^\$2b\$10\$/);
+      expect(updateCall.data.passwordHash).toMatch(/^\$2b\$12\$/);
       expect(updateCall.data.passwordHash).not.toBe('NouveauMdp1!x');
     });
   });
@@ -433,7 +440,7 @@ describe('AuthService', () => {
     it('devrait hasher le mot de passe avant stockage', async () => {
       mockPrisma.user.findFirst.mockResolvedValue(null);
       mockPrisma.user.create.mockImplementation(async ({ data }: any) => {
-        expect(data.passwordHash).toMatch(/^\$2b\$10\$/);
+        expect(data.passwordHash).toMatch(/^\$2b\$12\$/);
         expect(data.passwordHash).not.toBe('MotDePasse1!x');
         return { id: 'new-id', code: data.code, email: data.email };
       });
