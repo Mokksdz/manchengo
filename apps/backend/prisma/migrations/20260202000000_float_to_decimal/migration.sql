@@ -30,6 +30,4 @@ ALTER TABLE "purchase_order_items" ALTER COLUMN "quantity_received" SET DATA TYP
 ALTER TABLE "purchase_order_items" ALTER COLUMN "unit_price" SET DATA TYPE DECIMAL(18,4);
 ALTER TABLE "purchase_order_items" ALTER COLUMN "total_ht" SET DATA TYPE DECIMAL(18,4);
 
--- AlterTable: demandes_appro_lignes
-ALTER TABLE "demandes_appro_lignes" ALTER COLUMN "quantite_demandee" SET DATA TYPE DECIMAL(18,4);
-ALTER TABLE "demandes_appro_lignes" ALTER COLUMN "quantite_validee" SET DATA TYPE DECIMAL(18,4);
+-- AlterTable: demandes_appro_lignes (skipped — table does not exist in current schema)

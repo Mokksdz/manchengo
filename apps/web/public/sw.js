@@ -12,7 +12,28 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-const CACHE_VERSION = 'v1.0.2';
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEV GUARD — Auto-unregister in development to prevent stale-cache 503 errors
+// ═══════════════════════════════════════════════════════════════════════════════
+const IS_DEV = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+
+if (IS_DEV) {
+  self.addEventListener('install', () => self.skipWaiting());
+  self.addEventListener('activate', (event) => {
+    event.waitUntil(
+      caches.keys()
+        .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+        .then(() => {
+          console.log('[SW] Dev mode: all caches cleared, unregistering SW...');
+          return self.registration.unregister();
+        })
+    );
+  });
+  console.log('[SW] Dev mode detected on ' + self.location.hostname + ' — SW will self-unregister');
+}
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CACHE_VERSION = 'v1.0.3';
 const STATIC_CACHE = `manchengo-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `manchengo-dynamic-${CACHE_VERSION}`;
 const API_CACHE = `manchengo-api-${CACHE_VERSION}`;
@@ -44,9 +65,9 @@ const NETWORK_ONLY_ROUTES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// INSTALL EVENT — Pre-cache static assets
+// INSTALL EVENT — Pre-cache static assets (production only)
 // ═══════════════════════════════════════════════════════════════════════════════
-self.addEventListener('install', (event) => {
+if (!IS_DEV) self.addEventListener('install', (event) => {
   console.log('[SW] Installing Service Worker...');
 
   event.waitUntil(
@@ -63,9 +84,9 @@ self.addEventListener('install', (event) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ACTIVATE EVENT — Clean old caches
+// ACTIVATE EVENT — Clean old caches (production only)
 // ═══════════════════════════════════════════════════════════════════════════════
-self.addEventListener('activate', (event) => {
+if (!IS_DEV) self.addEventListener('activate', (event) => {
   console.log('[SW] Activating Service Worker...');
 
   event.waitUntil(
@@ -91,9 +112,9 @@ self.addEventListener('activate', (event) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// FETCH EVENT — Caching strategies
+// FETCH EVENT — Caching strategies (production only)
 // ═══════════════════════════════════════════════════════════════════════════════
-self.addEventListener('fetch', (event) => {
+if (!IS_DEV) self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
@@ -101,6 +122,12 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin ||
       url.protocol === 'chrome-extension:' ||
       url.pathname.startsWith('/ws')) {
+    return;
+  }
+
+  // In development: skip caching for Next.js HMR and static chunks
+  // These change on every reload and stale cache causes 503 errors
+  if (url.pathname.startsWith('/_next/')) {
     return;
   }
 
@@ -278,7 +305,7 @@ async function queueOfflineRequest(request) {
 /**
  * Process offline queue when back online
  */
-self.addEventListener('sync', (event) => {
+if (!IS_DEV) self.addEventListener('sync', (event) => {
   if (event.tag === OFFLINE_SYNC_QUEUE) {
     event.waitUntil(processOfflineQueue());
   }
@@ -318,7 +345,7 @@ async function processOfflineQueue() {
 // PUSH NOTIFICATIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-self.addEventListener('push', (event) => {
+if (!IS_DEV) self.addEventListener('push', (event) => {
   if (!event.data) return;
 
   const data = event.data.json();
@@ -337,7 +364,7 @@ self.addEventListener('push', (event) => {
   );
 });
 
-self.addEventListener('notificationclick', (event) => {
+if (!IS_DEV) self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   const targetUrl = event.notification.data?.url || '/dashboard';
@@ -415,4 +442,4 @@ function openIndexedDB() {
   });
 }
 
-console.log('[SW] Service Worker loaded successfully');
+if (!IS_DEV) console.log('[SW] Service Worker loaded successfully');

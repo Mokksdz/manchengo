@@ -139,9 +139,17 @@ export class QueueService implements OnModuleDestroy {
       return;
     }
 
-    const redisHost = this.configService.get<string>('REDIS_HOST', 'localhost');
+    const redisHost = this.configService.get<string>('REDIS_HOST', '') || '';
     const redisPort = this.configService.get<number>('REDIS_PORT', 6379);
     const redisPassword = this.configService.get<string>('REDIS_PASSWORD', '');
+
+    // Skip Redis entirely if REDIS_HOST is not configured
+    if (!redisHost) {
+      this.logger.warn('No REDIS_HOST configured, BullMQ queues disabled', 'QueueService');
+      this.isInitialized = false;
+      this.resolveInit();
+      return;
+    }
 
     const connection = {
       host: redisHost,
@@ -155,10 +163,27 @@ export class QueueService implements OnModuleDestroy {
     };
 
     try {
-      // Test Redis connection first
+      // Fast TCP check before attempting ioredis (prevents hanging when Redis is down)
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const net = require('net');
+      await new Promise<void>((resolve, reject) => {
+        const sock = net.createConnection({ host: redisHost, port: redisPort, timeout: 2000 });
+        sock.once('connect', () => { sock.destroy(); resolve(); });
+        sock.once('timeout', () => { sock.destroy(); reject(new Error(`Redis TCP timeout (${redisHost}:${redisPort})`)); });
+        sock.once('error', (err: Error) => { sock.destroy(); reject(err); });
+      });
+
+      // TCP reachable — now test Redis protocol
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const IORedis = require('ioredis');
-      const testConn = new IORedis({ ...connection, lazyConnect: true, connectTimeout: 5000 });
+      const testConn = new IORedis({
+        ...connection,
+        lazyConnect: true,
+        connectTimeout: 3000,
+        maxRetriesPerRequest: 1,
+        retryStrategy: () => null,
+        enableOfflineQueue: false,
+      });
       await testConn.connect();
       await testConn.ping();
       await testConn.quit();
@@ -275,6 +300,17 @@ export class QueueService implements OnModuleDestroy {
 
     this.processors.set(queueName, processor);
 
+    // Wait for initialization before creating workers — prevents Redis connection spam in dev
+    this.waitForInitialization().then((initialized) => {
+      if (!initialized) {
+        this.logger.debug(`Skipping worker for "${queueName}" — Redis not available`, 'QueueService');
+        return;
+      }
+      this._createWorker(queueName, processor);
+    });
+  }
+
+  private _createWorker(queueName: QueueName, processor: (job: Job) => Promise<unknown>): void {
     const redisHost = this.configService.get<string>('REDIS_HOST', 'localhost');
     const redisPort = this.configService.get<number>('REDIS_PORT', 6379);
     const redisPassword = this.configService.get<string>('REDIS_PASSWORD', '');
@@ -420,7 +456,8 @@ export class QueueService implements OnModuleDestroy {
   ): Promise<Job<T>> {
     const queue = this.queues.get(queueName);
     if (!queue) {
-      throw new Error(`Queue "${queueName}" not found`);
+      this.logger.warn(`Queue "${queueName}" not available (Redis disabled), scheduled job skipped`, 'QueueService');
+      return { id: 'skipped' } as Job<T>;
     }
 
     const job = await queue.add(jobName, data, {

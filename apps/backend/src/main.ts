@@ -15,15 +15,20 @@ function validateEnv() {
   const isProduction = process.env.NODE_ENV === 'production';
   const required: string[] = ['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'QR_SECRET_KEY'];
 
+  // Production requires Redis for distributed rate limiting
+  if (isProduction) {
+    required.push('REDIS_HOST', 'REDIS_PASSWORD');
+  }
+
   const missing = required.filter((key) => !process.env[key]);
   if (missing.length > 0) {
     throw new Error(
-      `Missing required environment variables: ${missing.join(', ')}. ` +
-      `Please check your .env file or environment configuration.`,
+      `FATAL: Missing required environment variables: ${missing.join(', ')}. ` +
+      `Application cannot start. Check your .env file or environment configuration.`,
     );
   }
 
-  // Warn about insecure defaults in production
+  // Fail hard on insecure defaults in production
   if (isProduction) {
     const insecureDefaults: Record<string, string> = {
       JWT_SECRET: 'your-super-secret-jwt-key-change-in-production-min-32-chars',
@@ -37,6 +42,14 @@ function validateEnv() {
           `Change it before deploying to production!`,
         );
       }
+    }
+
+    // Enforce minimum secret length
+    if (process.env.JWT_SECRET!.length < 32) {
+      throw new Error('SECURITY: JWT_SECRET must be at least 32 characters in production.');
+    }
+    if (process.env.JWT_REFRESH_SECRET!.length < 32) {
+      throw new Error('SECURITY: JWT_REFRESH_SECRET must be at least 32 characters in production.');
     }
   }
 }

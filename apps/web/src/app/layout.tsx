@@ -7,11 +7,15 @@ import { SkipToContent } from '@/components/ui/skip-to-content';
 const manrope = Manrope({
   subsets: ['latin'],
   variable: '--font-body',
+  display: 'swap',
+  preload: true,
 });
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-display',
+  display: 'swap',
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -25,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" dir="ltr" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning>
       <body className={`${manrope.variable} ${spaceGrotesk.variable} font-body`}>
         <SkipToContent />
         <Providers>{children}</Providers>

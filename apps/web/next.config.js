@@ -19,8 +19,67 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react', '@tanstack/react-query', 'recharts'],
   },
 
-  // 'export' for Tauri desktop (static), 'standalone' for Docker/production
-  output: isDesktopExport ? 'export' : 'standalone',
+  // 'export' for Tauri desktop (static), 'standalone' for Docker, undefined for Vercel
+  output: isDesktopExport ? 'export' : (process.env.DOCKER_BUILD ? 'standalone' : undefined),
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SECURITY HEADERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+          },
+          {
+            key: 'X-Permitted-Cross-Domain-Policies',
+            value: 'none',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              // 'unsafe-eval' required for Next.js hot-reload / React Refresh in dev
+              process.env.NODE_ENV === 'development'
+                ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+                : "script-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob:",
+              "font-src 'self' data:",
+              "connect-src 'self' " + (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') + " wss: ws:",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "object-src 'none'",
+            ].join('; '),
+          },
+        ],
+      },
+    ];
+  },
 
   // Proxy API requests to backend (dev only; not available in static export)
   ...(isDesktopExport ? {} : {

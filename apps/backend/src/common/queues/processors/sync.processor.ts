@@ -47,9 +47,14 @@ export class SyncProcessor implements OnModuleInit {
     this.queueService.registerProcessor(QueueName.SYNC, this.process.bind(this));
     this.logger.info('Sync processor registered', 'SyncProcessor');
 
-    // Attendre l'initialisation des queues avant de planifier
-    await this.queueService.waitForInitialization();
-    await this.scheduleAutomaticSync();
+    // Schedule jobs after initialization (non-blocking to avoid deadlock)
+    this.queueService.waitForInitialization().then(async (initialized) => {
+      if (initialized) {
+        await this.scheduleAutomaticSync();
+      } else {
+        this.logger.warn('Queue not initialized, automatic sync disabled', 'SyncProcessor');
+      }
+    });
   }
 
   /**

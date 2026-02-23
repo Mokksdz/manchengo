@@ -49,9 +49,14 @@ export class AlertProcessor implements OnModuleInit {
     this.queueService.registerProcessor(QueueName.ALERTS, this.process.bind(this));
     this.logger.info('Alert processor registered', 'AlertProcessor');
 
-    // Attendre l'initialisation des queues avant de planifier
-    await this.queueService.waitForInitialization();
-    await this.scheduleAutomaticScans();
+    // Schedule jobs after initialization (non-blocking to avoid deadlock)
+    this.queueService.waitForInitialization().then(async (initialized) => {
+      if (initialized) {
+        await this.scheduleAutomaticScans();
+      } else {
+        this.logger.warn('Queue not initialized, automatic alert scans disabled', 'AlertProcessor');
+      }
+    });
   }
 
   /**

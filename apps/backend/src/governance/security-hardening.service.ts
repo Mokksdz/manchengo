@@ -1,53 +1,30 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, ForbiddenException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit';
 import { LoggerService } from '../common/logger';
 import { AuditAction, AuditSeverity, UserRole } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
  * SECURITY HARDENING SERVICE - Anomaly detection & emergency controls
  * ═══════════════════════════════════════════════════════════════════════════════
- * 
- * PURPOSE: Detect and respond to security threats and anomalies
- * 
- * CAPABILITIES:
- *   1. Brute-force detection (login attempts)
- *   2. Anomaly detection (unusual patterns)
- *   3. Rate limiting for sensitive operations
- *   4. Emergency read-only mode
- *   5. Security alert thresholds
- * 
- * DEPLOYMENT CONTEXT:
- *   - Factory ERP with multiple shifts
- *   - Assume shared terminals, stress, fatigue
- *   - False positives must not block production
- * 
- * ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * Rate limiting backed by Redis for distributed deployments.
+ * Falls back to in-memory Map when Redis is unavailable.
  */
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECURITY THRESHOLDS - Configurable limits
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export interface SecurityThresholds {
-  // Login security
   maxLoginAttemptsPerHour: number;
   lockoutDurationMinutes: number;
-  
-  // Rate limiting
   maxAdminActionsPerMinute: number;
   maxStockMovementsPerMinute: number;
   maxBulkOperationsPerHour: number;
-  
-  // Anomaly detection
-  unusualHoursStart: number; // 22:00
-  unusualHoursEnd: number;   // 05:00
-  maxValueChangePercent: number; // Flag if stock changes > X%
-  
-  // Alert thresholds
-  securityEventsAlertThreshold: number; // Alert after N security events
+  unusualHoursStart: number;
+  unusualHoursEnd: number;
+  maxValueChangePercent: number;
+  securityEventsAlertThreshold: number;
   failedLoginsAlertThreshold: number;
 }
 
@@ -64,15 +41,11 @@ export const DEFAULT_THRESHOLDS: SecurityThresholds = {
   failedLoginsAlertThreshold: 3,
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// EMERGENCY MODE
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export enum EmergencyMode {
   NORMAL = 'NORMAL',
-  READ_ONLY = 'READ_ONLY',      // No writes allowed
-  LOCKDOWN = 'LOCKDOWN',        // Only admins can access
-  MAINTENANCE = 'MAINTENANCE',  // Scheduled maintenance
+  READ_ONLY = 'READ_ONLY',
+  LOCKDOWN = 'LOCKDOWN',
+  MAINTENANCE = 'MAINTENANCE',
 }
 
 interface RateLimitEntry {
@@ -81,18 +54,28 @@ interface RateLimitEntry {
 }
 
 @Injectable()
-export class SecurityHardeningService {
+export class SecurityHardeningService implements OnModuleInit, OnModuleDestroy {
   private thresholds: SecurityThresholds;
   private emergencyMode: EmergencyMode = EmergencyMode.NORMAL;
   private emergencyModeReason: string | null = null;
   private emergencyModeSetBy: string | null = null;
   private emergencyModeSetAt: Date | null = null;
-  
-  // In-memory rate limiting (would use Redis in production)
+
+  // Redis-backed rate limiting
+  private redis: Redis | null = null;
+  private useRedis = false;
+
+  // In-memory fallback stores
   private loginAttempts = new Map<string, RateLimitEntry>();
   private adminActions = new Map<string, RateLimitEntry>();
   private stockMovements = new Map<string, RateLimitEntry>();
   private lockedUsers = new Map<string, Date>();
+
+  // Periodic cleanup interval handle
+  private cleanupInterval: NodeJS.Timeout | null = null;
+
+  // Maximum size for in-memory fallback maps
+  private readonly MAX_MAP_SIZE = 10_000;
 
   constructor(
     private prisma: PrismaService,
@@ -104,8 +87,96 @@ export class SecurityHardeningService {
     this.thresholds = this.loadThresholds();
   }
 
+  async onModuleInit() {
+    const redisHost = this.configService.get<string>('REDIS_HOST');
+    const redisPort = this.configService.get<number>('REDIS_PORT', 6379);
+    const redisPassword = this.configService.get<string>('REDIS_PASSWORD');
+
+    if (redisHost) {
+      try {
+        // Fast TCP probe to fail quickly when Redis is down
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const net = require('net');
+        await new Promise<void>((resolve, reject) => {
+          const sock = net.createConnection({ host: redisHost, port: redisPort, timeout: 2000 });
+          sock.once('connect', () => { sock.destroy(); resolve(); });
+          sock.once('timeout', () => { sock.destroy(); reject(new Error('Redis TCP timeout')); });
+          sock.once('error', (err: Error) => { sock.destroy(); reject(err); });
+        });
+
+        this.redis = new Redis({
+          host: redisHost,
+          port: redisPort,
+          password: redisPassword || undefined,
+          db: this.configService.get<number>('REDIS_DB', 0),
+          keyPrefix: 'sec_rl:',
+          maxRetriesPerRequest: 3,
+          lazyConnect: true,
+          enableReadyCheck: true,
+        });
+
+        await this.redis.connect();
+        this.useRedis = true;
+        this.logger.log('Security rate limiter using Redis (distributed-safe)');
+      } catch (err) {
+        this.logger.warn(
+          `Redis unavailable for security rate limiter, falling back to in-memory: ${err instanceof Error ? err.message : err}`,
+        );
+        this.redis = null;
+        this.useRedis = false;
+      }
+    }
+
+    // Periodic cleanup for in-memory stores (every 5 minutes)
+    this.cleanupInterval = setInterval(() => this.cleanupExpiredEntries(), 300_000);
+  }
+
+  async onModuleDestroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
+    if (this.redis) {
+      try {
+        await this.redis.quit();
+      } catch {
+        // Ignore disconnect errors during shutdown
+      }
+    }
+  }
+
+  private cleanupExpiredEntries(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.loginAttempts) {
+      if (now - entry.windowStart > 3_600_000) this.loginAttempts.delete(key);
+    }
+    for (const [key, entry] of this.adminActions) {
+      if (now - entry.windowStart > 3_600_000) this.adminActions.delete(key);
+    }
+    for (const [key, entry] of this.stockMovements) {
+      if (now - entry.windowStart > 3_600_000) this.stockMovements.delete(key);
+    }
+    for (const [key, date] of this.lockedUsers) {
+      if (date < new Date()) this.lockedUsers.delete(key);
+    }
+
+    // Cap map sizes to prevent unbounded growth
+    this.evictOldestEntries(this.loginAttempts, this.MAX_MAP_SIZE);
+    this.evictOldestEntries(this.adminActions, this.MAX_MAP_SIZE);
+    this.evictOldestEntries(this.stockMovements, this.MAX_MAP_SIZE);
+    this.evictOldestEntries(this.lockedUsers, this.MAX_MAP_SIZE);
+  }
+
+  private evictOldestEntries(map: Map<string, any>, maxSize: number): void {
+    if (map.size <= maxSize) return;
+    const entriesToRemove = map.size - maxSize;
+    const iterator = map.keys();
+    for (let i = 0; i < entriesToRemove; i++) {
+      const key = iterator.next().value;
+      if (key !== undefined) map.delete(key);
+    }
+  }
+
   private loadThresholds(): SecurityThresholds {
-    // Load from config or use defaults
     return {
       ...DEFAULT_THRESHOLDS,
       maxLoginAttemptsPerHour: this.configService.get('SECURITY_MAX_LOGIN_ATTEMPTS', 10),
@@ -137,13 +208,12 @@ export class SecurityHardeningService {
     actorId: string,
     actorRole: UserRole,
   ): Promise<void> {
-    // Only ADMIN can set emergency mode
     if (actorRole !== UserRole.ADMIN) {
       throw new ForbiddenException('Only ADMIN can set emergency mode');
     }
 
     const previousMode = this.emergencyMode;
-    
+
     this.emergencyMode = mode;
     this.emergencyModeReason = reason;
     this.emergencyModeSetBy = actorId;
@@ -175,7 +245,7 @@ export class SecurityHardeningService {
       case EmergencyMode.NORMAL:
         return true;
       case EmergencyMode.READ_ONLY:
-        return true; // Read allowed for all
+        return true;
       case EmergencyMode.LOCKDOWN:
         return userRole === UserRole.ADMIN;
       case EmergencyMode.MAINTENANCE:
@@ -186,24 +256,95 @@ export class SecurityHardeningService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // BRUTE-FORCE DETECTION
+  // BRUTE-FORCE DETECTION (Redis-backed)
   // ═══════════════════════════════════════════════════════════════════════════
 
   async recordLoginAttempt(
-    identifier: string, // email or IP
+    identifier: string,
+    success: boolean,
+    ipAddress?: string,
+  ): Promise<{ blocked: boolean; remainingAttempts: number }> {
+    if (this.useRedis && this.redis) {
+      return this.recordLoginAttemptRedis(identifier, success, ipAddress);
+    }
+    return this.recordLoginAttemptMemory(identifier, success, ipAddress);
+  }
+
+  private async recordLoginAttemptRedis(
+    identifier: string,
+    success: boolean,
+    ipAddress?: string,
+  ): Promise<{ blocked: boolean; remainingAttempts: number }> {
+    try {
+      const lockKey = `lock:${identifier}`;
+      const attemptKey = `login:${identifier}`;
+      const windowSeconds = 3600; // 1 hour
+
+      // Check if locked
+      const lockTtl = await this.redis!.ttl(lockKey);
+      if (lockTtl > 0) {
+        return { blocked: true, remainingAttempts: 0 };
+      }
+
+      if (success) {
+        await this.redis!.del(attemptKey);
+        await this.redis!.del(lockKey);
+        return { blocked: false, remainingAttempts: this.thresholds.maxLoginAttemptsPerHour };
+      }
+
+      const count = await this.redis!.incr(attemptKey);
+      if (count === 1) {
+        await this.redis!.expire(attemptKey, windowSeconds);
+      }
+
+      if (count >= this.thresholds.maxLoginAttemptsPerHour) {
+        const lockSeconds = this.thresholds.lockoutDurationMinutes * 60;
+        await this.redis!.setex(lockKey, lockSeconds, '1');
+
+        await this.auditService.log({
+          actor: { id: identifier, role: UserRole.COMMERCIAL },
+          action: AuditAction.AUTH_LOGIN_FAILED,
+          severity: AuditSeverity.SECURITY,
+          entityType: 'User',
+          entityId: identifier,
+          metadata: {
+            reason: 'Too many failed attempts',
+            lockedForMinutes: this.thresholds.lockoutDurationMinutes,
+            ipAddress,
+          },
+        });
+
+        this.logger.warn(
+          `User ${identifier} locked due to too many failed login attempts`,
+          'SecurityHardeningService',
+        );
+
+        return { blocked: true, remainingAttempts: 0 };
+      }
+
+      return {
+        blocked: false,
+        remainingAttempts: Math.max(0, this.thresholds.maxLoginAttemptsPerHour - count),
+      };
+    } catch (err) {
+      this.logger.warn(`Redis login tracking failed, using memory: ${err instanceof Error ? err.message : err}`);
+      return this.recordLoginAttemptMemory(identifier, success, ipAddress);
+    }
+  }
+
+  private async recordLoginAttemptMemory(
+    identifier: string,
     success: boolean,
     ipAddress?: string,
   ): Promise<{ blocked: boolean; remainingAttempts: number }> {
     const now = Date.now();
-    const windowMs = 60 * 60 * 1000; // 1 hour
+    const windowMs = 60 * 60 * 1000;
 
-    // Check if user is locked
     const lockUntil = this.lockedUsers.get(identifier);
     if (lockUntil && lockUntil > new Date()) {
       return { blocked: true, remainingAttempts: 0 };
     }
 
-    // Get or create rate limit entry
     let entry = this.loginAttempts.get(identifier);
     if (!entry || now - entry.windowStart > windowMs) {
       entry = { count: 0, windowStart: now };
@@ -213,20 +354,19 @@ export class SecurityHardeningService {
       entry.count++;
       this.loginAttempts.set(identifier, entry);
 
-      // Check if threshold exceeded
       if (entry.count >= this.thresholds.maxLoginAttemptsPerHour) {
-        const lockUntil = new Date(now + this.thresholds.lockoutDurationMinutes * 60 * 1000);
-        this.lockedUsers.set(identifier, lockUntil);
+        const lockDate = new Date(now + this.thresholds.lockoutDurationMinutes * 60 * 1000);
+        this.lockedUsers.set(identifier, lockDate);
 
         await this.auditService.log({
-          actor: { id: identifier, role: UserRole.COMMERCIAL }, // Default role for unknown
+          actor: { id: identifier, role: UserRole.COMMERCIAL },
           action: AuditAction.AUTH_LOGIN_FAILED,
           severity: AuditSeverity.SECURITY,
           entityType: 'User',
           entityId: identifier,
           metadata: {
             reason: 'Too many failed attempts',
-            lockedUntil: lockUntil.toISOString(),
+            lockedUntil: lockDate.toISOString(),
             ipAddress,
           },
         });
@@ -239,23 +379,76 @@ export class SecurityHardeningService {
         return { blocked: true, remainingAttempts: 0 };
       }
     } else {
-      // Reset on successful login
       this.loginAttempts.delete(identifier);
       this.lockedUsers.delete(identifier);
     }
 
-    const remaining = this.thresholds.maxLoginAttemptsPerHour - entry.count;
+    const remaining = this.thresholds.maxLoginAttemptsPerHour - (entry?.count || 0);
     return { blocked: false, remainingAttempts: Math.max(0, remaining) };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // RATE LIMITING FOR SENSITIVE OPERATIONS
+  // RATE LIMITING FOR SENSITIVE OPERATIONS (Redis-backed)
   // ═══════════════════════════════════════════════════════════════════════════
 
   async checkRateLimit(
     userId: string,
     operationType: 'admin' | 'stock' | 'bulk',
   ): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
+    if (this.useRedis && this.redis) {
+      return this.checkRateLimitRedis(userId, operationType);
+    }
+    return this.checkRateLimitMemory(userId, operationType);
+  }
+
+  private async checkRateLimitRedis(
+    userId: string,
+    operationType: 'admin' | 'stock' | 'bulk',
+  ): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
+    let windowSeconds: number;
+    let maxCount: number;
+
+    switch (operationType) {
+      case 'admin':
+        windowSeconds = 60;
+        maxCount = this.thresholds.maxAdminActionsPerMinute;
+        break;
+      case 'stock':
+        windowSeconds = 60;
+        maxCount = this.thresholds.maxStockMovementsPerMinute;
+        break;
+      case 'bulk':
+        windowSeconds = 3600;
+        maxCount = this.thresholds.maxBulkOperationsPerHour;
+        break;
+      default:
+        return { allowed: true, retryAfterSeconds: 0 };
+    }
+
+    try {
+      const key = `op:${operationType}:${userId}`;
+      const count = await this.redis!.incr(key);
+
+      if (count === 1) {
+        await this.redis!.expire(key, windowSeconds);
+      }
+
+      if (count > maxCount) {
+        const ttl = await this.redis!.ttl(key);
+        return { allowed: false, retryAfterSeconds: Math.max(ttl, 1) };
+      }
+
+      return { allowed: true, retryAfterSeconds: 0 };
+    } catch (err) {
+      this.logger.warn(`Redis rate limit check failed: ${err instanceof Error ? err.message : err}`);
+      return this.checkRateLimitMemory(userId, operationType);
+    }
+  }
+
+  private checkRateLimitMemory(
+    userId: string,
+    operationType: 'admin' | 'stock' | 'bulk',
+  ): { allowed: boolean; retryAfterSeconds: number } {
     const now = Date.now();
     let windowMs: number;
     let maxCount: number;
@@ -263,7 +456,7 @@ export class SecurityHardeningService {
 
     switch (operationType) {
       case 'admin':
-        windowMs = 60 * 1000; // 1 minute
+        windowMs = 60 * 1000;
         maxCount = this.thresholds.maxAdminActionsPerMinute;
         store = this.adminActions;
         break;
@@ -273,9 +466,9 @@ export class SecurityHardeningService {
         store = this.stockMovements;
         break;
       case 'bulk':
-        windowMs = 60 * 60 * 1000; // 1 hour
+        windowMs = 60 * 60 * 1000;
         maxCount = this.thresholds.maxBulkOperationsPerHour;
-        store = this.adminActions; // Reuse admin store
+        store = this.adminActions;
         break;
       default:
         return { allowed: true, retryAfterSeconds: 0 };
@@ -303,7 +496,7 @@ export class SecurityHardeningService {
 
   isUnusualHours(): boolean {
     const hour = new Date().getHours();
-    return hour >= this.thresholds.unusualHoursStart || 
+    return hour >= this.thresholds.unusualHoursStart ||
            hour < this.thresholds.unusualHoursEnd;
   }
 
@@ -317,7 +510,7 @@ export class SecurityHardeningService {
     }
 
     const changePercent = Math.abs(proposedChange / currentStock) * 100;
-    
+
     if (changePercent > this.thresholds.maxValueChangePercent) {
       return {
         isAnomaly: true,
@@ -362,16 +555,13 @@ export class SecurityHardeningService {
       failedLogins,
       securityEvents: securityLogs,
       lockedUsers: this.lockedUsers.size,
-      anomaliesDetected: 0, // Would track separately
+      anomaliesDetected: 0,
       emergencyMode: this.emergencyMode,
     };
   }
 
-  /**
-   * Check if security alerts should be triggered
-   */
   async shouldAlertSecurity(): Promise<{ alert: boolean; reasons: string[] }> {
-    const stats = await this.getSecurityStats(1); // Last hour
+    const stats = await this.getSecurityStats(1);
     const reasons: string[] = [];
 
     if (stats.failedLogins >= this.thresholds.failedLoginsAlertThreshold) {

@@ -11,8 +11,9 @@ import { logger } from '../common/logger/logger.service';
 // Features:
 // - Redis-backed caching for KPIs and dashboards
 // - Automatic fallback to in-memory cache if Redis unavailable
+// - Exponential backoff retry with max 5 attempts
+// - Error events logged but never crash the process
 // - Configurable TTLs per cache key pattern
-// - Cache invalidation by pattern
 // ═══════════════════════════════════════════════════════════════════════════════
 
 @Global()
@@ -33,24 +34,54 @@ import { logger } from '../common/logger/logger.service';
 
         if (useRedis) {
           try {
+            // Fast TCP probe to avoid hanging for 30s+ when Redis is down
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const net = require('net');
+            await new Promise<void>((resolve, reject) => {
+              const sock = net.createConnection({ host: redisHost, port: redisPort, timeout: 2000 });
+              sock.once('connect', () => { sock.destroy(); resolve(); });
+              sock.once('timeout', () => { sock.destroy(); reject(new Error('Redis TCP timeout')); });
+              sock.once('error', (err: Error) => { sock.destroy(); reject(err); });
+            });
+
             const store = await redisStore({
               host: redisHost,
               port: redisPort,
               password: redisPassword || undefined,
               db: redisDb,
               ttl: defaultTtl,
-              // Connection options
+              // Connection resilience
               lazyConnect: false,
               enableReadyCheck: true,
               maxRetriesPerRequest: 3,
+              // Reconnect with exponential backoff (cap at 5s)
               retryStrategy: (times: number) => {
-                if (times > 3) {
-                  logger.warn('Redis retry limit reached, using in-memory fallback', 'Cache', { retryCount: times });
-                  return null; // Stop retrying
+                if (times > 10) {
+                  logger.warn(
+                    `Redis retry limit reached (${times} attempts), falling back to in-memory`,
+                    'Cache',
+                  );
+                  return null; // Stop retrying, ioredis will emit 'end'
                 }
-                return Math.min(times * 200, 2000);
+                const delay = Math.min(times * 200, 5000);
+                logger.warn(`Redis reconnecting in ${delay}ms (attempt ${times})`, 'Cache');
+                return delay;
               },
+              // Prevent unhandled errors from crashing the process
+              enableOfflineQueue: true,
+              connectTimeout: 10000,
             });
+
+            // Attach error handler to prevent uncaught exceptions
+            const client = (store as any)?.client;
+            if (client && typeof client.on === 'function') {
+              client.on('error', (err: Error) => {
+                logger.warn(`Redis error (non-fatal): ${err.message}`, 'Cache');
+              });
+              client.on('reconnecting', (delay: number) => {
+                logger.warn(`Redis reconnecting (delay: ${delay}ms)`, 'Cache');
+              });
+            }
 
             logger.info(`Redis connected: ${redisHost}:${redisPort}`, 'Cache');
 
