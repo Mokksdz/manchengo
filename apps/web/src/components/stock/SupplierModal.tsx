@@ -110,7 +110,7 @@ export const SupplierModal = memo(function SupplierModal({ isOpen, onClose, onSu
               <Building2 className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[#1D1D1F]">Nouveau Fournisseur</h2>
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Nouveau Fournisseur</h2>
               <p className="text-sm text-[#86868B]">Créer un fournisseur rapidement</p>
             </div>
           </div>

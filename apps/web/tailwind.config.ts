@@ -65,9 +65,34 @@ const config: Config = {
         'apple-sm': '6px',
         'apple-md': '10px',
         'apple-lg': '16px',
+        'bento-sm': '24px',
+        'bento-md': '28px',
+        'bento-lg': '32px',
+        'bento-xl': '40px',
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      keyframes: {
+        'pulse-slow': {
+          '0%, 100%': { opacity: '0.15', transform: 'scale(1)' },
+          '50%': { opacity: '0.35', transform: 'scale(1.08)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        shake: {
+          '10%, 90%': { transform: 'rotate(-2deg)' },
+          '20%, 80%': { transform: 'rotate(2deg)' },
+          '30%, 50%, 70%': { transform: 'rotate(-4deg)' },
+          '40%, 60%': { transform: 'rotate(4deg)' },
+        },
+      },
+      animation: {
+        'pulse-slow': 'pulse-slow 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        shimmer: 'shimmer 2s linear infinite',
+        shake: 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
       },
       boxShadow: {
         'apple-card': '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',

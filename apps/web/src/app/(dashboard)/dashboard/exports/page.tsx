@@ -144,7 +144,7 @@ export default function ExportsPage() {
       <div className="flex items-center justify-center h-64">
         {isAccessDenied ? (
           <div className="glass-card p-8 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF3B30]/20 to-[#FF3B30]/10 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-[28px] bg-gradient-to-br from-[#FF3B30]/20 to-[#FF3B30]/10 flex items-center justify-center mx-auto mb-3">
               <Download className="w-6 h-6 text-[#FF3B30]" />
             </div>
             <p className="text-lg font-semibold text-[#1D1D1F]">Accès interdit</p>
@@ -171,7 +171,7 @@ export default function ExportsPage() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF9500]/10 to-[#FF9500]/5 flex items-center justify-center">
             <Calendar className="w-4 h-4 text-[#FF9500]" />
           </div>
-          <h3 className="font-semibold text-[#1D1D1F]">Période</h3>
+          <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Période</h3>
         </div>
         <div className="flex flex-wrap gap-6 items-end">
           <div>
@@ -193,7 +193,7 @@ export default function ExportsPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-2xl text-sm font-medium text-[#FF3B30]">
+        <div className="flex items-center gap-3 p-4 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-[28px] text-sm font-medium text-[#FF3B30]">
           <FileText className="w-5 h-5 flex-shrink-0" />
           {error}
         </div>
@@ -206,7 +206,7 @@ export default function ExportsPage() {
             <FileText className="w-4 h-4 text-[#007AFF]" />
           </div>
           <div>
-            <h3 className="font-semibold text-[#1D1D1F]">Exports Fiscaux</h3>
+            <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Exports Fiscaux</h3>
             <p className="text-[11px] text-[#86868B]">Documents conformes à la réglementation algérienne</p>
           </div>
         </div>
@@ -221,7 +221,7 @@ export default function ExportsPage() {
                   {exportType.icon}
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-[#1D1D1F]">{exportType.name}</h3>
+                  <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">{exportType.name}</h3>
                   <p className="text-sm text-[#86868B] mt-1">{exportType.description}</p>
                   <div className="flex gap-2 mt-4">
                     <button
@@ -257,7 +257,7 @@ export default function ExportsPage() {
               <Package className="w-4 h-4 text-[#FF9500]" />
             </div>
             <div>
-              <h3 className="font-semibold text-[#1D1D1F]">Matières Premières (MP)</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Matières Premières (MP)</h3>
               <p className="text-[11px] text-[#86868B]">Stocks et réceptions</p>
             </div>
           </div>
@@ -306,7 +306,7 @@ export default function ExportsPage() {
               <Factory className="w-4 h-4 text-[#AF52DE]" />
             </div>
             <div>
-              <h3 className="font-semibold text-[#1D1D1F]">Produits Finis (PF)</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Produits Finis (PF)</h3>
               <p className="text-[11px] text-[#86868B]">Stocks et production</p>
             </div>
           </div>
@@ -355,7 +355,7 @@ export default function ExportsPage() {
           <FileText className="w-5 h-5 text-[#FF9500]" />
         </div>
         <div>
-          <h3 className="font-semibold text-[#1D1D1F]">Avis légal</h3>
+          <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Avis légal</h3>
           <p className="text-sm text-[#86868B] mt-1">
             Ces exports sont des instantanés en lecture seule des données fiscales.
             Les documents générés sont conformes aux exigences de la réglementation fiscale algérienne

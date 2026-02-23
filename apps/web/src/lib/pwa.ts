@@ -4,13 +4,28 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('PWA');
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SERVICE WORKER REGISTRATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-    console.log('[PWA] Service Workers not supported');
+    log.debug('[PWA] Service Workers not supported');
+    return null;
+  }
+
+  // Skip SW registration in development — it causes stale cache / 503 errors with HMR
+  if (process.env.NODE_ENV === 'development') {
+    // Unregister any existing SW from a previous session
+    const existingRegs = await navigator.serviceWorker.getRegistrations();
+    for (const reg of existingRegs) {
+      await reg.unregister();
+      log.debug('[PWA] Unregistered stale dev SW');
+    }
     return null;
   }
 
@@ -20,7 +35,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
       updateViaCache: 'none',
     });
 
-    console.log('[PWA] Service Worker registered:', registration.scope);
+    log.debug('[PWA] Service Worker registered', { scope: registration.scope });
 
     // Check for updates periodically
     setInterval(() => {
@@ -42,7 +57,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 
     return registration;
   } catch (error) {
-    console.error('[PWA] Service Worker registration failed:', error);
+    log.error('[PWA] Service Worker registration failed', { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -97,7 +112,7 @@ export function initInstallPrompt(): void {
   window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
     dispatchPWAEvent('installed', {});
-    console.log('[PWA] App installed successfully');
+    log.debug('[PWA] App installed successfully');
   });
 }
 
@@ -112,12 +127,12 @@ export async function promptInstall(): Promise<boolean> {
   const { outcome } = await deferredPrompt.userChoice;
 
   if (outcome === 'accepted') {
-    console.log('[PWA] User accepted install prompt');
+    log.debug('[PWA] User accepted install prompt');
     deferredPrompt = null;
     return true;
   }
 
-  console.log('[PWA] User dismissed install prompt');
+  log.debug('[PWA] User dismissed install prompt');
   return false;
 }
 
@@ -171,10 +186,10 @@ export async function subscribeToPush(
       applicationServerKey: keyArray as BufferSource,
     });
 
-    console.log('[PWA] Push subscription:', subscription.endpoint);
+    log.debug('[PWA] Push subscription', { endpoint: subscription.endpoint });
     return subscription;
   } catch (error) {
-    console.error('[PWA] Push subscription failed:', error);
+    log.error('[PWA] Push subscription failed', { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }

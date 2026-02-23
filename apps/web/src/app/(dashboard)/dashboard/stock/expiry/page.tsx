@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('StockExpiry');
 
 const defaultData: ExpiryStats = {
   stats: { expiredBlocked: 0, expiringJ1: 0, expiringJ3: 0, expiringJ7: 0 },
@@ -34,7 +37,7 @@ export default function ExpiryPage() {
       }
     } catch (err) {
       setError('Erreur de chargement');
-      console.error(err);
+      log.error('Failed to load expiry data', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setIsLoading(false);
     }
@@ -105,8 +108,8 @@ export default function ExpiryPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#86868B] uppercase tracking-wide">Expirés (bloqués)</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.expiredBlocked}</p>
+              <p className="text-[12px] font-bold text-[#86868B] uppercase tracking-widest">Expirés (bloqués)</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.expiredBlocked}</p>
             </div>
             <div className="flex items-center gap-2">
               {stats.expiredBlocked > 0 && <span className="w-2 h-2 rounded-full bg-[#FF3B30]" />}
@@ -119,8 +122,8 @@ export default function ExpiryPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#86868B] uppercase tracking-wide">Expire demain</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.expiringJ1}</p>
+              <p className="text-[12px] font-bold text-[#86868B] uppercase tracking-widest">Expire demain</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.expiringJ1}</p>
             </div>
             <div className="flex items-center gap-2">
               {stats.expiringJ1 > 0 && <span className="w-2 h-2 rounded-full bg-[#FF3B30]" />}
@@ -133,8 +136,8 @@ export default function ExpiryPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#86868B] uppercase tracking-wide">Expire sous 3j</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.expiringJ3}</p>
+              <p className="text-[12px] font-bold text-[#86868B] uppercase tracking-widest">Expire sous 3j</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.expiringJ3}</p>
             </div>
             <div className="flex items-center gap-2">
               {stats.expiringJ3 > 0 && <span className="w-2 h-2 rounded-full bg-[#FF9500]" />}
@@ -147,8 +150,8 @@ export default function ExpiryPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#86868B] uppercase tracking-wide">Expire sous 7j</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.expiringJ7}</p>
+              <p className="text-[12px] font-bold text-[#86868B] uppercase tracking-widest">Expire sous 7j</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.expiringJ7}</p>
             </div>
             <div className="flex items-center gap-2">
               {stats.expiringJ7 > 0 && <span className="w-2 h-2 rounded-full bg-[#FF9500]" />}
@@ -166,11 +169,11 @@ export default function ExpiryPage() {
         <div className="grid md:grid-cols-2 gap-4">
           <div className="p-4 bg-gradient-to-br from-[#8E8E93]/[0.06] to-[#8E8E93]/[0.02] rounded-xl">
             <div className="text-[12px] text-[#86868B] mb-1">Lots à risque</div>
-            <div className="text-[28px] font-bold text-[#1D1D1F]">{summary.totalAtRisk}</div>
+            <div className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none">{summary.totalAtRisk}</div>
           </div>
           <div className="p-4 bg-gradient-to-br from-[#8E8E93]/[0.06] to-[#8E8E93]/[0.02] rounded-xl">
             <div className="text-[12px] text-[#86868B] mb-1">Valeur à risque</div>
-            <div className="text-[28px] font-bold text-[#1D1D1F]">
+            <div className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none">
               {new Intl.NumberFormat('fr-DZ', {
                 style: 'currency',
                 currency: 'DZD',

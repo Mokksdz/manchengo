@@ -20,6 +20,40 @@ jobs:
       run:
         working-directory: apps/backend
 
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: manchengo_test
+          POSTGRES_USER: manchengo
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U manchengo -d manchengo_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://manchengo:test_password@localhost:5432/manchengo_test?schema=public
+      JWT_SECRET: ci-test-jwt-secret-not-for-production-use-32chars
+      JWT_REFRESH_SECRET: ci-test-refresh-secret-not-for-production-32chars
+      QR_SECRET_KEY: ci-test-qr-secret-key
+      NODE_ENV: test
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+
     steps:
       - uses: actions/checkout@v4
 
@@ -42,18 +76,23 @@ jobs:
 
       - name: Lint
         run: npm run lint
-        # CI MUST fail on lint errors - no exceptions
 
       - name: Type Check
         run: npx tsc --noEmit
-        # CI MUST fail on type errors - no exceptions
 
-      # Tests disabled in CI (requires PostgreSQL service)
-      # TODO: Add PostgreSQL service container for CI tests
-      # - name: Setup Test Database
-      #   run: npx prisma db push --skip-generate
-      # - name: Run Business Tests
-      #   run: npm test -- --ci --coverage
+      - name: Setup Test Database
+        run: npx prisma db push --skip-generate
+
+      - name: Run Tests
+        run: npm test -- --ci --coverage --forceExit
+
+      - name: Upload Coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: apps/backend/coverage/
+          retention-days: 14
 
       - name: Build
         run: npm run build
@@ -87,22 +126,17 @@ jobs:
 
       - name: Lint
         run: npm run lint
-        # CI MUST fail on lint errors - no exceptions
 
       - name: Type Check
         run: npx tsc --noEmit
-        # CI MUST fail on type errors - no exceptions
+
+      - name: Run Unit Tests
+        run: npm run test:unit -- --ci
 
       - name: Build
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:3000/api
-
-      # E2E tests disabled in CI (requires running backend)
-      # - name: Install Playwright Browsers
-      #   run: npx playwright install --with-deps chromium
-      # - name: Run E2E Tests
-      #   run: npx playwright test --reporter=html
 
   # ═══════════════════════════════════════════════════════════════════════════
   # SECURITY SCANNING
@@ -141,12 +175,10 @@ jobs:
 
   # ═══════════════════════════════════════════════════════════════════════════
   # SCHEDULED DEPENDENCY SCAN — Weekly deep scan (HIGH only, no noise)
-  # Runs on schedule AND on every push for continuous monitoring
   # ═══════════════════════════════════════════════════════════════════════════
   dependency-scan:
     name: Dependency Vulnerability Scan
     runs-on: ubuntu-latest
-    # Run weekly on Monday 06:00 UTC + on every push
     if: github.event_name == 'push' || github.event_name == 'schedule'
     steps:
       - uses: actions/checkout@v4

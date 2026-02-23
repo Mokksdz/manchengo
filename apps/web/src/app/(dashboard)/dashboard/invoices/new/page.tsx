@@ -48,6 +48,9 @@ const paymentMethods = [
 ];
 
 import { calculateTimbreRate } from '@/lib/fiscal-rules';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('NewInvoice');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SKELETON LOADING STATE
@@ -170,7 +173,7 @@ export default function CreateInvoicePage() {
       if (clientsRes.ok) setClients(await clientsRes.json());
       if (productsRes.ok) setProducts(await productsRes.json());
     } catch (error) {
-      console.error('Failed to load data:', error);
+      log.error('Failed to load data:', error);
     } finally {
       setIsLoadingData(false);
     }
@@ -330,14 +333,14 @@ export default function CreateInvoicePage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Error */}
         {error && (
-          <div className="flex items-center gap-2 p-4 text-sm text-[#FF3B30] bg-[#FF3B30]/10 rounded-2xl border border-[#FF3B30]/20 animate-scale-in">
+          <div className="flex items-center gap-2 p-4 text-sm text-[#FF3B30] bg-[#FF3B30]/10 rounded-[28px] border border-[#FF3B30]/20 animate-scale-in">
             {error}
           </div>
         )}
 
         {/* Client & Payment Method */}
         <div className="glass-card p-6">
-          <h2 className="text-sm font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4 flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#007AFF]/10 to-[#007AFF]/5 flex items-center justify-center">
               <ShoppingCart className="w-3 h-3 text-[#007AFF]" />
             </div>
@@ -391,7 +394,7 @@ export default function CreateInvoicePage() {
         {/* Invoice Lines */}
         <div className="glass-card p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-[#1D1D1F] flex items-center gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#34C759]/10 to-[#34C759]/5 flex items-center justify-center">
                 <FileText className="w-3 h-3 text-[#34C759]" />
               </div>
@@ -478,7 +481,7 @@ export default function CreateInvoicePage() {
 
         {/* Totals */}
         <div className="glass-card p-6">
-          <h2 className="text-sm font-semibold text-[#1D1D1F] mb-4">Récapitulatif</h2>
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Récapitulatif</h2>
           <div className="space-y-2">
             <div className="flex justify-between text-sm py-1">
               <span className="text-[#6E6E73]">Total HT</span>

@@ -201,6 +201,11 @@ export class DashboardService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async getSalesChart(days = 7) {
+    const key = this.cacheService.buildChartKey('sales', days);
+    return this.cacheService.getOrSet(key, () => this.computeSalesChart(days), CacheTTL.CHART);
+  }
+
+  private async computeSalesChart(days: number) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
@@ -237,6 +242,11 @@ export class DashboardService {
   }
 
   async getProductionChart(days = 7) {
+    const key = this.cacheService.buildChartKey('production', days);
+    return this.cacheService.getOrSet(key, () => this.computeProductionChart(days), CacheTTL.CHART);
+  }
+
+  private async computeProductionChart(days: number) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     startDate.setHours(0, 0, 0, 0);
@@ -283,32 +293,38 @@ export class DashboardService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async getSyncStatus() {
-    const devices = await this.prisma.device.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, lastSyncAt: true },
-    });
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    return devices.map((d) => ({
-      deviceId: d.id,
-      name: d.name,
-      lastSync: d.lastSyncAt?.toISOString() ?? null,
-      online: d.lastSyncAt ? d.lastSyncAt > oneHourAgo : false,
-    }));
+    const key = this.cacheService.buildSyncKey('status');
+    return this.cacheService.getOrSet(key, async () => {
+      const devices = await this.prisma.device.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true, lastSyncAt: true },
+      });
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      return devices.map((d) => ({
+        deviceId: d.id,
+        name: d.name,
+        lastSync: d.lastSyncAt?.toISOString() ?? null,
+        online: d.lastSyncAt ? d.lastSyncAt > oneHourAgo : false,
+      }));
+    }, CacheTTL.SYNC);
   }
 
   async getRecentSyncEvents(limit = 20) {
-    return this.prisma.syncEvent.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      select: {
-        id: true,
-        entityType: true,
-        action: true,
-        status: true,
-        deviceId: true,
-        createdAt: true,
-      },
-    });
+    const key = `${this.cacheService.buildSyncKey('pending')}:recent:${limit}`;
+    return this.cacheService.getOrSet(key, () => {
+      return this.prisma.syncEvent.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        select: {
+          id: true,
+          entityType: true,
+          action: true,
+          status: true,
+          deviceId: true,
+          createdAt: true,
+        },
+      });
+    }, CacheTTL.SYNC);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

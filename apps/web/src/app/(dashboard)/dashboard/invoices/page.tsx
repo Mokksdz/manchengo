@@ -14,6 +14,9 @@ import { ConfirmDialog } from '@/components/ui/modal';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Invoices');
 
 interface Invoice {
   id: number;
@@ -111,7 +114,7 @@ export default function InvoicesPage() {
         setMeta(result.meta || { total: 0, page: 1, totalPages: 1 });
       }
     } catch (err) {
-      console.error('Failed to load invoices:', err);
+      log.error('Failed to load invoices', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setIsLoading(false);
     }
@@ -141,7 +144,7 @@ export default function InvoicesPage() {
         setShowDetailModal(true);
       }
     } catch (err) {
-      console.error('Failed to load invoice:', err);
+      log.error('Failed to load invoice', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setLoadingDetail(false);
     }
@@ -174,7 +177,7 @@ export default function InvoicesPage() {
         toast.error(err.message || 'Erreur lors du changement de statut');
       }
     } catch (err) {
-      console.error('Failed to change status:', err);
+      log.error('Failed to change status', { error: err instanceof Error ? err.message : String(err) });
     }
   };
 
@@ -196,7 +199,7 @@ export default function InvoicesPage() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Failed to download PDF:', err);
+      log.error('Failed to download PDF', { error: err instanceof Error ? err.message : String(err) });
       toast.error(err instanceof Error ? err.message : 'Erreur lors du telechargement du PDF');
     }
   };
@@ -356,10 +359,10 @@ export default function InvoicesPage() {
       {/* Invoice Detail Modal */}
       {showDetailModal && selectedInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
-          <div ref={detailModalRef} role="dialog" aria-modal="true" aria-labelledby="detail-invoice-title" className="relative w-full bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 animate-scale-in max-w-3xl">
+          <div ref={detailModalRef} role="dialog" aria-modal="true" aria-labelledby="detail-invoice-title" className="relative w-full bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 animate-scale-in max-w-3xl">
             <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
               <div>
-                <h2 id="detail-invoice-title" className="text-lg font-semibold text-[#1D1D1F]">Facture {selectedInvoice.reference}</h2>
+                <h2 id="detail-invoice-title" className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Facture {selectedInvoice.reference}</h2>
                 <span className={`glass-status-pill inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${getStatusStyle(selectedInvoice.status)}`}>
                   {getStatusLabel(selectedInvoice.status)}
                 </span>
@@ -372,7 +375,7 @@ export default function InvoicesPage() {
               <div className="glass-card p-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <h3 className="text-[13px] font-medium text-[#86868B] mb-1">Client</h3>
+                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-[#86868B] mb-1">Client</h3>
                     <p className="font-medium">{selectedInvoice.client.name}</p>
                     <p className="text-[13px] text-[#86868B]">{selectedInvoice.client.code}</p>
                     {selectedInvoice.client.nif && (
@@ -380,9 +383,9 @@ export default function InvoicesPage() {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-[13px] font-medium text-[#86868B] mb-1">Date</h3>
+                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-[#86868B] mb-1">Date</h3>
                     <p>{formatDate(selectedInvoice.date)}</p>
-                    <h3 className="text-[13px] font-medium text-[#86868B] mb-1 mt-2">Mode de paiement</h3>
+                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-[#86868B] mb-1 mt-2">Mode de paiement</h3>
                     <p>{paymentMethods.find(m => m.value === selectedInvoice.paymentMethod)?.label || selectedInvoice.paymentMethod}</p>
                   </div>
                 </div>
@@ -390,7 +393,7 @@ export default function InvoicesPage() {
 
               {selectedInvoice.lines && selectedInvoice.lines.length > 0 && (
                 <div>
-                  <h3 className="text-[13px] font-medium text-[#86868B] mb-2">Lignes</h3>
+                  <h3 className="text-[12px] font-bold uppercase tracking-widest text-[#86868B] mb-2">Lignes</h3>
                   <div className="glass-card overflow-hidden">
                     <table className="w-full text-sm">
                       <thead className="bg-white/40 backdrop-blur-sm border-b border-black/[0.04]">

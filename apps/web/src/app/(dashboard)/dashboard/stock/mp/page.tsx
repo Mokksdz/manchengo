@@ -151,8 +151,8 @@ export default function StockMpPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#86868B] uppercase tracking-wide">Actions urgentes</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.rupture}</p>
+              <p className="text-[12px] font-bold text-[#86868B] uppercase tracking-widest">Actions urgentes</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.rupture}</p>
             </div>
             <div className="flex items-center gap-2">
               {stats.rupture > 0 && <span className="w-2 h-2 rounded-full bg-[#FF3B30] animate-pulse" />}
@@ -169,8 +169,8 @@ export default function StockMpPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#86868B] uppercase tracking-wide">Sous seuil</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.alerte}</p>
+              <p className="text-[12px] font-bold text-[#86868B] uppercase tracking-widest">Sous seuil</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.alerte}</p>
             </div>
             <div className="flex items-center gap-2">
               {stats.alerte > 0 && <span className="w-2 h-2 rounded-full bg-[#FF9500]" />}
@@ -187,8 +187,8 @@ export default function StockMpPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#86868B] uppercase tracking-wide">Total MP</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.total}</p>
+              <p className="text-[12px] font-bold text-[#86868B] uppercase tracking-widest">Total MP</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.total}</p>
             </div>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-[#007AFF]/10 to-[#5AC8FA]/10">
               <Package className="w-5 h-5 text-[#007AFF]" />

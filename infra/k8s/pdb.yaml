@@ -1,0 +1,35 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Manchengo Smart ERP - PodDisruptionBudgets
+# Ensures minimum availability during node maintenance, upgrades, drains
+# ═══════════════════════════════════════════════════════════════════════════════
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: manchengo-backend-pdb
+  namespace: manchengo
+  labels:
+    app: manchengo
+    component: backend
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: manchengo
+      component: backend
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: manchengo-web-pdb
+  namespace: manchengo
+  labels:
+    app: manchengo
+    component: web
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: manchengo
+      component: web

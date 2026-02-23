@@ -5,6 +5,9 @@ import { authFetch } from '@/lib/api';
 import { useState, useEffect } from 'react';
 import { X, Package, Loader2, AlertCircle, Droplets } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('CreateProductMpModal');
 
 const CATEGORIES = [
   { value: 'RAW_MATERIAL', label: 'Matière première' },
@@ -86,7 +89,7 @@ export function CreateProductMpModal({ isOpen, onClose, onCreated }: CreateProdu
         setNextCode(data.code);
       }
     } catch (err) {
-      console.error('Failed to fetch next code:', err);
+      log.error('Failed to fetch next code:', err);
     }
   };
 

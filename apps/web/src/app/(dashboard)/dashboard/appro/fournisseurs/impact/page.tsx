@@ -34,6 +34,9 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton-loader';
 import { SupplierImpactChainView } from '@/components/suppliers';
 import type { UserRole } from '@/components/appro/CriticalActionBanner';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('SupplierImpact');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES — Adaptés depuis l'API
@@ -145,7 +148,7 @@ function ImpactCard({
 
   return (
     <div className={cn(
-      'rounded-2xl border-2 p-5 transition-all',
+      'rounded-[28px] border-2 p-5 transition-all',
       config.cardBg,
       config.border,
       impact.riskLevel === 'CRITICAL' && 'shadow-apple-hover'
@@ -164,7 +167,7 @@ function ImpactCard({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-[#1D1D1F]">
+            <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
               {impact.supplierName}
             </h3>
             <span className="font-mono text-xs text-[#AEAEB2]">{impact.supplierCode}</span>
@@ -209,7 +212,7 @@ function ImpactCard({
 
           {/* Reliability Score */}
           <div className="mt-3 flex items-center gap-3 max-w-xs">
-            <span className="text-xs font-medium text-[#86868B] uppercase tracking-wide">Fiabilité</span>
+            <span className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Fiabilité</span>
             <div className={cn(
               'flex-1 h-2.5 rounded-full overflow-hidden',
               impact.reliabilityScore >= 80 ? 'bg-emerald-100' : 
@@ -289,7 +292,7 @@ export default function SupplierImpactPage() {
         setChainData(transformChainData(chainApiData));
       }
     } catch (err) {
-      console.error('Failed to load impacts:', err);
+      log.error('Failed to load impacts:', err);
       setError('Impossible de charger les données fournisseurs');
       setDataUnavailable(true);
     } finally {
@@ -333,7 +336,7 @@ export default function SupplierImpactPage() {
         </div>
         {/* Skeleton impact cards */}
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="rounded-2xl border border-black/[0.04] bg-white/60 p-5 space-y-4">
+          <div key={i} className="rounded-[28px] border border-black/[0.04] bg-white/60 p-5 space-y-4">
             <div className="flex items-start gap-4">
               <Skeleton className="h-10 w-36 rounded-xl" />
               <div className="flex-1 space-y-3">
@@ -382,9 +385,9 @@ export default function SupplierImpactPage() {
           }
         />
         
-        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-8 text-center">
+        <div className="bg-amber-50 border-2 border-amber-200 rounded-[28px] p-8 text-center">
           <AlertTriangle className="w-16 h-16 text-amber-400 mx-auto" />
-          <h2 className="mt-4 text-xl font-bold text-amber-900">Données fournisseur indisponibles</h2>
+          <h2 className="mt-4 font-display text-[17px] font-bold text-amber-900 tracking-tight">Données fournisseur indisponibles</h2>
           <p className="mt-2 text-amber-700 max-w-md mx-auto">
             Les indicateurs d'impact seront visibles dès synchronisation complète avec le serveur.
           </p>
@@ -439,7 +442,7 @@ export default function SupplierImpactPage() {
           <div className="absolute inset-0 bg-black/40" onClick={handleCloseChain} />
           <div className="relative ml-auto w-full max-w-2xl bg-white/92 backdrop-blur-[28px] border border-white/75 shadow-[0_24px_58px_rgba(18,22,33,0.16),inset_0_1px_0_rgba(255,255,255,0.5)] overflow-y-auto">
             <div className="sticky top-0 z-10 bg-white/78 backdrop-blur-[20px] border-b border-white/70 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[#1D1D1F] flex items-center gap-2">
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
                 <Link2 className="w-5 h-5 text-[#AEAEB2]" />
                 Chaîne d'impact
               </h2>
@@ -475,9 +478,9 @@ export default function SupplierImpactPage() {
 
       {/* Impact Cards List */}
       {impacts.length === 0 ? (
-        <div className="glass-card rounded-2xl p-12 text-center">
+        <div className="glass-card rounded-[28px] p-12 text-center">
           <Link2 className="w-16 h-16 text-emerald-300 mx-auto" />
-          <p className="mt-4 text-xl font-semibold text-[#1D1D1F]">Aucun blocage fournisseur détecté</p>
+          <p className="mt-4 font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Aucun blocage fournisseur détecté</p>
           <p className="text-[#86868B] mt-2">
             Aucun fournisseur n'impacte actuellement la production.<br />
             <span className="text-xs text-[#AEAEB2]">Données vérifiées en temps réel</span>
@@ -493,7 +496,7 @@ export default function SupplierImpactPage() {
                   <AlertOctagon className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-red-900">Impact critique</h2>
+                  <h2 className="font-display text-[17px] font-bold text-red-900 tracking-tight">Impact critique</h2>
                   <p className="text-sm text-red-600">Fournisseurs bloquant la production</p>
                 </div>
               </div>
@@ -517,7 +520,7 @@ export default function SupplierImpactPage() {
                   <AlertOctagon className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-amber-900">Sous surveillance</h2>
+                  <h2 className="font-display text-[17px] font-bold text-amber-900 tracking-tight">Sous surveillance</h2>
                   <p className="text-sm text-amber-600">Risques potentiels à surveiller</p>
                 </div>
               </div>

@@ -762,6 +762,8 @@ model ReceptionMpLine {
   reception     ReceptionMp @relation(fields: [receptionId], references: [id], onDelete: Cascade)
   productMp     ProductMp   @relation(fields: [productMpId], references: [id])
 
+  @@index([receptionId])
+  @@index([productMpId])
   @@map("reception_mp_lines")
 }
 
@@ -935,6 +937,7 @@ model ProductionConsumption {
   lotMp             LotMp?          @relation(fields: [lotMpId], references: [id])
 
   @@index([productionOrderId])
+  @@index([productMpId])
   @@index([lotMpId])
   @@map("production_consumptions")
 }
@@ -995,6 +998,8 @@ model InvoiceLine {
   invoice   Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   productPf ProductPf @relation(fields: [productPfId], references: [id])
 
+  @@index([invoiceId])
+  @@index([productPfId])
   @@map("invoice_lines")
 }
 
@@ -1009,6 +1014,8 @@ model Payment {
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id])
 
+  @@index([invoiceId])
+  @@index([userId])
   @@map("payments")
 }
 

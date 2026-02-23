@@ -31,6 +31,9 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { SuccessAnimation } from '@/components/ui/success-animation';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('NewSupplier');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -238,7 +241,7 @@ export default function NouveauFournisseurPage() {
         router.push('/dashboard/appro/fournisseurs');
       }, 1500);
     } catch (err: unknown) {
-      console.error('Failed to create supplier:', err);
+      log.error('Failed to create supplier:', err);
       setErrors({
         general: (err as Error).message || 'Erreur lors de la création du fournisseur',
       });
@@ -250,7 +253,7 @@ export default function NouveauFournisseurPage() {
   if (success) {
     return (
       <div className="max-w-2xl mx-auto py-12 px-4">
-        <div className="glass-card rounded-2xl p-8">
+        <div className="glass-card rounded-[28px] p-8">
           <SuccessAnimation
             title="Fournisseur créé avec succès"
             subtitle="Redirection vers la liste des fournisseurs..."
@@ -289,7 +292,7 @@ export default function NouveauFournisseurPage() {
 
         {/* Section: Identité */}
         <div className="glass-card rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4 flex items-center gap-2">
             <Building2 className="w-5 h-5 text-primary-600" />
             Identité du fournisseur
           </h2>
@@ -359,7 +362,7 @@ export default function NouveauFournisseurPage() {
 
         {/* Section: Contact */}
         <div className="glass-card rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4 flex items-center gap-2">
             <Phone className="w-5 h-5 text-primary-600" />
             Coordonnées
           </h2>

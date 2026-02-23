@@ -214,7 +214,7 @@ export default function MonitoringPage() {
       <div className="flex items-center justify-center h-64">
         {isAccessDenied ? (
           <div className="text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#FF3B30]/10 flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-[28px] bg-[#FF3B30]/10 flex items-center justify-center mx-auto mb-4">
               <Shield className="w-8 h-8 text-[#FF3B30]" />
             </div>
             <p className="text-lg font-semibold text-[#1D1D1F]">Accès interdit</p>
@@ -244,7 +244,7 @@ export default function MonitoringPage() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-2xl text-sm font-medium text-[#FF3B30]">
+        <div className="flex items-center gap-3 p-4 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-[28px] text-sm font-medium text-[#FF3B30]">
           <AlertTriangle className="w-5 h-5 flex-shrink-0" />
           {error}
         </div>
@@ -260,7 +260,7 @@ export default function MonitoringPage() {
                 <div className="w-10 h-10 bg-gradient-to-br from-[#007AFF]/10 to-[#007AFF]/5 rounded-xl flex items-center justify-center">
                   <Smartphone className="h-5 w-5 text-[#007AFF]" />
                 </div>
-                <span className="font-semibold text-[#1D1D1F]">Sync</span>
+                <span className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Sync</span>
               </div>
               <div className={`text-xl font-bold ${
                 kpis.sync.syncHealthPercent >= 80 ? 'text-[#34C759]' :
@@ -283,7 +283,7 @@ export default function MonitoringPage() {
                 <div className="w-10 h-10 bg-gradient-to-br from-[#34C759]/10 to-[#34C759]/5 rounded-xl flex items-center justify-center">
                   <Package className="h-5 w-5 text-[#34C759]" />
                 </div>
-                <span className="font-semibold text-[#1D1D1F]">Stock</span>
+                <span className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Stock</span>
               </div>
               <div className={`text-xl font-bold ${
                 kpis.stock.stockHealthPercent >= 80 ? 'text-[#34C759]' :
@@ -306,7 +306,7 @@ export default function MonitoringPage() {
                 <div className="w-10 h-10 bg-gradient-to-br from-[#AF52DE]/10 to-[#AF52DE]/5 rounded-xl flex items-center justify-center">
                   <DollarSign className="h-5 w-5 text-[#AF52DE]" />
                 </div>
-                <span className="font-semibold text-[#1D1D1F]">Fiscal</span>
+                <span className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Fiscal</span>
               </div>
               <div className="text-xl font-bold text-[#AF52DE]">{kpis.fiscal.todayInvoiceCount} fact.</div>
             </div>
@@ -324,7 +324,7 @@ export default function MonitoringPage() {
                 <div className="w-10 h-10 bg-gradient-to-br from-[#FF3B30]/10 to-[#FF3B30]/5 rounded-xl flex items-center justify-center">
                   <Shield className="h-5 w-5 text-[#FF3B30]" />
                 </div>
-                <span className="font-semibold text-[#1D1D1F]">Sécurité</span>
+                <span className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Sécurité</span>
               </div>
               <div className={`text-xl font-bold ${kpis.security.securityHealthPercent >= 80 ? 'text-[#34C759]' : 'text-[#FF3B30]'}`}>
                 {kpis.security.securityHealthPercent}%
@@ -347,7 +347,7 @@ export default function MonitoringPage() {
               <Bell className="w-4 h-4 text-[#FF9500]" />
             </div>
             <div>
-              <h3 className="font-semibold text-[#1D1D1F]">Alertes</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Alertes</h3>
               <p className="text-[11px] text-[#86868B]">{openCount > 0 ? `${openCount} ouvertes` : 'Aucune alerte ouverte'}</p>
             </div>
           </div>
@@ -384,7 +384,7 @@ export default function MonitoringPage() {
             </div>
           ) : alerts.length === 0 ? (
             <div className="px-6 py-8 text-center text-[#86868B] flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-2xl bg-[#34C759]/10 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-[28px] bg-[#34C759]/10 flex items-center justify-center">
                 <CheckCircle className="h-6 w-6 text-[#34C759]" />
               </div>
               Aucune alerte

@@ -214,7 +214,7 @@ export function ProductionAnalyticsTab({ analytics, analyticsPeriod, onPeriodCha
       <div className="grid grid-cols-3 gap-6">
         {/* Production & Orders Chart */}
         <div className="col-span-2 glass-card p-6">
-          <h3 className="font-semibold text-[#1D1D1F] mb-4">Évolution de la production</h3>
+          <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Évolution de la production</h3>
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={combinedChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
@@ -250,7 +250,7 @@ export function ProductionAnalyticsTab({ analytics, analyticsPeriod, onPeriodCha
 
         {/* Yield Distribution Pie */}
         <div className="glass-card p-6">
-          <h3 className="font-semibold text-[#1D1D1F] mb-4">Distribution des rendements</h3>
+          <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Distribution des rendements</h3>
           {advancedMetrics?.yieldDistribution && advancedMetrics.yieldDistribution.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
@@ -285,7 +285,7 @@ export function ProductionAnalyticsTab({ analytics, analyticsPeriod, onPeriodCha
       <div className="grid grid-cols-2 gap-6">
         {/* Top Products Bar Chart */}
         <div className="glass-card p-6">
-          <h3 className="font-semibold text-[#1D1D1F] mb-4">Top 5 Produits</h3>
+          <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Top 5 Produits</h3>
           {topProductsChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={topProductsChartData} layout="vertical" margin={{ left: 0, right: 20 }}>
@@ -319,7 +319,7 @@ export function ProductionAnalyticsTab({ analytics, analyticsPeriod, onPeriodCha
 
         {/* Yield Trend Line Chart */}
         <div className="glass-card p-6">
-          <h3 className="font-semibold text-[#1D1D1F] mb-4">Évolution du rendement</h3>
+          <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Évolution du rendement</h3>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={combinedChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />

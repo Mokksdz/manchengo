@@ -4,6 +4,9 @@ import { memo, useState, useEffect } from 'react';
 import { X, History, Filter, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authFetch } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('HistoryModal');
 
 export interface StockMpItem {
   productId: number;
@@ -66,7 +69,7 @@ export const HistoryModal = memo(function HistoryModal({ isOpen, onClose, produc
         setMovements(await res.json());
       }
     } catch (error) {
-      console.error('Failed to load movements:', error);
+      log.error('Failed to load movements', { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +93,7 @@ export const HistoryModal = memo(function HistoryModal({ isOpen, onClose, produc
               <History className="w-5 h-5 text-[#007AFF]" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[#1D1D1F]">Historique Mouvements</h2>
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Historique Mouvements</h2>
               <p className="text-sm text-[#6E6E73]">{product.name} ({product.code})</p>
             </div>
           </div>

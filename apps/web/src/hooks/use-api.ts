@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   dashboard,
   stockDashboard,
@@ -397,6 +398,39 @@ export function useCreateSupplier() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['suppliers'] });
       qc.invalidateQueries({ queryKey: queryKeys.adminSuppliers });
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GENERIC MUTATION WRAPPER — toast feedback + isPending
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface UseApiMutationOptions<TData, TVariables> {
+  mutationFn: (variables: TVariables) => Promise<TData>;
+  successMessage?: string;
+  errorMessage?: string;
+  onSuccess?: (data: TData) => void;
+  invalidateKeys?: readonly unknown[][];
+}
+
+export function useApiMutation<TData = unknown, TVariables = void>({
+  mutationFn,
+  successMessage = 'Opération réussie',
+  errorMessage = 'Une erreur est survenue',
+  onSuccess,
+  invalidateKeys,
+}: UseApiMutationOptions<TData, TVariables>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: (data) => {
+      toast.success(successMessage);
+      invalidateKeys?.forEach((key) => qc.invalidateQueries({ queryKey: key }));
+      onSuccess?.(data);
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || errorMessage);
     },
   });
 }

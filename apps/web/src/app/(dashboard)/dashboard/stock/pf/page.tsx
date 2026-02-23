@@ -15,6 +15,9 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('StockPF');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -306,7 +309,7 @@ function HistoryModal({ isOpen, onClose, product }: HistoryModalProps) {
         setMovements(await res.json());
       }
     } catch (error) {
-      console.error('Failed to load movements:', error);
+      log.error('Failed to load movements', { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsLoading(false);
     }
@@ -485,8 +488,8 @@ export default function StockPfPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#86868B] uppercase tracking-wide">Total produits</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.total}</p>
+              <p className="text-[12px] font-bold text-[#86868B] uppercase tracking-widest">Total produits</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.total}</p>
             </div>
             <div className="w-10 h-10 bg-gradient-to-br from-[#007AFF]/10 to-[#5856D6]/10 rounded-xl flex items-center justify-center">
               <Package className="w-5 h-5 text-[#007AFF]" />
@@ -496,8 +499,8 @@ export default function StockPfPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#86868B] uppercase tracking-wide">Disponibles</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.disponible}</p>
+              <p className="text-[12px] font-bold text-[#86868B] uppercase tracking-widest">Disponibles</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.disponible}</p>
             </div>
             <div className="w-10 h-10 bg-gradient-to-br from-[#34C759]/10 to-[#30D158]/10 rounded-xl flex items-center justify-center">
               <ShoppingCart className="w-5 h-5 text-[#34C759]" />
@@ -507,8 +510,8 @@ export default function StockPfPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#86868B] uppercase tracking-wide">En rupture</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.rupture}</p>
+              <p className="text-[12px] font-bold text-[#86868B] uppercase tracking-widest">En rupture</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.rupture}</p>
             </div>
             <div className="flex items-center gap-2">
               {stats.rupture > 0 && <span className="w-2 h-2 rounded-full bg-[#FF3B30]" />}
@@ -522,8 +525,8 @@ export default function StockPfPage() {
           <div className="glass-card-hover p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[12px] font-medium text-[#86868B] uppercase tracking-wide">Valeur stock</p>
-                <p className="text-[22px] font-bold text-[#1D1D1F] mt-1">{formatPrice(stats.valeur)}</p>
+                <p className="text-[12px] font-bold text-[#86868B] uppercase tracking-widest">Valeur stock</p>
+                <p className="font-display text-[28px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{formatPrice(stats.valeur)}</p>
               </div>
               <div className="w-10 h-10 bg-gradient-to-br from-[#FF9500]/10 to-[#FFCC00]/10 rounded-xl flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-[#FF9500]" />

@@ -89,7 +89,7 @@ export const InventoryModal = memo(function InventoryModal({ isOpen, onClose, on
               <AlertTriangle className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <h2 id="inventory-modal-title" className="text-lg font-semibold text-[#1D1D1F]">Inventaire Stock</h2>
+              <h2 id="inventory-modal-title" className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Inventaire Stock</h2>
               <p className="text-sm text-[#86868B]">Action auditée - ADMIN</p>
             </div>
           </div>

@@ -113,7 +113,7 @@ export function SupplierRiskCard({
             <div className={cn('w-7 h-7 rounded-[8px] flex items-center justify-center', config.iconBg)}>
               <Truck className="w-3.5 h-3.5 text-[#86868B]" />
             </div>
-            <h3 className="text-[17px] font-semibold text-[#1D1D1F] tracking-[-0.01em]">
+            <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
               {supplier.name}
             </h3>
             <span className="font-mono text-[11px] text-[#AEAEB2] bg-black/[0.03] px-2 py-0.5 rounded-md">

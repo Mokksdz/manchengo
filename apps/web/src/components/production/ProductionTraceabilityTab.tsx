@@ -87,7 +87,7 @@ export function ProductionTraceabilityTab({ lotSearchQuery, onSearchChange, lotS
 
                 {result.traceability && (
                   <div className="px-5 py-4 border-t border-black/[0.04]">
-                    <h4 className="font-semibold text-[#1D1D1F] mb-3 flex items-center gap-2"><ArrowRight className="w-4 h-4 text-[#AF52DE]" />Tra\u00e7abilit\u00e9</h4>
+                    <h4 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-3 flex items-center gap-2"><ArrowRight className="w-4 h-4 text-[#AF52DE]" />Tra\u00e7abilit\u00e9</h4>
                     {result.type === 'PF' && result.traceability.productionOrder && (
                       <div className="bg-black/[0.03] rounded-[14px] p-4 backdrop-blur-sm">
                         <p className="font-medium">Ordre de production: <Link href={`/dashboard/production/order/${result.traceability.productionOrder.id}`} className="text-[#AF52DE] hover:underline">{result.traceability.productionOrder.reference}</Link></p>

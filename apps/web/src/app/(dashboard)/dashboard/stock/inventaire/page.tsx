@@ -18,6 +18,9 @@ import {
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Inventaire');
 
 interface InventoryDeclaration {
   id: number;
@@ -80,7 +83,7 @@ export default function InventairePage() {
         setDeclarations(data.data || data || []);
       }
     } catch (err) {
-      console.error('Failed to load declarations:', err);
+      log.error('Failed to load declarations', { error: err instanceof Error ? err.message : String(err) });
       toast.error('Erreur de chargement des déclarations');
     } finally {
       setIsLoading(false);
@@ -213,14 +216,14 @@ export default function InventairePage() {
 
       {/* ─── Declarations List ─── */}
       {isLoading ? (
-        <div className="glass-card rounded-2xl flex items-center justify-center h-64">
+        <div className="glass-card rounded-[28px] flex items-center justify-center h-64">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-[3px] border-[#E5E5EA] border-t-[#1D1D1F] rounded-full animate-spin" />
             <p className="text-[12px] text-[#86868B]">Chargement...</p>
           </div>
         </div>
       ) : filteredDeclarations.length === 0 ? (
-        <div className="glass-card rounded-2xl p-12 text-center">
+        <div className="glass-card rounded-[28px] p-12 text-center">
           <div className="w-12 h-12 bg-black/[0.03] rounded-full flex items-center justify-center mx-auto mb-3">
             <ClipboardList className="h-6 w-6 text-[#C7C7CC]" />
           </div>
@@ -273,7 +276,7 @@ function DeclarationCard({
   const isOwnDeclaration = currentUserId === (d.countedBy as any)?.id;
 
   return (
-    <div className="glass-card-hover rounded-2xl overflow-hidden">
+    <div className="glass-card-hover rounded-[28px] overflow-hidden">
       <div className="p-5">
         <div className="flex items-start justify-between mb-4">
           <div>

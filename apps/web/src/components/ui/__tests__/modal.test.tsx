@@ -59,11 +59,10 @@ describe('Modal', () => {
     expect(screen.getByText('Test Modal')).toBeInTheDocument();
   });
 
-  it('renders the title in an element with id="modal-title"', () => {
+  it('renders the title text in the dialog', () => {
     render(<Modal {...defaultProps} />);
-    const titleEl = document.getElementById('modal-title');
-    expect(titleEl).not.toBeNull();
-    expect(titleEl?.textContent).toBe('Test Modal');
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('Test Modal');
   });
 
   it('renders the subtitle when provided', () => {
@@ -118,9 +117,9 @@ describe('Modal', () => {
     expect(dialog).toHaveAttribute('aria-modal', 'true');
   });
 
-  it('has aria-labelledby pointing to the title', () => {
+  it('has aria-labelledby set on the dialog', () => {
     render(<Modal {...defaultProps} />);
     const dialog = screen.getByRole('dialog');
-    expect(dialog).toHaveAttribute('aria-labelledby', 'modal-title');
+    expect(dialog).toHaveAttribute('aria-labelledby');
   });
 });

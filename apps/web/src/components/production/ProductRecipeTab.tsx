@@ -52,7 +52,7 @@ export function ProductRecipeTab({
       <div className="glass-card">
         <div className="p-6 border-b border-black/[0.04] flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
               {recipe ? recipe.name : 'Aucune recette définie'}
             </h2>
             {recipe && <p className="text-sm text-[#86868B]">Version {recipe.version}</p>}
@@ -94,7 +94,7 @@ export function ProductRecipeTab({
       {recipe && (
         <div className="glass-card">
           <div className="p-4 border-b border-black/[0.04] flex items-center justify-between">
-            <h3 className="font-semibold">Composants ({recipe.items.length})</h3>
+            <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Composants ({recipe.items.length})</h3>
             {isAdmin && (
               <button onClick={onAddComponent} className="inline-flex items-center gap-1 px-4 py-1.5 text-sm bg-[#34C759] text-white rounded-full hover:bg-[#34C759]/90 transition-colors">
                 <Plus className="w-4 h-4" />

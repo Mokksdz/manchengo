@@ -136,11 +136,11 @@ export const PurchaseOrderDecisionCard = memo(function PurchaseOrderDecisionCard
               <div className="w-7 h-7 rounded-[8px] bg-black/[0.03] flex items-center justify-center">
                 <Truck className="w-3.5 h-3.5 text-[#86868B]" />
               </div>
-              <h3 className="text-[17px] font-semibold text-[#1D1D1F] tracking-[-0.01em]">
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
                 {order.supplierName}
               </h3>
             </div>
-            <span className="text-[17px] font-semibold text-[#6E6E73]">
+            <span className="font-display text-[17px] font-bold text-[#6E6E73] tracking-tight">
               {order.totalAmount.toLocaleString('fr-FR')} {order.currency}
             </span>
           </div>

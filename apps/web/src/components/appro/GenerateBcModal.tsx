@@ -165,7 +165,7 @@ export function GenerateBcModal({ demande, isOpen, onClose, onSuccess }: Generat
               <FileText className="w-6 h-6 text-primary-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#1D1D1F]">
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
                 🧾 Générer un bon de commande fournisseur
               </h2>
               <p className="text-sm text-[#86868B]">
@@ -311,7 +311,7 @@ export function GenerateBcModal({ demande, isOpen, onClose, onSuccess }: Generat
             </div>
             <div className="text-right">
               <p className="text-sm text-[#86868B]">Total global HT</p>
-              <p className="text-2xl font-bold text-[#1D1D1F]">
+              <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">
                 {totalGlobalHT.toFixed(2)} DA
               </p>
             </div>

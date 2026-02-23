@@ -127,7 +127,7 @@ export function ResponsiveTable<T>({
           <div
             key={keyExtractor(item)}
             className={cn(
-              'glass-card-hover rounded-2xl p-4',
+              'glass-card-hover rounded-[28px] p-4',
               onRowClick && 'cursor-pointer',
               cardClassName?.(item)
             )}

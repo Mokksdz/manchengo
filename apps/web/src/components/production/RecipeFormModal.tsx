@@ -35,15 +35,17 @@ export function CreateRecipeModal({
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="glass-card rounded-[20px] w-full max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
-          <h2 className="text-lg font-semibold text-[#1D1D1F]">Nouvelle recette</h2>
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Nouvelle recette</h2>
           <button onClick={onClose} className="p-1 hover:bg-black/5 rounded-lg transition-colors">
             <X className="w-5 h-5 text-[#86868B]" />
           </button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#1D1D1F] mb-1">Produit fini (PF) *</label>
+            <label htmlFor="recipe-pf" className="block text-sm font-medium text-[#1D1D1F] mb-1">Produit fini (PF) <span aria-hidden="true">*</span></label>
             <select
+              id="recipe-pf"
+              aria-required="true"
               value={formData.productPfId}
               onChange={(e) => {
                 const pfId = parseInt(e.target.value);
@@ -66,9 +68,11 @@ export function CreateRecipeModal({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-[#1D1D1F] mb-1">Nom de la recette *</label>
+            <label htmlFor="recipe-name" className="block text-sm font-medium text-[#1D1D1F] mb-1">Nom de la recette <span aria-hidden="true">*</span></label>
             <input
+              id="recipe-name"
               type="text"
+              aria-required="true"
               value={formData.name}
               onChange={(e) => onFormChange({ ...formData, name: e.target.value })}
               placeholder="Ex: Recette Manchego 400g"
@@ -145,7 +149,7 @@ export function AddIngredientModal({
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="glass-card rounded-[20px] w-full max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
-          <h2 className="text-lg font-semibold text-[#1D1D1F]">Ajouter un ingr\u00e9dient</h2>
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Ajouter un ingr\u00e9dient</h2>
           <button onClick={onClose} className="p-1 hover:bg-black/5 rounded-lg transition-colors">
             <X className="w-5 h-5 text-[#86868B]" />
           </button>

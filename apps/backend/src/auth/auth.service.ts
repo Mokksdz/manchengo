@@ -23,6 +23,7 @@ import {
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  private static readonly BCRYPT_ROUNDS = 12;
 
   constructor(
     private prisma: PrismaService,
@@ -143,7 +144,7 @@ export class AuthService {
       throw new BadRequestException('Le nouveau mot de passe doit être différent de l\'ancien');
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, AuthService.BCRYPT_ROUNDS);
     await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -246,7 +247,7 @@ export class AuthService {
     // Password strength validation (shared helper)
     this.validatePasswordStrength(dto.password);
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, AuthService.BCRYPT_ROUNDS);
 
     const user = await this.prisma.user.create({
       data: {

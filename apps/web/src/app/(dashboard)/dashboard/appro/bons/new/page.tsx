@@ -39,6 +39,9 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { SuccessAnimation } from '@/components/ui/success-animation';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('NewBon');
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -280,7 +283,7 @@ export default function NewBonCommandePage() {
         setSuppliers(suppData.suppliers || suppData || []);
       }
     } catch (err) {
-      console.error('Failed to load data:', err);
+      log.error('Failed to load data:', err);
       setError('Impossible de charger les données');
     } finally {
       setIsLoading(false);
@@ -569,7 +572,7 @@ export default function NewBonCommandePage() {
                   window.URL.revokeObjectURL(url);
                 }
               } catch (err) {
-                console.error('Erreur téléchargement PDF:', err);
+                log.error('Erreur téléchargement PDF:', err);
               }
             }}
             className="glass-btn flex items-center justify-center gap-2 w-full px-4 py-3.5 border border-black/[0.04] rounded-full hover:bg-white/80 transition-colors text-[#1D1D1F]"
@@ -610,7 +613,7 @@ export default function NewBonCommandePage() {
       {hasContext && selectedMp && (
         <div
           className={cn(
-            'glass-card rounded-2xl p-4 mb-6 border',
+            'glass-card rounded-[28px] p-4 mb-6 border',
             isUrgent ? 'border-[#FF3B30]/20 bg-[#FF3B30]/5' : 'border-[#007AFF]/20 bg-[#007AFF]/5',
           )}
         >
@@ -642,7 +645,7 @@ export default function NewBonCommandePage() {
 
       {/* Error */}
       {error && (
-        <div className="glass-card rounded-2xl p-4 mb-6 border border-[#FF3B30]/20 bg-[#FF3B30]/5 flex items-start gap-3">
+        <div className="glass-card rounded-[28px] p-4 mb-6 border border-[#FF3B30]/20 bg-[#FF3B30]/5 flex items-start gap-3">
           <XCircle className="w-5 h-5 text-[#FF3B30] flex-shrink-0 mt-0.5" />
           <p className="text-[#FF3B30] text-sm">{error}</p>
           <button onClick={() => setError(null)} className="ml-auto">
@@ -653,7 +656,7 @@ export default function NewBonCommandePage() {
 
       {/* Warnings */}
       {warnings.length > 0 && !hasConfirmedWarnings && (
-        <div className="glass-card rounded-2xl p-5 mb-6 border border-[#FF9500]/20 bg-[#FF9500]/5">
+        <div className="glass-card rounded-[28px] p-5 mb-6 border border-[#FF9500]/20 bg-[#FF9500]/5">
           <div className="flex items-start gap-3 mb-4">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF9500]/20 to-[#FF9500]/10 flex items-center justify-center shrink-0">
               <AlertTriangle className="w-4 h-4 text-[#FF9500]" />
@@ -685,7 +688,7 @@ export default function NewBonCommandePage() {
       )}
 
       {/* Main Form Card */}
-      <div className="glass-card rounded-2xl border border-black/[0.04] overflow-hidden">
+      <div className="glass-card rounded-[28px] border border-black/[0.04] overflow-hidden">
         <div className="p-6 space-y-6">
 
           {/* ── Fournisseur ─────────────────────────────────────────────────── */}
@@ -901,7 +904,7 @@ export default function NewBonCommandePage() {
         <div className="px-6 py-4 bg-gradient-to-r from-white/60 to-white/40 backdrop-blur-sm border-t border-black/[0.04]">
           <div className="flex justify-between items-center">
             <span className="text-[#86868B] font-medium">Total HT</span>
-            <span className="text-2xl font-bold text-[#1D1D1F]">
+            <span className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">
               {totalHT.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DA
             </span>
           </div>
@@ -941,7 +944,7 @@ export default function NewBonCommandePage() {
          ═══════════════════════════════════════════════════════════════════════ */}
       {showSupplierModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div ref={supplierModalRef} role="dialog" aria-modal="true" aria-labelledby="create-supplier-title" className="relative w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 animate-scale-in overflow-hidden">
+          <div ref={supplierModalRef} role="dialog" aria-modal="true" aria-labelledby="create-supplier-title" className="relative w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 animate-scale-in overflow-hidden">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-black/[0.04]">
               <div className="flex items-center gap-3">
@@ -949,7 +952,7 @@ export default function NewBonCommandePage() {
                   <Building2 className="w-5 h-5 text-[#EC7620]" />
                 </div>
                 <div>
-                  <h2 id="create-supplier-title" className="text-lg font-bold text-[#1D1D1F]">Nouveau Fournisseur</h2>
+                  <h2 id="create-supplier-title" className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Nouveau Fournisseur</h2>
                   <p className="text-xs text-[#86868B]">Informations fiscales algériennes</p>
                 </div>
               </div>

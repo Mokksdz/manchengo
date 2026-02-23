@@ -4,6 +4,9 @@ import { useEffect, useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import { productionKeys } from './use-production';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Realtime');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -57,6 +60,8 @@ const MAX_RECONNECTION_ATTEMPTS = 5;
 
 function getSocket(): Socket {
   if (!socket) {
+    // WebSocket connects directly to backend (not proxied by Next.js rewrites)
+    // In browser without NEXT_PUBLIC_API_URL: use current origin for same-port, or fallback
     const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
     socket = io(`${backendUrl}/dashboard`, {
@@ -78,20 +83,20 @@ function getSocket(): Socket {
     });
 
     socket.on('connect', () => {
-      console.log('[WebSocket] Connected to dashboard gateway');
+      log.debug('[WebSocket] Connected to dashboard gateway');
       connectionAttempts = 0;
     });
 
     socket.on('disconnect', (reason: string) => {
-      console.log('[WebSocket] Disconnected:', reason);
+      log.debug('[WebSocket] Disconnected', { reason });
     });
 
     socket.on('connect_error', (error: Error) => {
       connectionAttempts++;
-      console.warn('[WebSocket] Connection error:', error.message);
+      log.warn('[WebSocket] Connection error', { error: error.message });
 
       if (connectionAttempts >= MAX_RECONNECTION_ATTEMPTS) {
-        console.error('[WebSocket] Max reconnection attempts reached');
+        log.error('[WebSocket] Max reconnection attempts reached');
       }
     });
   }

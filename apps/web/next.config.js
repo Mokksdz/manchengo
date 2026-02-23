@@ -69,7 +69,15 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self' data:",
-              "connect-src 'self' " + (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') + " wss: ws:",
+              "connect-src 'self' " + (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000') + " " + (() => {
+                try {
+                  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+                  const host = new URL(apiUrl).host;
+                  return `wss://${host} ws://${host}`;
+                } catch {
+                  return 'ws://localhost:3000 wss://localhost:3000';
+                }
+              })(),
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

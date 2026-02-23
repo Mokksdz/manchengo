@@ -28,6 +28,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Clients');
 
 export default function ClientsPage() {
   const router = useRouter();
@@ -49,7 +52,7 @@ export default function ClientsPage() {
         setClients(await res.json());
       }
     } catch (error) {
-      console.error('Failed to load clients:', error);
+      log.error('Failed to load clients:', error);
     } finally {
       setIsLoading(false);
     }

@@ -20,6 +20,9 @@ import {
   type SupplyRisksData,
   type ProductionsAtRiskData,
 } from '@/components/production';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Production');
 
 const ProductionWizardModal = dynamic(
   () => import('@/components/production/ProductionWizardModal').then(mod => ({ default: mod.ProductionWizardModal })),
@@ -192,7 +195,7 @@ export default function ProductionPage() {
       const res = await authFetch('/production?limit=100', {
         credentials: 'include',
       });
-      if (!res.ok) { console.error('Orders API error:', res.status, await res.text()); toast.error('Erreur chargement des ordres de production'); return; }
+      if (!res.ok) { log.error('Orders API error', { status: res.status }); toast.error('Erreur chargement des ordres de production'); return; }
       {
         const data = await res.json();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -212,7 +215,7 @@ export default function ProductionPage() {
         })));
       }
     } catch (error: unknown) {
-      console.error('Failed to load orders:', (error as Error)?.message || error);
+      log.error('Failed to load orders', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les ordres de production');
     }
   }, []);
@@ -223,7 +226,7 @@ export default function ProductionPage() {
         authFetch('/products/pf', { credentials: 'include' }),
         authFetch('/recipes', { credentials: 'include' }),
       ]);
-      if (!productsRes.ok) { console.error('Products API error:', productsRes.status, await productsRes.text()); toast.error('Erreur chargement des produits'); return; }
+      if (!productsRes.ok) { log.error('Products API error', { status: productsRes.status }); toast.error('Erreur chargement des produits'); return; }
       {
         const productsData = await productsRes.json();
         const recipesData = recipesRes.ok ? await recipesRes.json() : [];
@@ -244,7 +247,7 @@ export default function ProductionPage() {
         }));
       }
     } catch (error: unknown) {
-      console.error('Failed to load products:', (error as Error)?.message || error);
+      log.error('Failed to load products', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les produits finis');
     }
   }, []);
@@ -268,7 +271,7 @@ export default function ProductionPage() {
         setCalendarData(data.days || []);
       } else toast.error('Erreur chargement calendrier');
     } catch (error: unknown) {
-      console.error('Failed to load dashboard data:', (error as Error)?.message || error);
+      log.error('Failed to load dashboard data', { error: (error as Error)?.message || String(error) });
       toast.error('Erreur réseau — impossible de charger le tableau de bord');
     }
   }, []);
@@ -282,7 +285,7 @@ export default function ProductionPage() {
         setSupplyRisks(await res.json());
       }
     } catch (error: unknown) {
-      console.error('Failed to load supply risks:', (error as Error)?.message || error);
+      log.error('Failed to load supply risks', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les risques supply chain');
     } finally {
       setIsLoadingSupplyRisks(false);
@@ -299,7 +302,7 @@ export default function ProductionPage() {
         setLastSupplyAnalysis(new Date()); // ERP Premium: Horodatage
       }
     } catch (error: unknown) {
-      console.error('Failed to load productions at risk:', (error as Error)?.message || error);
+      log.error('Failed to load productions at risk', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les productions à risque');
     } finally {
       setIsLoadingAtRisk(false);
@@ -323,8 +326,7 @@ export default function ProductionPage() {
       }
     } catch (error: unknown) {
       // Silently fail - responsable appro is optional
-      // eslint-disable-next-line no-console
-      console.debug('Appro manager not found:', (error as Error)?.message);
+      log.debug('Appro manager not found', { error: (error as Error)?.message });
     }
   }, []);
 
@@ -334,7 +336,7 @@ export default function ProductionPage() {
       if (res.ok) setAnalytics(await res.json());
       else toast.error('Erreur chargement analytics production');
     } catch (error: unknown) {
-      console.error('Failed to load analytics:', (error as Error)?.message || error);
+      log.error('Failed to load analytics', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les analytics');
     }
   }, []);
@@ -349,7 +351,7 @@ export default function ProductionPage() {
         setLotSearchResults(data.results || []);
       }
     } catch (error: unknown) {
-      console.error('Failed to search lots:', (error as Error)?.message || error);
+      log.error('Failed to search lots', { error: (error as Error)?.message || String(error) });
     } finally {
       setIsSearchingLots(false);
     }

@@ -54,10 +54,10 @@ export const colors = {
 // Use these instead of writing raw Tailwind to ensure consistency
 
 /** Card container */
-export const cardClass = 'rounded-[18px] border border-white/70 bg-white/70 shadow-[0_16px_36px_rgba(18,22,33,0.08),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-[26px]';
+export const cardClass = 'rounded-[28px] border border-white/50 bg-white/60 shadow-[0_10px_30px_rgba(0,0,0,0.03)] backdrop-blur-[40px]';
 
 /** Card with hover */
-export const cardHoverClass = 'rounded-[18px] border border-white/70 bg-white/70 shadow-[0_16px_36px_rgba(18,22,33,0.08),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-[26px] transition-all hover:-translate-y-[1px] hover:shadow-[0_22px_44px_rgba(18,22,33,0.12),inset_0_1px_0_rgba(255,255,255,0.6)]';
+export const cardHoverClass = 'rounded-[28px] border border-white/50 bg-white/60 shadow-[0_10px_30px_rgba(0,0,0,0.03)] backdrop-blur-[40px] transition-all duration-500 hover:-translate-y-1 hover:shadow-xl';
 
 /** Card header section (inside card) */
 export const cardHeaderClass = 'px-6 py-4 border-b border-white/70';
@@ -86,14 +86,14 @@ export const tdCenterClass = 'px-5 py-4 text-[15px] text-[#1D1D1F] text-center';
 export const tdMutedClass = 'px-5 py-4 text-[15px] text-[#6E6E73]';
 
 /** Section title (page-level heading) */
-export const sectionTitleClass = 'text-[20px] font-semibold text-[#1D1D1F]';
+export const sectionTitleClass = "font-display text-[22px] font-bold text-[#1D1D1F] tracking-tight";
 
 /** Section subtitle */
 export const sectionSubtitleClass = 'text-[13px] text-[#86868B]';
 
 /** KPI / Stat value */
-export const kpiValueClass = 'text-[28px] font-semibold text-[#1D1D1F]';
-export const kpiLabelClass = 'text-[13px] font-medium text-[#86868B]';
+export const kpiValueClass = 'font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none';
+export const kpiLabelClass = 'text-[12px] font-bold text-[#6E6E73] uppercase tracking-widest';
 
 /** Primary button (dark) */
 export const btnPrimaryClass = 'inline-flex items-center gap-2 rounded-[11px] bg-[linear-gradient(135deg,#191c26_0%,#2d313f_46%,#1a1d28_100%)] px-5 py-2.5 text-[15px] font-semibold text-white shadow-[0_12px_28px_rgba(18,22,33,0.18),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all hover:-translate-y-[1px] hover:shadow-[0_16px_34px_rgba(18,22,33,0.22),inset_0_1px_0_rgba(255,255,255,0.16)]';
@@ -188,3 +188,37 @@ export const statsGridClass = 'grid grid-cols-2 md:grid-cols-4 gap-5';
 
 /** Divider */
 export const dividerClass = 'border-t border-[#F0F0F0]';
+
+// ─── V2 PREMIUM DESIGN TOKENS ─────────────────────────────────────────────
+
+/** Page title (premium - 34px) */
+export const pageTitleClass = "font-display text-[34px] font-black text-[#1D1D1F] tracking-[-0.04em] leading-tight";
+
+/** Live system badge */
+export const liveBadgeClass = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase bg-orange-100 text-orange-700 border border-orange-200/50 backdrop-blur-sm';
+
+/** KPI card (premium rounded-[32px]) */
+export const kpiCardClass = 'group relative bg-white/60 backdrop-blur-[40px] border border-white/50 rounded-[32px] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.03)] hover:-translate-y-1 hover:shadow-xl transition-all duration-500 overflow-hidden';
+
+/** Bento grid layout */
+export const bentoGridClass = 'grid grid-cols-1 xl:grid-cols-4 auto-rows-fr gap-6 min-h-[500px]';
+
+/** Bento span helpers */
+export const bentoSpan2x2Class = 'xl:col-span-2 xl:row-span-2';
+export const bentoSpan2x1Class = 'xl:col-span-2';
+
+/** Dark card (Centre de Crise) */
+export const darkCardClass = 'glass-card-dark p-8 flex flex-col';
+
+/** Icon box — white inner shadow style (v2) */
+export const iconBoxV2Class = 'w-12 h-12 rounded-2xl flex items-center justify-center bg-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)]';
+
+/** Trend badge */
+export const trendUpClass = 'inline-flex items-center gap-1 text-[12px] font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-full border border-black/5';
+export const trendDownClass = 'inline-flex items-center gap-1 text-[12px] font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-full border border-black/5';
+
+/** Stats grid (premium 4-col) */
+export const statsGridV2Class = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6';
+
+/** Notification bell button */
+export const notifBtnClass = 'relative w-12 h-12 rounded-2xl bg-white/50 backdrop-blur-md border border-white/60 flex items-center justify-center text-[#6E6E73] hover:bg-white/80 hover:text-[#1D1D1F] hover:shadow-md transition-all';

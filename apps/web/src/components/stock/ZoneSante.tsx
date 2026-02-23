@@ -1,7 +1,6 @@
 'use client';
 
-import { TrendingUp, RotateCcw, Calendar, Lock, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { TrendingUp, RotateCcw, Calendar, Activity } from 'lucide-react';
 import type { ZoneSante as ZoneSanteType, StockDashboardSummary } from '@/lib/api';
 
 interface ZoneSanteProps {
@@ -41,111 +40,74 @@ function Gauge({ value, label, icon: Icon, thresholds }: {
   );
 }
 
-/* ──── Main ring score ──── */
+/* ──── Main ring score — enlarged ──── */
 function ScoreRing({ score }: { score: number }) {
-  const radius = 42;
+  const radius = 45;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference * (1 - score / 100);
 
-  const color = score >= 80 ? '#34C759' : score >= 60 ? '#FF9500' : score >= 40 ? '#FF9500' : '#FF3B30';
-  const label = score >= 80 ? 'Excellent' : score >= 60 ? 'Correct' : score >= 40 ? 'À surveiller' : 'Critique';
+  const color = score >= 80 ? '#10b981' : score >= 60 ? '#FF9500' : score >= 40 ? '#FF9500' : '#FF3B30';
+  const grade = score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B+' : score >= 60 ? 'B' : 'C';
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="relative w-[100px] h-[100px]">
-        {/* Background ring */}
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r={radius} fill="none" stroke="#F0F0F0" strokeWidth="5" />
+    <div className="w-[180px] h-[180px] shrink-0 relative flex items-center justify-center group">
+      <div className="absolute inset-0 bg-emerald-400/10 blur-[40px] rounded-full group-hover:bg-emerald-400/20 transition-all" />
+      <div className="w-full h-full rounded-full border-[10px] border-emerald-50 relative flex items-center justify-center shadow-inner">
+        <div className="text-emerald-700 font-black text-2xl font-display group-hover:scale-110 transition-transform cursor-default">{grade}</div>
+        <svg className="absolute inset-0 transform -rotate-90 w-full h-full" viewBox="0 0 100 100">
           <circle
             cx="50" cy="50" r={radius}
             fill="none"
             stroke={color}
-            strokeWidth="5"
+            strokeWidth="10"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            className="transition-all duration-1000 ease-out"
+            className="transition-all duration-1000 ease-out drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]"
           />
         </svg>
-        {/* Center content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[26px] font-bold text-[#1D1D1F] tabular-nums leading-none">{score}</span>
-          <span className="text-[10px] text-[#C7C7CC] mt-0.5">/100</span>
-        </div>
-      </div>
-      <span className="text-[13px] font-semibold mt-2" style={{ color }}>{label}</span>
-    </div>
-  );
-}
-
-/* ──── Metric pill ──── */
-function MetricPill({ label, value, icon: Icon, alert }: {
-  label: string;
-  value: string;
-  icon: React.ElementType;
-  alert: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-3 p-3 rounded-xl border border-[#F0F0F0] hover:border-[#E5E5E5] transition-colors">
-      <div className={cn(
-        'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-        alert ? 'bg-[#FF9500]/8' : 'bg-[#F5F5F7]'
-      )}>
-        <Icon className={cn('h-4 w-4', alert ? 'text-[#FF9500]' : 'text-[#C7C7CC]')} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[11px] text-[#8E8E93]">{label}</p>
-        <p className={cn('text-[15px] font-bold tabular-nums', alert ? 'text-[#FF9500]' : 'text-[#1D1D1F]')}>{value}</p>
       </div>
     </div>
   );
 }
 
 export function ZoneSante({ data, summary }: ZoneSanteProps) {
+  const score = summary.healthScore;
+
   return (
-    <div className="glass-card rounded-2xl overflow-hidden h-full flex flex-col">
-      {/* Accent bar — always green for health */}
-      <div className="h-[3px] bg-gradient-to-r from-[#34C759] to-[#30D158]" />
-
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-[#F0F0F0]">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-[#34C759]" />
-          <h3 className="text-[15px] font-semibold text-[#1D1D1F]">Santé du stock</h3>
+    <div className="bg-white/70 backdrop-blur-xl border border-white/60 rounded-[40px] shadow-sm hover:shadow-lg transition-all p-8 flex flex-col md:flex-row items-center gap-8 h-full">
+      {/* Left: text content */}
+      <div className="flex-1">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-200">
+            <Activity size={22} />
+          </div>
+          <h3 className="font-display text-[20px] font-bold text-[#1D1D1F]">Index Santé</h3>
         </div>
-        <p className="text-[12px] text-[#8E8E93] mt-0.5 ml-5">Performance & conformité</p>
-      </div>
 
-      {/* Content */}
-      <div className="flex-1 p-5">
-        {/* Score ring — centered hero */}
-        <div className="flex justify-center mb-6">
-          <ScoreRing score={summary.healthScore} />
+        {/* Large score value */}
+        <div className="flex items-end mb-4">
+          <p className="text-[64px] font-black text-[#1D1D1F] font-display leading-none tracking-tighter">
+            {score}<span className="text-[32px] text-emerald-500">%</span>
+          </p>
+          <div className="mb-2 ml-4">
+            <p className="text-[13px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">+2.4%</p>
+            <p className="text-[11px] text-[#86868B] font-medium mt-1">
+              {score >= 80 ? 'Score Optimal' : score >= 60 ? 'Score Correct' : 'À améliorer'}
+            </p>
+          </div>
         </div>
 
         {/* Gauges */}
-        <div className="space-y-4 mb-5">
-          <Gauge value={data.fifoCompliance} label="Conformité FIFO" icon={TrendingUp} thresholds={{ good: 95, warning: 80 }} />
-          <Gauge value={data.stockRotation} label="Rotation stock" icon={RotateCcw} thresholds={{ good: 70, warning: 50 }} />
-          <Gauge value={data.inventoryFreshness} label="Fraîcheur inventaire" icon={Calendar} thresholds={{ good: 80, warning: 60 }} />
-        </div>
-
-        {/* Bottom metrics */}
-        <div className="grid grid-cols-2 gap-2">
-          <MetricPill
-            label="Lots bloqués"
-            value={`${data.blockedLotsRatio.toFixed(1)}%`}
-            icon={Lock}
-            alert={data.blockedLotsRatio > 5}
-          />
-          <MetricPill
-            label="Risque DLC"
-            value={`${data.expiryRiskScore.toFixed(1)}%`}
-            icon={AlertTriangle}
-            alert={data.expiryRiskScore > 20}
-          />
+        <div className="space-y-3 max-w-[250px]">
+          <Gauge value={data.fifoCompliance} label="FIFO" icon={TrendingUp} thresholds={{ good: 95, warning: 80 }} />
+          <Gauge value={data.stockRotation} label="Rotation" icon={RotateCcw} thresholds={{ good: 70, warning: 50 }} />
+          <Gauge value={data.inventoryFreshness} label="Fraîcheur" icon={Calendar} thresholds={{ good: 80, warning: 60 }} />
         </div>
       </div>
+
+      {/* Right: circular gauge */}
+      <ScoreRing score={score} />
     </div>
   );
 }

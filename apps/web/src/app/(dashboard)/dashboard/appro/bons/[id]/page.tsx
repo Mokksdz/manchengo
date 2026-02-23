@@ -15,6 +15,7 @@ import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   Truck,
   Clock,
@@ -30,6 +31,9 @@ import {
   Ban,
 } from 'lucide-react';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('BonDetail');
 
 const statusLabel: Record<PurchaseOrderStatus, string> = {
   DRAFT: 'Brouillon',
@@ -101,13 +105,14 @@ export default function BcDetailPage() {
   const [sendProofNote, setSendProofNote] = useState('');
   
   const isAdmin = user?.role === 'ADMIN';
+  const { confirm, Dialog: ConfirmDialogEl } = useConfirmDialog();
 
   const loadData = useCallback(async () => {
     try {
       const data = await appro.getPurchaseOrder(params.id as string);
       setBc(data);
     } catch (err) {
-      console.error('Failed to load BC:', err);
+      log.error('Failed to load BC', { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setIsLoading(false);
     }
@@ -156,7 +161,7 @@ export default function BcDetailPage() {
       setShowSendModal(false);
       loadData();
     } catch (err: unknown) {
-      console.error('Failed to send BC:', err);
+      log.error('Failed to send BC', { error: err instanceof Error ? err.message : String(err) });
       toast.error((err as Error).message || 'Erreur lors de l\'envoi');
     } finally {
       setIsActioning(false);
@@ -182,7 +187,7 @@ export default function BcDetailPage() {
       setShowCancelModal(false);
       loadData();
     } catch (err: unknown) {
-      console.error('Failed to cancel BC:', err);
+      log.error('Failed to cancel BC', { error: err instanceof Error ? err.message : String(err) });
       toast.error((err as Error).message || 'Erreur lors de l\'annulation');
     } finally {
       setIsCancelling(false);
@@ -190,14 +195,19 @@ export default function BcDetailPage() {
   };
 
   const handleConfirm = async () => {
-    if (!bc || !confirm(`Confirmer le BC ${bc.reference} ?`)) return;
+    if (!bc) return;
+    const confirmed = await confirm({
+      title: `Confirmer le BC ${bc.reference} ?`,
+      description: `Cette action marquera le bon de commande comme confirmé auprès du fournisseur ${bc.supplier.name}.`,
+      confirmLabel: 'Confirmer',
+    });
+    if (!confirmed) return;
     setIsActioning(true);
     try {
       await appro.confirmPurchaseOrder(bc.id);
       loadData();
     } catch (err) {
-      console.error('Failed to confirm BC:', err);
-      toast.error('Erreur lors de la confirmation');
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la confirmation');
     } finally {
       setIsActioning(false);
     }
@@ -207,7 +217,7 @@ export default function BcDetailPage() {
     if (!bc) return;
     setIsDownloading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/appro/purchase-orders/${bc.id}/pdf`, {
+      const response = await fetch(`/api/appro/purchase-orders/${bc.id}/pdf`, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Erreur téléchargement');
@@ -221,7 +231,7 @@ export default function BcDetailPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
-      console.error('Failed to download PDF:', err);
+      log.error('Failed to download PDF', { error: err instanceof Error ? err.message : String(err) });
       toast.error('Erreur lors du téléchargement du PDF');
     } finally {
       setIsDownloading(false);
@@ -249,7 +259,7 @@ export default function BcDetailPage() {
           </div>
         </div>
         {/* Skeleton detail card */}
-        <div className="rounded-2xl border border-black/[0.04] bg-white/60 p-6 space-y-4">
+        <div className="rounded-[28px] border border-black/[0.04] bg-white/60 p-6 space-y-4">
           <Skeleton className="h-5 w-32" />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -350,7 +360,7 @@ export default function BcDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Fournisseur & Demande source */}
           <div className="glass-card rounded-xl p-6">
-            <h2 className="font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4 flex items-center gap-2">
               <Truck className="w-5 h-5 text-primary-600" />
               Informations
             </h2>
@@ -386,7 +396,7 @@ export default function BcDetailPage() {
           {/* Articles */}
           <div className="glass-card rounded-xl overflow-hidden">
             <div className="p-4 border-b flex items-center justify-between">
-              <h2 className="font-semibold text-[#1D1D1F] flex items-center gap-2">
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
                 <Package className="w-5 h-5 text-primary-600" />
                 Articles ({bc.items.length})
               </h2>
@@ -451,7 +461,7 @@ export default function BcDetailPage() {
         {/* Sidebar - Historique */}
         <div className="space-y-6">
           <div className="glass-card rounded-xl p-6">
-            <h2 className="font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4 flex items-center gap-2">
               <History className="w-5 h-5 text-primary-600" />
               Historique
             </h2>
@@ -513,7 +523,7 @@ export default function BcDetailPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="glass-card rounded-[18px] max-w-lg w-full mx-4 overflow-hidden">
             <div className="bg-[#007AFF] px-6 py-4">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="font-display text-[17px] font-bold text-white tracking-tight flex items-center gap-2">
                 <Send className="w-5 h-5" />
                 Envoyer le BC {bc.reference}
               </h2>
@@ -620,6 +630,8 @@ export default function BcDetailPage() {
         </div>
       )}
       
+      <ConfirmDialogEl />
+
       {/* ══════════════════════════════════════════════════════════════════════
           P0.2: MODAL ANNULATION BC SÉCURISÉE
       ══════════════════════════════════════════════════════════════════════ */}
@@ -627,7 +639,7 @@ export default function BcDetailPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="glass-card rounded-[18px] max-w-lg w-full mx-4 overflow-hidden">
             <div className="bg-[#FF3B30] px-6 py-4">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <h2 className="font-display text-[17px] font-bold text-white tracking-tight flex items-center gap-2">
                 <Ban className="w-5 h-5" />
                 Annuler le BC {bc.reference}
               </h2>

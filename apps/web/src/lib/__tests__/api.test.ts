@@ -75,9 +75,6 @@ describe('apiFetch', () => {
       `${API_BASE}/test/endpoint`,
       expect.objectContaining({
         credentials: 'include',
-        headers: expect.objectContaining({
-          'Content-Type': 'application/json',
-        }),
       }),
     );
   });

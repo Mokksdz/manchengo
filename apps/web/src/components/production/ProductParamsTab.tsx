@@ -28,7 +28,7 @@ const formatWeight = (kg: number) => `${kg} kg`;
 export function ProductParamsTab({ product, recipe }: ProductParamsTabProps) {
   return (
     <div className="glass-card p-6">
-      <h2 className="text-lg font-semibold mb-4">Paramètres du produit</h2>
+      <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Paramètres du produit</h2>
       <div className="grid grid-cols-2 gap-6">
         <div>
           <label className="block text-[11px] font-medium uppercase tracking-wider text-[#86868B] mb-1">Code</label>
@@ -54,7 +54,7 @@ export function ProductParamsTab({ product, recipe }: ProductParamsTabProps) {
 
       {recipe && (
         <div className="mt-6 pt-6 border-t border-black/[0.04]">
-          <h3 className="text-md font-semibold mb-4">Paramètres de production</h3>
+          <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Paramètres de production</h3>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-[#AF52DE]/10 to-[#AF52DE]/5 rounded-[14px] p-4">
               <div className="flex items-center gap-2 text-[#AF52DE] mb-1">

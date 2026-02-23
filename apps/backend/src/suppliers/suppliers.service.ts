@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSupplierDto, UpdateSupplierDto, SupplierResponseDto } from './dto/supplier.dto';
@@ -89,6 +90,8 @@ export interface SupplierScoreBreakdown {
 
 @Injectable()
 export class SuppliersService {
+  private readonly logger = new Logger(SuppliersService.name);
+
   constructor(private prisma: PrismaService) {}
 
   /**
@@ -921,7 +924,7 @@ export class SuppliersService {
     //   where: { id },
     //   data: { isBlocked: true, blockedReason: dto.reason, blockedAt: new Date(), blockedBy: _userId },
     // });
-    console.warn(`[Block] Fournisseur ${id} - Run 'npx prisma migrate dev' to activate`);
+    this.logger.warn(`[Block] Fournisseur ${id} - Run 'npx prisma migrate dev' to activate`);
 
     return {
       id: supplier.id,
@@ -964,7 +967,7 @@ export class SuppliersService {
 
     // NOTE: Les champs surveillance ne sont pas encore dans le schema Prisma
     // Cette fonctionnalité sera activée après migration
-    console.warn(`[Surveillance] Fournisseur ${id} - Feature en attente de migration schema`);
+    this.logger.warn(`[Surveillance] Fournisseur ${id} - Feature en attente de migration schema`);
 
     return {
       id: supplier.id,

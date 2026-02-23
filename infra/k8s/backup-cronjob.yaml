@@ -1,0 +1,144 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Manchengo Smart ERP - PostgreSQL Backup CronJob
+# Schedule: Daily at 02:00 UTC
+# Retention: 30 days local, optional S3 upload
+#
+# RESTORE STEPS:
+#   1. List backups:     kubectl exec -it <backup-pod> -- ls -la /backups/manchengo/
+#   2. Copy to local:    kubectl cp manchengo/<pod>:/backups/manchengo/<file> ./backup.sql.gz
+#   3. Restore:          pg_restore -h <host> -U manchengo -d manchengo_erp -c ./backup.sql.gz
+#   4. Verify:           psql -h <host> -U manchengo -d manchengo_erp -c "SELECT count(*) FROM users"
+#   5. Or use script:    ./infra/backup/restore-postgres.sh /path/to/backup_file.sql.gz
+# ═══════════════════════════════════════════════════════════════════════════════
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: manchengo-db-backup
+  namespace: manchengo
+  labels:
+    app: manchengo
+    component: backup
+spec:
+  schedule: "0 2 * * *"
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 3600
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: manchengo
+            component: backup
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          containers:
+            - name: backup
+              image: postgres:16-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -euo pipefail
+
+                  TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+                  BACKUP_DIR="/backups/manchengo"
+                  BACKUP_FILE="${BACKUP_DIR}/manchengo_${TIMESTAMP}.sql.gz"
+                  RETENTION_DAYS="${RETENTION_DAYS:-30}"
+
+                  mkdir -p "${BACKUP_DIR}"
+
+                  echo "[$(date)] Starting PostgreSQL backup..."
+
+                  # Create compressed backup
+                  PGPASSWORD="${DB_PASSWORD}" pg_dump \
+                    -h "${DB_HOST}" \
+                    -p "${DB_PORT:-5432}" \
+                    -U "${DB_USER}" \
+                    -d "${DB_NAME}" \
+                    --format=custom \
+                    --compress=9 \
+                    -f "${BACKUP_FILE}" 2>&1
+
+                  BACKUP_SIZE=$(du -h "${BACKUP_FILE}" | cut -f1)
+                  echo "[$(date)] Backup created: ${BACKUP_FILE} (${BACKUP_SIZE})"
+
+                  # Verify backup integrity
+                  echo "[$(date)] Verifying backup integrity..."
+                  pg_restore --list "${BACKUP_FILE}" > /dev/null 2>&1
+                  if [ $? -eq 0 ]; then
+                    echo "[$(date)] Backup integrity verified OK"
+                  else
+                    echo "[$(date)] ERROR: Backup integrity check FAILED!"
+                    exit 1
+                  fi
+
+                  # Clean old backups
+                  echo "[$(date)] Cleaning backups older than ${RETENTION_DAYS} days..."
+                  find "${BACKUP_DIR}" -name "manchengo_*.sql.gz" -mtime +${RETENTION_DAYS} -delete
+                  REMAINING=$(find "${BACKUP_DIR}" -name "manchengo_*.sql.gz" | wc -l)
+                  echo "[$(date)] ${REMAINING} backups remaining"
+
+                  echo "[$(date)] Backup complete successfully"
+              env:
+                - name: DB_HOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: manchengo-db-credentials
+                      key: host
+                - name: DB_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: manchengo-db-credentials
+                      key: username
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: manchengo-db-credentials
+                      key: password
+                - name: DB_NAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: manchengo-db-credentials
+                      key: database
+                - name: RETENTION_DAYS
+                  value: "30"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: manchengo-backup-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: manchengo-backup-pvc
+  namespace: manchengo
+  labels:
+    app: manchengo
+    component: backup
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi

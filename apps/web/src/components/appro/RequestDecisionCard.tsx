@@ -120,11 +120,11 @@ export const RequestDecisionCard = memo(function RequestDecisionCard({
         <div className="flex-1 min-w-0">
           {/* Product + Quantity */}
           <div className="flex items-baseline gap-2.5 flex-wrap">
-            <h3 className="text-[17px] font-semibold text-[#1D1D1F] truncate tracking-[-0.01em]">
+            <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] truncate tracking-tight">
               {request.productName}
             </h3>
             <span className="text-[#D1D1D6]">—</span>
-            <span className="text-[17px] font-semibold text-[#1D1D1F]">
+            <span className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
               {request.quantity.toLocaleString('fr-FR')} {request.unit}
             </span>
           </div>

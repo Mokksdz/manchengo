@@ -9,6 +9,9 @@ import { formatPrice, formatDate } from '@/lib/format';
 import { Skeleton } from '@/components/ui/skeleton-loader';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ClientHistory');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -163,7 +166,7 @@ export default function ClientHistoriquePage() {
         setHistoryData(await res.json());
       }
     } catch (error) {
-      console.error('Failed to load history:', error);
+      log.error('Failed to load history:', error);
     } finally {
       setIsLoading(false);
     }
@@ -207,7 +210,7 @@ export default function ClientHistoriquePage() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#FF9500]/10 to-[#FF9500]/5 flex items-center justify-center">
             <Filter className="w-4 h-4 text-[#FF9500]" />
           </div>
-          <h2 className="text-sm font-semibold text-[#1D1D1F]">Filtres</h2>
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Filtres</h2>
         </div>
         <div className="flex flex-wrap items-end gap-4">
           <div>

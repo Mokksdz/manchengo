@@ -488,7 +488,7 @@ export default function ProductionOrderDetailPage() {
       {order.consumptions.length > 0 && (
         <div className="glass-card overflow-hidden animate-slide-up">
           <div className="p-5 border-b border-black/[0.04]">
-            <h2 className="font-semibold text-[#1D1D1F] flex items-center gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
               <div className="w-7 h-7 bg-gradient-to-br from-[#AF52DE]/10 to-[#AF52DE]/5 rounded-[8px] flex items-center justify-center">
                 <Beaker className="w-4 h-4 text-[#AF52DE]" />
               </div>
@@ -532,7 +532,7 @@ export default function ProductionOrderDetailPage() {
       {order.lots.length > 0 && (
         <div className="glass-card overflow-hidden animate-slide-up">
           <div className="p-5 border-b border-black/[0.04]">
-            <h2 className="font-semibold text-[#1D1D1F] flex items-center gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
               <div className="w-7 h-7 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 rounded-[8px] flex items-center justify-center">
                 <Box className="w-4 h-4 text-emerald-600" />
               </div>
@@ -568,7 +568,7 @@ export default function ProductionOrderDetailPage() {
       {/* Quality Notes */}
       {(order.qualityStatus || order.qualityNotes) && (
         <div className="glass-card p-6 animate-slide-up">
-          <h2 className="font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4 flex items-center gap-2">
             <div className="w-7 h-7 bg-gradient-to-br from-[#86868B]/10 to-[#86868B]/5 rounded-[8px] flex items-center justify-center">
               <TrendingUp className="w-4 h-4 text-[#6E6E73]" />
             </div>
@@ -596,7 +596,7 @@ export default function ProductionOrderDetailPage() {
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
           <div className="absolute inset-0" onClick={() => setShowCompleteModal(false)} />
           <div className="relative glass-card rounded-[20px] w-full max-w-md p-6 animate-slide-up">
-            <h2 className="text-lg font-semibold text-[#1D1D1F] mb-4">Terminer la production</h2>
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Terminer la production</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-[11px] uppercase tracking-wider font-medium text-[#86868B] mb-1.5">

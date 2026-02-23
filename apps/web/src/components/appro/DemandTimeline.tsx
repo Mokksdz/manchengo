@@ -86,7 +86,7 @@ export function DemandTimeline({ status, purchaseOrders = [], className }: Deman
 
   return (
     <div className={cn('glass-card rounded-xl p-4', className)}>
-      <h3 className="text-sm font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
+      <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4 flex items-center gap-2">
         <Clock className="w-4 h-4" />
         Progression du flux
       </h3>

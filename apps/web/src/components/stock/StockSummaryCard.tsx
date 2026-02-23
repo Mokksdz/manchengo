@@ -78,9 +78,9 @@ export const StockSummaryCard = memo(function StockSummaryCard({
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <p className="text-sm font-medium text-[#6E6E73]">{title}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#6E6E73]">{title}</p>
             <div className="flex items-baseline gap-2 mt-1">
-              <span className={`text-2xl font-bold ${classes.value}`}>
+              <span className={`font-display text-[28px] font-black tracking-tight tabular-nums leading-none ${classes.value}`}>
                 {value}
               </span>
               {trend && trendValue && (

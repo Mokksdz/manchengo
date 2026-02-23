@@ -15,6 +15,9 @@ import {
   X, ChevronLeft, ChevronRight, Package, ArrowLeft, Save, Trash2,
   AlertTriangle, Check, Info
 } from 'lucide-react';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('SupplierDetail');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -127,7 +130,7 @@ function DeleteModal({ isOpen, onClose, onConfirm, supplierName, isLoading, canD
             <AlertTriangle className="w-6 h-6 text-[#FF3B30]" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-[#1D1D1F]">Desactiver le fournisseur</h3>
+            <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Desactiver le fournisseur</h3>
             <p className="text-sm text-[#86868B]">{supplierName}</p>
           </div>
         </div>
@@ -268,7 +271,7 @@ export default function SupplierDetailPage() {
         setHistoryData(await res.json());
       }
     } catch (error) {
-      console.error('Failed to load history:', error);
+      log.error('Failed to load history:', error);
     } finally {
       setHistoryLoading(false);
     }
@@ -285,7 +288,7 @@ export default function SupplierDetailPage() {
         setCanDeleteMessage(data.message || '');
       }
     } catch (error) {
-      console.error('Failed to check delete status:', error);
+      log.error('Failed to check delete status:', error);
     }
   }, [supplierId]);
 

@@ -98,7 +98,7 @@ export function Modal({
         aria-labelledby={titleId}
         aria-describedby={ariaDescribedBy || (subtitle ? descriptionId : undefined)}
         className={cn(
-          'relative w-full bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 animate-scale-in mx-4',
+          'relative w-full max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 animate-scale-in mx-4',
           sizeClasses[size]
         )}
       >
@@ -107,7 +107,7 @@ export function Modal({
           <div>
             <h2
               id={titleId}
-              className="text-[17px] font-semibold text-[#1D1D1F]"
+              className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight"
             >
               {title}
             </h2>

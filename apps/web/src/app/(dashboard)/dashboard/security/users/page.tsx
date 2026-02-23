@@ -306,8 +306,8 @@ export default function UsersManagementPage() {
             <Users className="w-5 h-5 text-[#1D1D1F]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{users.length}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Total</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{users.length}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Total</p>
           </div>
         </div>
         <div className="glass-card p-4 flex items-center gap-3">
@@ -315,8 +315,8 @@ export default function UsersManagementPage() {
             <Shield className="w-5 h-5 text-[#34C759]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{activeUsers}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Actifs</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{activeUsers}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Actifs</p>
           </div>
         </div>
         <div className="glass-card p-4 flex items-center gap-3">
@@ -324,8 +324,8 @@ export default function UsersManagementPage() {
             <ShieldOff className="w-5 h-5 text-[#FF3B30]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{blockedUsers}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Bloqués</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{blockedUsers}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Bloqués</p>
           </div>
         </div>
         <div className="glass-card p-4 flex items-center gap-3">
@@ -333,15 +333,15 @@ export default function UsersManagementPage() {
             <Smartphone className="w-5 h-5 text-[#007AFF]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{totalDevices}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Appareils</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{totalDevices}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Appareils</p>
           </div>
         </div>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-2xl text-[#FF3B30]">
+        <div className="flex items-center gap-3 p-4 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-[28px] text-[#FF3B30]">
           <div className="w-10 h-10 rounded-xl bg-[#FF3B30]/10 flex items-center justify-center flex-shrink-0">
             <ShieldOff className="w-5 h-5" />
           </div>
@@ -459,9 +459,9 @@ export default function UsersManagementPage() {
       {/* Create User Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div ref={createModalRef} role="dialog" aria-modal="true" aria-labelledby="create-user-title" className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 w-full max-w-lg mx-4 animate-scale-in">
+          <div ref={createModalRef} role="dialog" aria-modal="true" aria-labelledby="create-user-title" className="bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 w-full max-w-lg mx-4 animate-scale-in">
             <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
-              <h2 id="create-user-title" className="text-lg font-semibold text-[#1D1D1F]">Nouvel utilisateur</h2>
+              <h2 id="create-user-title" className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Nouvel utilisateur</h2>
               <button onClick={() => setShowCreateModal(false)} className="p-2 rounded-xl text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/5 transition-all">
                 <X className="w-5 h-5" />
               </button>
@@ -512,9 +512,9 @@ export default function UsersManagementPage() {
       {/* Edit User Modal */}
       {showEditModal && selectedUser && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div ref={editModalRef} role="dialog" aria-modal="true" aria-labelledby="edit-user-title" className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 w-full max-w-lg mx-4 animate-scale-in">
+          <div ref={editModalRef} role="dialog" aria-modal="true" aria-labelledby="edit-user-title" className="bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 w-full max-w-lg mx-4 animate-scale-in">
             <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
-              <h2 id="edit-user-title" className="text-lg font-semibold text-[#1D1D1F]">Modifier l&apos;utilisateur</h2>
+              <h2 id="edit-user-title" className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Modifier l&apos;utilisateur</h2>
               <button onClick={() => setShowEditModal(false)} className="p-2 rounded-xl text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/5 transition-all">
                 <X className="w-5 h-5" />
               </button>
@@ -560,13 +560,13 @@ export default function UsersManagementPage() {
       {/* Confirm Toggle Status Dialog */}
       {confirmToggle && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 w-full max-w-sm mx-4 animate-scale-in p-6 space-y-4">
+          <div className="bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 w-full max-w-sm mx-4 animate-scale-in p-6 space-y-4">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${confirmToggle.isActive ? 'bg-[#FF3B30]/10' : 'bg-[#34C759]/10'}`}>
                 {confirmToggle.isActive ? <ShieldOff className="w-5 h-5 text-[#FF3B30]" /> : <Shield className="w-5 h-5 text-[#34C759]" />}
               </div>
               <div>
-                <h3 className="font-semibold text-[#1D1D1F]">
+                <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
                   {confirmToggle.isActive ? 'Bloquer' : 'Activer'} l&apos;utilisateur ?
                 </h3>
                 <p className="text-sm text-[#86868B]">
@@ -599,9 +599,9 @@ export default function UsersManagementPage() {
       {/* Reset Password Modal */}
       {showPasswordModal && selectedUser && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-          <div ref={passwordModalRef} role="dialog" aria-modal="true" aria-labelledby="reset-password-title" className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 w-full max-w-md mx-4 animate-scale-in">
+          <div ref={passwordModalRef} role="dialog" aria-modal="true" aria-labelledby="reset-password-title" className="bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 w-full max-w-md mx-4 animate-scale-in">
             <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
-              <h2 id="reset-password-title" className="text-lg font-semibold text-[#1D1D1F]">Réinitialiser le mot de passe</h2>
+              <h2 id="reset-password-title" className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Réinitialiser le mot de passe</h2>
               <button onClick={() => setShowPasswordModal(false)} className="p-2 rounded-xl text-[#86868B] hover:text-[#1D1D1F] hover:bg-black/5 transition-all">
                 <X className="w-5 h-5" />
               </button>

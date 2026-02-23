@@ -10,6 +10,9 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('StockLots');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -104,7 +107,7 @@ export default function LotsPage() {
         setStats({ total: data.length, active, soonExpired, expired });
       }
     } catch (error) {
-      console.error('Failed to load lots:', error);
+      log.error('Failed to load lots:', error);
     } finally {
       setIsLoading(false);
     }
@@ -175,8 +178,8 @@ export default function LotsPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#8E8E93] uppercase tracking-wide">Total lots</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.total}</p>
+              <p className="text-[12px] font-bold text-[#8E8E93] uppercase tracking-widest">Total lots</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.total}</p>
             </div>
             <div className="w-10 h-10 bg-gradient-to-br from-[#8E8E93]/10 to-[#AEAEB2]/5 rounded-xl flex items-center justify-center">
               <Package className="w-5 h-5 text-[#8E8E93]" />
@@ -186,8 +189,8 @@ export default function LotsPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#8E8E93] uppercase tracking-wide">Lots actifs</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.active}</p>
+              <p className="text-[12px] font-bold text-[#8E8E93] uppercase tracking-widest">Lots actifs</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.active}</p>
             </div>
             <div className="flex items-center gap-2">
               {stats.active > 0 && <span className="w-2 h-2 rounded-full bg-[#34C759]" />}
@@ -200,8 +203,8 @@ export default function LotsPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#8E8E93] uppercase tracking-wide">Bientôt expirés</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.soonExpired}</p>
+              <p className="text-[12px] font-bold text-[#8E8E93] uppercase tracking-widest">Bientôt expirés</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.soonExpired}</p>
             </div>
             <div className="flex items-center gap-2">
               {stats.soonExpired > 0 && <span className="w-2 h-2 rounded-full bg-[#FF9500]" />}
@@ -214,8 +217,8 @@ export default function LotsPage() {
         <div className="glass-card-hover p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[12px] font-medium text-[#8E8E93] uppercase tracking-wide">Expirés</p>
-              <p className="text-[28px] font-bold text-[#1D1D1F] mt-1">{stats.expired}</p>
+              <p className="text-[12px] font-bold text-[#8E8E93] uppercase tracking-widest">Expirés</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{stats.expired}</p>
             </div>
             <div className="flex items-center gap-2">
               {stats.expired > 0 && <span className="w-2 h-2 rounded-full bg-[#FF3B30]" />}

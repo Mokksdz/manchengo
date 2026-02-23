@@ -1,0 +1,48 @@
+name: PostgreSQL Backup
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 02:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-16
+
+      - name: Create backup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          DATE=$(date +%Y%m%d_%H%M%S)
+          FILENAME="manchengo_${DATE}.dump"
+          echo "Creating backup: ${FILENAME}"
+          pg_dump "$DATABASE_URL" --format=custom --compress=9 -f "${FILENAME}"
+          ls -lh "${FILENAME}"
+          echo "BACKUP_FILE=${FILENAME}" >> $GITHUB_ENV
+
+      - name: Verify backup integrity
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "Verifying backup integrity..."
+          pg_restore --list "${{ env.BACKUP_FILE }}" > /dev/null
+          echo "✅ Backup verified successfully"
+
+      - name: Upload to artifacts (30 days retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: manchengo_*.dump
+          retention-days: 30
+
+      - name: Report status
+        if: failure()
+        run: |
+          echo "::error::PostgreSQL backup failed! Check the logs above."
+          echo "❌ Backup failed at $(date -u +%Y-%m-%dT%H:%M:%SZ)"

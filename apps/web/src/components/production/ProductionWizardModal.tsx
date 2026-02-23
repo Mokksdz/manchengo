@@ -139,7 +139,7 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
       <div className="relative glass-card w-full max-w-2xl overflow-hidden">
         <div className="px-6 py-5 border-b border-black/[0.04]">
           <div className="flex items-center justify-between">
-            <h2 className="text-[17px] font-semibold text-[#1D1D1F] flex items-center gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
               <Zap className="w-5 h-5 text-[#AF52DE]" />Nouvelle production
             </h2>
             <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/40 transition-colors text-[#86868B] hover:text-[#1D1D1F]" aria-label="Fermer">
@@ -169,7 +169,7 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
           {/* Step 1: Select Product */}
           {wizardStep === 1 && (
             <div>
-              <h3 className="text-[17px] font-semibold text-[#1D1D1F] mb-4">Choisir le produit</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Choisir le produit</h3>
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {products.filter(p => p.hasRecipe).map((product) => (
                   <button key={product.id} onClick={() => selectProduct(product)} className="w-full p-4 glass-card glass-card-hover rounded-[14px] text-left hover:border-[#AF52DE]/20 flex items-center gap-4 transition-all">
@@ -196,7 +196,7 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
           {/* Step 2: Quantity */}
           {wizardStep === 2 && wizardData.product && (
             <div>
-              <h3 className="text-[17px] font-semibold text-[#1D1D1F] mb-4">Définir la quantité</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Définir la quantité</h3>
               <div className="glass-card glass-tint-blue rounded-[14px] p-4 mb-6 flex items-center gap-3">
                 <div className="w-10 h-10 bg-[#AF52DE]/10 rounded-[10px] flex items-center justify-center">
                   <Package className="w-5 h-5 text-[#AF52DE]" />
@@ -251,7 +251,7 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
           {/* Step 3: Stock Check */}
           {wizardStep === 3 && wizardData.stockCheck && (
             <div>
-              <h3 className="text-[17px] font-semibold text-[#1D1D1F] mb-4">Vérification du stock</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Vérification du stock</h3>
               <div className={cn('glass-card rounded-[14px] p-4 mb-6 flex items-center gap-4', wizardData.stockCheck.canProduce ? 'glass-tint-emerald' : 'glass-tint-red')}>
                 {wizardData.stockCheck.canProduce ? (
                   <>

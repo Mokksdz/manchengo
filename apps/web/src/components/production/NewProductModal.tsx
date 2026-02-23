@@ -59,7 +59,7 @@ export function NewProductModal({ isOpen, onClose, onSuccess }: NewProductModalP
       <div className="relative glass-card w-full max-w-md overflow-hidden">
         <div className="px-6 py-5 border-b border-black/[0.04]">
           <div className="flex items-center justify-between">
-            <h2 className="text-[17px] font-semibold text-[#1D1D1F] flex items-center gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
               <Plus className="w-5 h-5 text-[#AF52DE]" />Nouveau produit
             </h2>
             <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/40 transition-colors text-[#86868B] hover:text-[#1D1D1F]">
@@ -75,20 +75,24 @@ export function NewProductModal({ isOpen, onClose, onSuccess }: NewProductModalP
           )}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[13px] font-medium text-[#1D1D1F] mb-1.5">Code *</label>
+              <label htmlFor="pf-code" className="block text-[13px] font-medium text-[#1D1D1F] mb-1.5">Code <span aria-hidden="true">*</span></label>
               <input
+                id="pf-code"
                 type="text"
                 value={form.code}
                 onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
                 placeholder="PF-001"
+                aria-required="true"
                 className="w-full px-3 py-2.5 border border-black/[0.06] rounded-[14px] bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-[#AF52DE]/15 focus:border-[#AF52DE] text-[13px] transition-all"
               />
             </div>
             <div>
-              <label className="block text-[13px] font-medium text-[#1D1D1F] mb-1.5">Unité *</label>
+              <label htmlFor="pf-unit" className="block text-[13px] font-medium text-[#1D1D1F] mb-1.5">Unité <span aria-hidden="true">*</span></label>
               <select
+                id="pf-unit"
                 value={form.unit}
                 onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                aria-required="true"
                 className="w-full px-3 py-2.5 border border-black/[0.06] rounded-[14px] bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-[#AF52DE]/15 focus:border-[#AF52DE] text-[13px] transition-all"
               >
                 <option value="g">g (gramme)</option>
@@ -99,12 +103,14 @@ export function NewProductModal({ isOpen, onClose, onSuccess }: NewProductModalP
             </div>
           </div>
           <div>
-            <label className="block text-[13px] font-medium text-[#1D1D1F] mb-1.5">Nom *</label>
+            <label htmlFor="pf-name" className="block text-[13px] font-medium text-[#1D1D1F] mb-1.5">Nom <span aria-hidden="true">*</span></label>
             <input
+              id="pf-name"
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="Fromage fondu 8 portions"
+              aria-required="true"
               className="w-full px-3 py-2.5 border border-black/[0.06] rounded-[14px] bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-[#AF52DE]/15 focus:border-[#AF52DE] text-[13px] transition-all"
             />
           </div>

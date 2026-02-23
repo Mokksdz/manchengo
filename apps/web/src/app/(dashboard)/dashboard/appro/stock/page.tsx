@@ -41,6 +41,9 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton, SkeletonKpiGrid, SkeletonTable } from '@/components/ui/skeleton-loader';
 import { StatCard } from '@/components/ui/stat-card';
 import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ApproStock');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPOSANTS UI
@@ -146,7 +149,7 @@ export default function ApproStockPage() {
       setStockMp(Array.isArray(stockData) ? stockData : []);
       setSuppliers(Array.isArray(suppliersData) ? suppliersData : []);
     } catch (err) {
-      console.error('Failed to load stock:', err);
+      log.error('Failed to load stock:', err);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -457,7 +460,7 @@ export default function ApproStockPage() {
       {/* Alerte critique */}
       {stats.bloquant > 0 && (
         <div
-          className="glass-card rounded-2xl p-5 flex items-center justify-between"
+          className="glass-card rounded-[28px] p-5 flex items-center justify-between"
           style={{ background: 'rgba(255, 235, 238, 0.6)' }}
         >
           <div className="flex items-center gap-4">

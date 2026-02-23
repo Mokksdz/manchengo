@@ -2,6 +2,9 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Notifications');
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -87,7 +90,7 @@ export function useNotifications() {
         }
       } catch (error) {
         // Silently fail - notifications are optional
-        console.debug('Failed to send browser notification:', error);
+        log.debug('Failed to send browser notification:', error);
       }
     },
     [],

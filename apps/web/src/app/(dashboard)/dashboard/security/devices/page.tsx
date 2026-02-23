@@ -13,6 +13,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton-loader';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 /**
  * Device Management Page
@@ -49,6 +50,7 @@ export default function DevicesManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'revoked'>('all');
+  const { confirm, Dialog: ConfirmDialogEl } = useConfirmDialog();
 
   const fetchDevices = async () => {
     setLoading(true);
@@ -78,6 +80,15 @@ export default function DevicesManagementPage() {
   }, [filter]);
 
   const handleRevokeDevice = async (deviceId: string, revoke: boolean) => {
+    const confirmed = await confirm({
+      title: revoke ? 'Révoquer cet appareil ?' : 'Réactiver cet appareil ?',
+      description: revoke
+        ? 'L\'appareil ne pourra plus se synchroniser avec le système.'
+        : 'L\'appareil pourra à nouveau se synchroniser.',
+      confirmLabel: revoke ? 'Révoquer' : 'Réactiver',
+      variant: revoke ? 'destructive' : 'default',
+    });
+    if (!confirmed) return;
     setActionLoading(deviceId);
     try {
       const endpoint = revoke ? 'revoke' : 'reactivate';
@@ -152,7 +163,7 @@ export default function DevicesManagementPage() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-2xl text-sm font-medium text-[#FF3B30]">
+        <div className="flex items-center gap-3 p-4 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-[28px] text-sm font-medium text-[#FF3B30]">
           <ShieldOff className="w-5 h-5 flex-shrink-0" />
           {error}
         </div>
@@ -267,6 +278,7 @@ export default function DevicesManagementPage() {
           ))
         )}
       </div>
+      <ConfirmDialogEl />
     </div>
   );
 }

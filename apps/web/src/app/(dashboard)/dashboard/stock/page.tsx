@@ -10,12 +10,18 @@ import {
   Package,
   Clock,
   ArrowRight,
+  Activity,
+  PackageOpen,
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
+import { StatCard } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('StockDashboard');
 
 export default function StockDashboardPage() {
   const { user } = useAuth();
@@ -36,7 +42,7 @@ export default function StockDashboardPage() {
         throw new Error('Erreur de chargement');
       }
     } catch (err) {
-      console.error('Failed to load stock dashboard:', err);
+      log.error('Failed to load stock dashboard', { error: err instanceof Error ? err.message : String(err) });
       setError(err instanceof Error ? err.message : 'Erreur de chargement');
     } finally {
       setIsLoading(false);
@@ -59,7 +65,7 @@ export default function StockDashboardPage() {
         toast.warning(`Blocage lot #${id} - à implémenter`);
         break;
       default:
-        console.log('Action:', type, id); // eslint-disable-line no-console
+        log.debug('Action', { type, id });
     }
   };
 
@@ -72,11 +78,13 @@ export default function StockDashboardPage() {
             <div className="h-7 bg-black/[0.03] rounded-lg w-24" />
             <div className="h-4 bg-black/[0.03] rounded w-48" />
           </div>
-          <div className="grid grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => <div key={i} className="h-[88px] glass-card rounded-2xl" />)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => <div key={i} className="h-[180px] glass-card rounded-[32px]" />)}
           </div>
-          <div className="grid lg:grid-cols-3 gap-5">
-            {[...Array(3)].map((_, i) => <div key={i} className="h-72 glass-card rounded-2xl" />)}
+          <div className="grid xl:grid-cols-4 auto-rows-fr gap-6 min-h-[500px]">
+            <div className="xl:col-span-2 xl:row-span-2 h-72 glass-card rounded-[32px]" />
+            <div className="xl:col-span-2 h-72 glass-card rounded-[32px]" />
+            <div className="xl:col-span-2 h-72 glass-card rounded-[32px]" />
           </div>
         </div>
       </div>
@@ -87,7 +95,7 @@ export default function StockDashboardPage() {
   if (error) {
     return (
       <div className="glass-bg flex items-center justify-center min-h-[60vh]">
-        <div className="glass-card rounded-2xl p-10 text-center max-w-sm">
+        <div className="glass-card rounded-[32px] p-10 text-center max-w-sm">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF3B30]/10 to-[#FF3B30]/5 flex items-center justify-center mx-auto mb-5">
             <AlertTriangle className="h-7 w-7 text-[#FF3B30]" />
           </div>
@@ -95,7 +103,7 @@ export default function StockDashboardPage() {
           <p className="text-[13px] text-[#86868B] mb-6 leading-relaxed">{error}</p>
           <button
             onClick={() => loadDashboard()}
-            className="px-5 py-2.5 text-[14px] font-medium bg-[#1D1D1F] text-white rounded-full hover:bg-[#333] transition-all active:scale-[0.97]"
+            className="px-5 py-2.5 text-[14px] font-bold bg-[#1D1D1F] text-white rounded-2xl hover:bg-[#333] transition-all active:scale-[0.97]"
           >
             Réessayer
           </button>
@@ -123,151 +131,117 @@ export default function StockDashboardPage() {
   ];
 
   return (
-    <div className="glass-bg space-y-8">
+    <div className="glass-bg space-y-10">
       <PageHeader
-        title="Stock"
-        subtitle="Vue d'ensemble temps réel"
+        title="Pilotage des Stocks"
+        subtitle="Vue consolidée de la valorisation et des alertes critiques."
         icon={<Package className="w-5 h-5" />}
+        showNotifications
+        notificationCount={criticalCount}
         badge={
           criticalCount > 0
             ? { text: `${criticalCount} critique(s)`, variant: 'error' }
             : warningCount > 0
               ? { text: `${warningCount} à traiter`, variant: 'warning' }
-              : { text: 'Stock stable', variant: 'success' }
+              : { text: 'Live System', variant: 'success' }
         }
         actions={
-          <Button
-            onClick={() => loadDashboard(true)}
-            disabled={isRefreshing}
-            variant="outline"
-            size="icon"
-            className="rounded-full"
-          >
-            <RefreshCw className={cn('h-[18px] w-[18px]', isRefreshing && 'animate-spin')} />
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => loadDashboard(true)}
+              disabled={isRefreshing}
+              variant="outline"
+              size="icon"
+              className="rounded-2xl w-12 h-12"
+            >
+              <RefreshCw className={cn('h-[18px] w-[18px]', isRefreshing && 'animate-spin')} />
+            </Button>
+            <Button variant="amber" className="h-12 px-6 rounded-2xl">
+              <Package size={18} className="mr-2" />
+              + Nouvelle Réception
+            </Button>
+          </div>
         }
       />
 
       {/* ═══════════════════════════════════════════════
-          SUMMARY KPI STRIP
+          KPI BAND PREMIUM — WITH SPARKLINES
       ═══════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Health Score */}
-        <div className="glass-card-hover rounded-2xl p-4 flex items-center gap-4 transition-all">
-          <div className="relative w-11 h-11 flex-shrink-0">
-            <svg className="w-11 h-11 -rotate-90" viewBox="0 0 44 44">
-              <circle cx="22" cy="22" r="18" fill="none" stroke="currentColor" strokeWidth="3" className="text-black/[0.03]" />
-              <circle
-                cx="22" cy="22" r="18"
-                fill="none"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 18}
-                strokeDashoffset={2 * Math.PI * 18 * (1 - healthScore / 100)}
-                className={cn(
-                  'transition-all duration-1000',
-                  healthScore >= 80 ? 'stroke-[#34C759]' : healthScore >= 50 ? 'stroke-[#FF9500]' : 'stroke-[#FF3B30]'
-                )}
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-[13px] font-bold text-[#1D1D1F] tabular-nums">{healthScore}</span>
-            </div>
-          </div>
-          <div>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Santé</p>
-            <p className={cn(
-              'text-[14px] font-semibold',
-              healthScore >= 80 ? 'text-[#34C759]' : healthScore >= 50 ? 'text-[#FF9500]' : 'text-[#FF3B30]'
-            )}>
-              {healthScore >= 80 ? 'Excellent' : healthScore >= 60 ? 'Correct' : healthScore >= 40 ? 'À surveiller' : 'Critique'}
-            </p>
-          </div>
-        </div>
-
-        {/* Critical */}
-        <Link
-          href="#zone-critique"
-          className="glass-card-hover rounded-2xl p-4 flex items-center gap-4 transition-all group"
-        >
-          <div className={cn(
-            'w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0',
-            criticalCount > 0 ? 'bg-gradient-to-br from-[#FF3B30]/10 to-[#FF3B30]/5' : 'bg-black/[0.03]'
-          )}>
-            <AlertTriangle className={cn(
-              'w-5 h-5',
-              criticalCount > 0 ? 'text-[#FF3B30]' : 'text-[#C7C7CC]'
-            )} />
-          </div>
-          <div>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Critiques</p>
-            <p className="text-[20px] font-bold text-[#1D1D1F] leading-tight tabular-nums">{criticalCount}</p>
-          </div>
-        </Link>
-
-        {/* Warnings */}
-        <Link
-          href="#zone-atraiter"
-          className="glass-card-hover rounded-2xl p-4 flex items-center gap-4 transition-all group"
-        >
-          <div className={cn(
-            'w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0',
-            warningCount > 0 ? 'bg-gradient-to-br from-[#FF9500]/10 to-[#FF9500]/5' : 'bg-black/[0.03]'
-          )}>
-            <Clock className={cn(
-              'w-5 h-5',
-              warningCount > 0 ? 'text-[#FF9500]' : 'text-[#C7C7CC]'
-            )} />
-          </div>
-          <div>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">À traiter</p>
-            <p className="text-[20px] font-bold text-[#1D1D1F] leading-tight tabular-nums">{warningCount}</p>
-          </div>
-        </Link>
-
-        {/* Total products */}
-        <div className="glass-card-hover rounded-2xl p-4 flex items-center gap-4 transition-all">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-black/[0.04] to-black/[0.02] flex items-center justify-center flex-shrink-0">
-            <Package className="w-5 h-5 text-[#C7C7CC]" />
-          </div>
-          <div>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Produits</p>
-            <p className="text-[20px] font-bold text-[#1D1D1F] leading-tight tabular-nums">
-              {totalProducts || '—'}
-            </p>
-          </div>
-        </div>
-      </div>
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        <StatCard
+          title="Valorisation Stock"
+          value={`${totalProducts || '—'} Produits`}
+          subtitle="+12.5% vs M-1"
+          icon={<Activity size={22} />}
+          trend={{ value: 12.5 }}
+          color="blue"
+          sparklineData="M0 30 C 20 25, 40 35, 60 20 S 90 5, 120 2"
+        />
+        <StatCard
+          title="Alertes Critiques"
+          value={criticalCount}
+          subtitle="Action immédiate"
+          icon={<AlertTriangle size={22} />}
+          trend={criticalCount > 0 ? { value: -1.2 } : { value: 0 }}
+          color="red"
+          sparklineData="M0 10 C 30 15, 50 5, 70 25 S 100 35, 120 30"
+        />
+        <StatCard
+          title="Lots à risque (J-7)"
+          value={warningCount}
+          subtitle="Qualité à vérifier"
+          icon={<Clock size={22} />}
+          trend={warningCount > 0 ? { value: -2.1 } : { value: 0 }}
+          color="amber"
+          sparklineData="M0 20 C 20 20, 40 25, 60 15 S 90 10, 120 15"
+        />
+        <StatCard
+          title="Score Santé"
+          value={`${healthScore}%`}
+          subtitle={healthScore >= 80 ? 'Objectif atteint' : 'À améliorer'}
+          icon={<PackageOpen size={22} />}
+          trend={{ value: 2.4 }}
+          color="emerald"
+          sparklineData="M0 35 C 30 30, 50 25, 70 15 S 100 5, 120 2"
+        />
+      </section>
 
       {/* ═══════════════════════════════════════════════
-          3 ZONES
+          BENTO GRID DÉCISIONNELLE
       ═══════════════════════════════════════════════ */}
-      <div className="grid lg:grid-cols-3 gap-5">
-        <div id="zone-critique">
+      <section className="grid grid-cols-1 xl:grid-cols-4 auto-rows-fr gap-6 min-h-[500px]">
+        {/* Centre de Crise (2x2) */}
+        <div id="zone-critique" className="xl:col-span-2 xl:row-span-2">
           <ZoneCritique data={data.critique} onAction={handleAction} />
         </div>
-        <div id="zone-atraiter">
+
+        {/* Flux Logistique (2x1) */}
+        <div id="zone-atraiter" className="xl:col-span-2">
           <ZoneATraiter data={data.aTraiter} onAction={handleAction} />
         </div>
-        <ZoneSante data={data.sante} summary={data.summary} />
-      </div>
+
+        {/* Index Santé (2x1) */}
+        <div className="xl:col-span-2">
+          <ZoneSante data={data.sante} summary={data.summary} />
+        </div>
+      </section>
 
       {/* ═══════════════════════════════════════════════
-          QUICK NAV
+          QUICK NAV — Glass Card
       ═══════════════════════════════════════════════ */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-black/[0.04]">
-          <p className="text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Accès rapide</p>
+      <div className="glass-card overflow-hidden">
+        <div className="px-6 py-4 border-b border-white/40">
+          <p className="text-[12px] font-bold text-[#6E6E73] uppercase tracking-widest">Accès rapide</p>
         </div>
-        <div className="divide-y divide-black/[0.04]">
+        <div className="divide-y divide-white/40">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="group flex items-center justify-between px-5 py-3 hover:bg-white/40 transition-colors"
+              className="group flex items-center justify-between px-6 py-4 hover:bg-white/40 transition-all"
             >
-              <span className="text-[14px] font-medium text-[#1D1D1F]">{link.label}</span>
-              <ArrowRight className="w-4 h-4 text-[#C7C7CC] group-hover:text-[#86868B] transition-all group-hover:translate-x-0.5" />
+              <span className="text-[14px] font-bold text-[#1D1D1F]">{link.label}</span>
+              <ArrowRight className="w-4 h-4 text-[#C7C7CC] group-hover:text-[#EC7620] transition-all group-hover:translate-x-1" />
             </Link>
           ))}
         </div>

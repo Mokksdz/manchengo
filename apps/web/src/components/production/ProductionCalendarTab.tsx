@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Calendar, ChevronLeft, ChevronRight, Plus, GripVertical, AlertTriangle, CheckCircle, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authFetch } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ProductionCalendar');
 
 interface ProductPf {
   id: number;
@@ -153,7 +156,7 @@ export function ProductionCalendarTab({ products: _products, onOpenWizard }: Pro
         setUnscheduledOrders(unscheduled);
       }
     } catch (error) {
-      console.error('Error loading weekly plan:', error);
+      log.error('Error loading weekly plan:', error);
     } finally {
       setIsLoading(false);
     }
@@ -203,7 +206,7 @@ export function ProductionCalendarTab({ products: _products, onOpenWizard }: Pro
         await loadWeeklyPlan();
       }
     } catch (error) {
-      console.error('Error updating schedule:', error);
+      log.error('Error updating schedule:', error);
     }
 
     setDraggedOrder(null);
@@ -383,7 +386,7 @@ export function ProductionCalendarTab({ products: _products, onOpenWizard }: Pro
         <div className="mt-6">
           <div className="flex items-center gap-2 mb-3">
             <Package className="w-5 h-5 text-[#86868B]" />
-            <h3 className="text-[15px] font-semibold text-[#1D1D1F]">
+            <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
               Non planifiées ({unscheduledOrders.length})
             </h3>
             <span className="text-[12px] text-[#86868B]">— Glissez sur un jour pour planifier</span>

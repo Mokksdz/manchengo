@@ -202,7 +202,7 @@ export function ProductionDashboardTab({
       {alertsData && alertsData.total > 0 && (
         <div className="glass-card overflow-hidden animate-slide-up">
           <div className="px-5 py-4 border-b border-black/[0.04] flex items-center justify-between">
-            <h2 className="font-semibold text-[#1D1D1F] flex items-center gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
               <Bell className="w-5 h-5 text-[#FF9500]" />Alertes Production
               <span className="glass-pill bg-[#FF9500]/10 text-[#FF9500] text-xs">{alertsData.total}</span>
             </h2>
@@ -238,7 +238,7 @@ export function ProductionDashboardTab({
         {/* Stock Produits Finis */}
         <div className="glass-card overflow-hidden animate-slide-up">
           <div className="px-5 py-4 border-b border-black/[0.04] flex items-center justify-between">
-            <h2 className="font-semibold text-[#1D1D1F] flex items-center gap-2"><Box className="w-5 h-5 text-[#AF52DE]" />Stock Produits Finis</h2>
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2"><Box className="w-5 h-5 text-[#AF52DE]" />Stock Produits Finis</h2>
             <Link href="/dashboard/stock/pf" className="text-sm text-[#AF52DE] hover:text-[#AF52DE]/80 flex items-center gap-1 transition-colors">Voir tout <ExternalLink className="w-4 h-4" /></Link>
           </div>
           <div className="divide-y divide-black/[0.04] max-h-72 overflow-y-auto">
@@ -269,7 +269,7 @@ export function ProductionDashboardTab({
         {/* Planning 7 jours */}
         <div className="glass-card overflow-hidden animate-slide-up">
           <div className="px-5 py-4 border-b border-black/[0.04] flex items-center justify-between">
-            <h2 className="font-semibold text-[#1D1D1F] flex items-center gap-2"><Calendar className="w-5 h-5 text-[#007AFF]" />Planning 7 jours</h2>
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2"><Calendar className="w-5 h-5 text-[#007AFF]" />Planning 7 jours</h2>
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 text-xs text-[#86868B]">
                 <span className="w-2 h-2 rounded-full bg-[#34C759]" /> OK
@@ -321,7 +321,7 @@ export function ProductionDashboardTab({
       {/* Recent Orders */}
       <div className="glass-card overflow-hidden animate-slide-up">
         <div className="px-5 py-4 border-b border-black/[0.04] flex items-center justify-between">
-          <h2 className="font-semibold text-[#1D1D1F] flex items-center gap-2"><Clock className="w-5 h-5 text-[#86868B]" />Derniers ordres</h2>
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2"><Clock className="w-5 h-5 text-[#86868B]" />Derniers ordres</h2>
           <button onClick={onNavigateToOrders} className="text-sm text-[#AF52DE] hover:text-[#AF52DE]/80 flex items-center gap-1 transition-colors">Voir tous <ChevronRight className="w-4 h-4" /></button>
         </div>
         <div className="divide-y divide-black/[0.04]">

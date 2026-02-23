@@ -10,11 +10,12 @@ export const API_BASE = (() => {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-  // In browser production: use relative /api path (works with Vercel rewrites)
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+  // In browser: always use relative /api path (Next.js rewrites proxy to backend)
+  // This avoids CORS issues in development (port 3001 → port 3000)
+  if (typeof window !== 'undefined') {
     return '/api';
   }
-  // Server-side or development: use localhost
+  // Server-side (SSR/API routes): call backend directly
   return 'http://localhost:3000/api';
 })();
 

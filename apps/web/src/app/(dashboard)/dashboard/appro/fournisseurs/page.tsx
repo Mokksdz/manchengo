@@ -40,6 +40,9 @@ import {
   getSupplierRiskLevel,
 } from '@/components/suppliers';
 import type { UserRole } from '@/components/appro/CriticalActionBanner';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Suppliers');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPERS
@@ -88,7 +91,7 @@ export default function ApproFournisseursPage() {
       const suppliersData = await appro.getSupplierPerformance();
       setSuppliers(Array.isArray(suppliersData) ? suppliersData : []);
     } catch (err) {
-      console.error('Failed to load suppliers:', err);
+      log.error('Failed to load suppliers:', err);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -124,7 +127,7 @@ export default function ApproFournisseursPage() {
         {/* Skeleton supplier cards */}
         <div className="space-y-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="glass-card rounded-2xl border border-black/[0.04] bg-white/60 p-5 flex items-center gap-5">
+            <div key={i} className="glass-card rounded-[28px] border border-black/[0.04] bg-white/60 p-5 flex items-center gap-5">
               <Skeleton className="w-12 h-12 rounded-xl flex-shrink-0" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-36" />
@@ -241,7 +244,7 @@ export default function ApproFournisseursPage() {
               <AlertOctagon className="w-5 h-5 text-[#FF3B30]" />
             </div>
             <div>
-              <h2 className="text-[17px] font-semibold text-[#1D1D1F] tracking-[-0.01em]">Fournisseurs a risque</h2>
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Fournisseurs a risque</h2>
               <p className="text-[13px] text-[#FF3B30]">
                 {zoneCritical.length} fournisseur{zoneCritical.length > 1 ? 's' : ''} mettant la production en danger
               </p>
@@ -270,7 +273,7 @@ export default function ApproFournisseursPage() {
               <AlertTriangle className="w-5 h-5 text-[#FF9500]" />
             </div>
             <div>
-              <h2 className="text-[17px] font-semibold text-[#1D1D1F] tracking-[-0.01em]">Sous surveillance</h2>
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Sous surveillance</h2>
               <p className="text-[13px] text-[#FF9500]">
                 {zoneWarning.length} fournisseur{zoneWarning.length > 1 ? 's' : ''} avec irregularites recentes
               </p>
@@ -299,7 +302,7 @@ export default function ApproFournisseursPage() {
               <CheckCircle className="w-5 h-5 text-[#34C759]" />
             </div>
             <div>
-              <h2 className="text-[17px] font-semibold text-[#1D1D1F] tracking-[-0.01em]">Fournisseurs fiables</h2>
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Fournisseurs fiables</h2>
               <p className="text-[13px] text-[#34C759]">{zoneStable.length} fournisseur{zoneStable.length > 1 ? 's' : ''} de confiance</p>
             </div>
           </div>
@@ -342,7 +345,7 @@ export default function ApproFournisseursPage() {
           <div className="w-16 h-16 rounded-[20px] bg-[#F5F5F5] flex items-center justify-center mx-auto">
             <Truck className="w-8 h-8 text-[#D1D1D6]" />
           </div>
-          <p className="mt-5 text-[20px] font-semibold text-[#1D1D1F]">Aucun fournisseur</p>
+          <p className="mt-5 font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Aucun fournisseur</p>
           <p className="text-[#86868B] mt-1.5 text-[14px]">
             Les fournisseurs apparaitront ici une fois crees.
           </p>

@@ -28,7 +28,7 @@ export function ClientsTable({
         <Skeleton className="h-10 w-72 rounded-full" />
         <div className="space-y-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="glass-card rounded-2xl border border-black/[0.04] bg-white/60 p-5 flex items-center gap-5">
+            <div key={i} className="glass-card rounded-[28px] border border-black/[0.04] bg-white/60 p-5 flex items-center gap-5">
               <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-40" />

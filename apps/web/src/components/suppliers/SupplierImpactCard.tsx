@@ -74,7 +74,7 @@ export function SupplierImpactCard({ impact, onViewChain }: SupplierImpactCardPr
 
   return (
     <div className={cn(
-      'rounded-2xl border-2 p-5 transition-all',
+      'rounded-[28px] border-2 p-5 transition-all',
       config.cardBg,
       config.border,
       impact.riskLevel === 'CRITICAL' && 'shadow-apple-hover'

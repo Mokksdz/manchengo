@@ -18,6 +18,9 @@ import {
   type NextAction,
   type KpiSeverity,
 } from '@/components/appro';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ApproDashboard');
 
 /**
  * Cockpit APPRO — Premium Apple Silicon Command Center
@@ -98,7 +101,7 @@ function IrsGauge({ value, status }: { value: number; status: string }) {
         </svg>
         {/* Center value */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[24px] font-semibold text-[#1D1D1F] leading-none tracking-tight tabular-nums">
+          <span className="font-display text-[34px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">
             {value}
           </span>
           <span className="text-[9px] font-medium text-[#AEAEB2] uppercase tracking-[0.08em] mt-0.5">
@@ -183,7 +186,7 @@ export default function ApproDashboardPage() {
         setUserRole(userData.role as UserRole);
       }
     } catch (err) {
-      console.error('Failed to load dashboard:', err);
+      log.error('Failed to load dashboard', { error: err instanceof Error ? err.message : String(err) });
       toast.error('Impossible de charger le tableau de bord');
     } finally {
       setIsLoading(false);
@@ -373,17 +376,17 @@ export default function ApproDashboardPage() {
           <div className="hidden sm:flex items-center gap-6">
             {/* Mini stat pills */}
             <div className="text-center">
-              <p className={cn('text-[20px] font-semibold text-[#1D1D1F] tabular-nums', (mpBloquantes + mpRupture) > 0 && 'animate-number-pop')}>{mpBloquantes + mpRupture}</p>
+              <p className={cn('font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]', (mpBloquantes + mpRupture) > 0 && 'animate-number-pop')}>{mpBloquantes + mpRupture}</p>
               <p className="text-[11px] text-[#AEAEB2] mt-0.5">MP critiques</p>
             </div>
             <div className="w-[1px] h-8 bg-black/[0.04]" />
             <div className="text-center">
-              <p className={cn('text-[20px] font-semibold text-[#1D1D1F] tabular-nums', bcEnAttente > 0 && 'animate-number-pop')}>{bcEnAttente}</p>
+              <p className={cn('font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]', bcEnAttente > 0 && 'animate-number-pop')}>{bcEnAttente}</p>
               <p className="text-[11px] text-[#AEAEB2] mt-0.5">BC en retard</p>
             </div>
             <div className="w-[1px] h-8 bg-black/[0.04]" />
             <div className="text-center">
-              <p className={cn('text-[20px] font-semibold text-[#1D1D1F] tabular-nums', alertesCritiques > 0 && 'animate-number-pop')}>{alertesCritiques}</p>
+              <p className={cn('font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]', alertesCritiques > 0 && 'animate-number-pop')}>{alertesCritiques}</p>
               <p className="text-[11px] text-[#AEAEB2] mt-0.5">Alertes</p>
             </div>
           </div>
@@ -458,7 +461,7 @@ export default function ApproDashboardPage() {
               <Bell className="w-[18px] h-[18px] text-[#FF9500]/70" />
             </div>
             <div>
-              <h2 className="glass-section-header text-[16px] font-semibold text-[#1D1D1F] tracking-[-0.01em]">
+              <h2 className="glass-section-header font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
                 Alertes Actives
               </h2>
               {alertCounts && (
@@ -601,7 +604,7 @@ export default function ApproDashboardPage() {
           <div className="w-14 h-14 rounded-[18px] bg-gradient-to-br from-[#34C759]/10 to-[#30D158]/5 flex items-center justify-center mx-auto mb-4">
             <Check className="w-7 h-7 text-[#34C759]/70" />
           </div>
-          <p className="text-[18px] font-semibold text-[#1D1D1F] tracking-[-0.01em]">
+          <p className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
             Production sécurisée
           </p>
           <p className="text-[13px] text-[#AEAEB2] mt-2 max-w-xs mx-auto leading-relaxed">

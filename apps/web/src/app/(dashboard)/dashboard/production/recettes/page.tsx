@@ -39,6 +39,9 @@ import {
 } from '@/components/production/recettes-types';
 import { RecipesTable } from '@/components/production/RecipesTable';
 import { CreateRecipeModal, AddIngredientModal } from '@/components/production/RecipeFormModal';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Recettes');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DETAIL VIEW SUB-COMPONENTS (kept inline — small, tightly coupled to detail)
@@ -110,7 +113,7 @@ function RecipeStatusCard({ status }: { status: RecipeStatus }) {
   return (
     <div className={cn("glass-decision-card p-5", status.isComplete ? "glass-tint-emerald" : "glass-tint-red")}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-[#1D1D1F] flex items-center gap-2">
+        <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
           {status.isComplete ? <CheckCircle className="w-5 h-5 text-emerald-600" /> : <AlertCircle className="w-5 h-5 text-red-600" />}
           \u00c9tat de la recette
         </h3>
@@ -145,7 +148,7 @@ function RecipeIngredientsTable({
   return (
     <div className="glass-card overflow-hidden">
       <div className="px-5 py-4 border-b border-black/[0.04] flex items-center justify-between">
-        <h3 className="font-semibold text-[#1D1D1F] flex items-center gap-2"><Package className="w-5 h-5 text-[#AEAEB2]" />Ingr\u00e9dients (Mati\u00e8res Premi\u00e8res)</h3>
+        <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2"><Package className="w-5 h-5 text-[#AEAEB2]" />Ingr\u00e9dients (Mati\u00e8res Premi\u00e8res)</h3>
         {canEdit && (
           <button onClick={onAddIngredient} className="text-sm text-[#AF52DE] hover:text-[#9B30D1] flex items-center gap-1 transition-colors">
             <Plus className="w-4 h-4" />Ajouter un ingr\u00e9dient
@@ -211,7 +214,7 @@ function RecipeStockImpact({ recipe, stockMap, status }: { recipe: Recipe; stock
 
   return (
     <div className="glass-card p-5">
-      <h3 className="font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2"><ArrowRight className="w-5 h-5 text-[#AEAEB2]" />Impact stock &mdash; 1 batch</h3>
+      <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4 flex items-center gap-2"><ArrowRight className="w-5 h-5 text-[#AEAEB2]" />Impact stock &mdash; 1 batch</h3>
       <div className="space-y-2 mb-4">
         {ingredients.map((ing) => {
           const currentStock = stockMap.get(ing.productMpId) || 0;
@@ -333,7 +336,7 @@ export default function RecettesPage() {
         toast.error('Erreur lors du chargement des produits finis');
       }
     } catch (error) {
-      console.error('Failed to load data:', error);
+      log.error('Failed to load data', { error: error instanceof Error ? error.message : String(error) });
       toast.error('Erreur de connexion au serveur');
     } finally {
       setIsLoading(false);
@@ -372,7 +375,7 @@ export default function RecettesPage() {
         toast.error(`Erreur: ${error.message}`);
       }
     } catch (error) {
-      console.error('Failed to create recipe:', error);
+      log.error('Failed to create recipe', { error: error instanceof Error ? error.message : String(error) });
       toast.error('Erreur lors de la cr\u00e9ation');
     }
   };
@@ -410,7 +413,7 @@ export default function RecettesPage() {
         toast.error(`Erreur: ${error.message}`);
       }
     } catch (error) {
-      console.error('Failed to add ingredient:', error);
+      log.error('Failed to add ingredient', { error: error instanceof Error ? error.message : String(error) });
       toast.error('Erreur lors de l\'ajout');
     }
   };
@@ -432,7 +435,7 @@ export default function RecettesPage() {
         }
       }
     } catch (error) {
-      console.error('Failed to delete ingredient:', error);
+      log.error('Failed to delete ingredient', { error: error instanceof Error ? error.message : String(error) });
     }
   };
 

@@ -38,10 +38,13 @@ Thumbs.db
 *.log
 logs/
 
-# Environment
+# Environment - NEVER commit secrets
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
+.env.development
 
 # Build artifacts
 *.exe
@@ -67,3 +70,7 @@ temp/
 secrets/
 *.pem
 *.key
+*.p12
+*.pfx
+*.jks
+*.keystore

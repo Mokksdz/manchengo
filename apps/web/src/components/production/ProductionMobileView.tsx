@@ -120,7 +120,7 @@ export function ProductionMobileView({
                 <Factory className="w-5 h-5 text-[#AF52DE]" />
               </div>
               <div>
-                <h1 className="text-[17px] font-semibold text-[#1D1D1F]">Production</h1>
+                <h1 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Production</h1>
                 <p className="text-[13px] text-[#86868B]">
                   {stats.inProgress} en cours
                 </p>

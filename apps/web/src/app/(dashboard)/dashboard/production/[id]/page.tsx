@@ -17,6 +17,9 @@ import {
   ProductBatchTab,
   ProductHistoryTab,
 } from '@/components/production';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ProductDetail');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -256,7 +259,7 @@ export default function ProductionDetailPage() {
         setPackagingList(await packRes.json());
       }
     } catch (error) {
-      console.error('Failed to load product lists:', error);
+      log.error('Failed to load product lists', { error: error instanceof Error ? error.message : String(error) });
     }
   }, []);
 
@@ -278,7 +281,7 @@ export default function ProductionDetailPage() {
         setHistoryData(await res.json());
       }
     } catch (error) {
-      console.error('Failed to load history:', error);
+      log.error('Failed to load history', { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setHistoryLoading(false);
     }
@@ -296,7 +299,7 @@ export default function ProductionDetailPage() {
         setStockCheck(await res.json());
       }
     } catch (error) {
-      console.error('Failed to check stock:', error);
+      log.error('Failed to check stock', { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsCheckingStock(false);
     }
@@ -521,7 +524,7 @@ export default function ProductionDetailPage() {
           <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-[14px] flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-7 h-7 text-white" />
           </div>
-          <h2 className="text-lg font-semibold text-[#1D1D1F] mb-2">Erreur</h2>
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-2">Erreur</h2>
           <p className="text-[#86868B] mb-6">{error || 'Produit introuvable'}</p>
           <button
             onClick={() => router.push('/dashboard/production')}
@@ -631,7 +634,7 @@ export default function ProductionDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsEditingRecipe(false)} />
           <div className="relative glass-card rounded-[20px] w-full max-w-lg p-6 animate-slide-up">
-            <h2 className="text-lg font-semibold text-[#1D1D1F] mb-4">
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">
               {recipe ? 'Modifier la recette' : 'Créer une recette'}
             </h2>
 
@@ -729,7 +732,7 @@ export default function ProductionDetailPage() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAddComponent(false)} />
           <div className="relative glass-card rounded-[20px] w-full max-w-lg overflow-hidden animate-slide-up">
             <div className="border-b border-black/[0.04] px-6 py-4">
-              <h2 className="text-lg font-semibold text-[#1D1D1F] flex items-center gap-2">
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
                 <div className="w-8 h-8 bg-gradient-to-br from-[#AF52DE] to-[#8B3CB5] rounded-[10px] flex items-center justify-center">
                   <Plus className="w-4 h-4 text-white" />
                 </div>

@@ -90,14 +90,13 @@ export function ActionableKpiCard({
       <div className="flex items-start justify-between mb-5">
         <div className="flex items-center gap-2.5">
           <div className={cn('w-[7px] h-[7px] rounded-full ring-[3px] ring-current/10', config.dot)} />
-          <p className="text-[13px] font-medium text-[#86868B] tracking-[0.01em]">
+          <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">
             {title}
           </p>
         </div>
         <div className={cn(
-          'w-10 h-10 rounded-[14px] flex items-center justify-center',
+          'w-10 h-10 rounded-[14px] flex items-center justify-center bg-white shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)]',
           'transition-transform duration-300 group-hover:scale-105',
-          config.iconBg
         )}>
           <Icon className={cn('w-[19px] h-[19px]', config.iconColor)} />
         </div>
@@ -105,7 +104,7 @@ export function ActionableKpiCard({
 
       {/* Metric */}
       <p className={cn(
-        'text-[36px] font-semibold leading-none tracking-tight tabular-nums',
+        'font-display text-[34px] font-black leading-none tracking-tight tabular-nums',
         config.valueGlow,
         value > 0 && 'animate-number-pop'
       )}>
@@ -114,7 +113,7 @@ export function ActionableKpiCard({
 
       {/* Subtitle */}
       {subtitle && (
-        <p className="text-[12px] text-[#AEAEB2] mt-2 tracking-[0.01em]">{subtitle}</p>
+        <p className="text-[11px] text-[#AEAEB2] mt-2 font-medium tracking-[0.01em]">{subtitle}</p>
       )}
 
       {/* Action */}

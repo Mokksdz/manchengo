@@ -36,6 +36,9 @@ import {
   getPurchaseOrderDecisionStatus,
   type UserRole,
 } from '@/components/appro';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('BonsCommande');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPERS
@@ -85,7 +88,7 @@ export default function BonsCommandePage() {
       setBons(arr.slice(0, PAGE_SIZE));
       setPage(pageNum);
     } catch (err) {
-      console.error('Failed to load BC:', err);
+      log.error('Failed to load BC', { error: err instanceof Error ? err.message : String(err) });
       toast.error('Erreur lors du chargement des bons de commande');
     } finally {
       setIsLoading(false);
@@ -114,7 +117,7 @@ export default function BonsCommandePage() {
       toast.success('BC envoyé avec succès');
       loadData(true);
     } catch (err) {
-      console.error('Failed to send BC:', err);
+      log.error('Failed to send BC', { error: err instanceof Error ? err.message : String(err) });
       toast.error("Erreur lors de l'envoi du BC");
     } finally {
       setSendingBcId(null);
@@ -135,7 +138,7 @@ export default function BonsCommandePage() {
         {/* Skeleton decision cards */}
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="glass-card rounded-2xl border border-black/[0.04] bg-white/60 p-6 space-y-3">
+            <div key={i} className="glass-card rounded-[28px] border border-black/[0.04] bg-white/60 p-6 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
@@ -242,7 +245,7 @@ export default function BonsCommandePage() {
               <Send className="w-5 h-5 text-[#FF9500]" />
             </div>
             <div>
-              <h2 className="text-[17px] font-semibold text-[#1D1D1F] tracking-[-0.01em]">BC a envoyer maintenant</h2>
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">BC a envoyer maintenant</h2>
               <p className="text-[13px] text-[#FF9500]">
                 {zone1ToSend.length} BC non envoye{zone1ToSend.length > 1 ? 's' : ''}
               </p>
@@ -272,7 +275,7 @@ export default function BonsCommandePage() {
               <Clock className="w-5 h-5 text-[#007AFF]" />
             </div>
             <div>
-              <h2 className="text-[17px] font-semibold text-[#1D1D1F] tracking-[-0.01em]">En attente fournisseur</h2>
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">En attente fournisseur</h2>
               <p className="text-[13px] text-[#007AFF]">
                 {zone2Awaiting.length} BC en cours
                 {lateCount > 0 && <span className="text-[#FF3B30] font-semibold"> &middot; {lateCount} en retard</span>}
@@ -302,7 +305,7 @@ export default function BonsCommandePage() {
               <CheckCircle className="w-5 h-5 text-[#34C759]" />
             </div>
             <div>
-              <h2 className="text-[17px] font-semibold text-[#1D1D1F] tracking-[-0.01em]">BC Finalises</h2>
+              <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">BC Finalises</h2>
               <p className="text-[13px] text-[#34C759]">{zone3Done.length} BC receptionne{zone3Done.length > 1 ? 's' : ''}</p>
             </div>
           </div>
@@ -363,7 +366,7 @@ export default function BonsCommandePage() {
           <div className="w-16 h-16 rounded-[20px] bg-[#F5F5F5] flex items-center justify-center mx-auto">
             <FileText className="w-8 h-8 text-[#D1D1D6]" />
           </div>
-          <p className="mt-5 text-[20px] font-semibold text-[#1D1D1F]">Aucun bon de commande</p>
+          <p className="mt-5 font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Aucun bon de commande</p>
           <p className="text-[#86868B] mt-1.5 text-[14px]">
             Créez un BC directement ou depuis les Demandes APPRO validées.
           </p>

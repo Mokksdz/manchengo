@@ -29,6 +29,9 @@ import {
   FileText,
   Package,
 } from 'lucide-react';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('BonReception');
 
 interface ReceptionLine {
   itemId: string;
@@ -79,7 +82,7 @@ export default function ReceiveBcPage() {
         }))
       );
     } catch (err) {
-      console.error('Failed to load BC:', err);
+      log.error('Failed to load BC:', err);
       setError('Impossible de charger le bon de commande');
     } finally {
       setIsLoading(false);
@@ -136,7 +139,7 @@ export default function ReceiveBcPage() {
       toast.success(`${result.message} — Réception: ${result.receptionMpReference}, ${result.stockMovementsCreated} mouvement(s) de stock créé(s)`);
       router.push(`/dashboard/appro/bons/${bc.id}`);
     } catch (err: unknown) {
-      console.error('Failed to receive BC:', err);
+      log.error('Failed to receive BC:', err);
       setError((err as Error).message || 'Erreur lors de la réception');
     } finally {
       setIsSubmitting(false);
@@ -148,7 +151,7 @@ export default function ReceiveBcPage() {
     return (
       <div className="space-y-6 animate-slide-up">
         {/* Header skeleton */}
-        <div className="glass-card rounded-2xl p-6">
+        <div className="glass-card rounded-[28px] p-6">
           <div className="flex items-center gap-4">
             <Skeleton className="w-10 h-10 rounded-full" />
             <div>
@@ -158,7 +161,7 @@ export default function ReceiveBcPage() {
           </div>
         </div>
         {/* Form skeleton */}
-        <div className="glass-card rounded-2xl p-6">
+        <div className="glass-card rounded-[28px] p-6">
           <Skeleton className="h-5 w-48 mb-4" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Skeleton className="h-10 w-full" />
@@ -176,7 +179,7 @@ export default function ReceiveBcPage() {
   if (!bc) {
     return (
       <div className="animate-slide-up">
-        <div className="glass-card rounded-2xl p-8 text-center">
+        <div className="glass-card rounded-[28px] p-8 text-center">
           <div className="w-14 h-14 rounded-full bg-[#FF3B30]/10 flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-7 h-7 text-[#FF3B30]" />
           </div>
@@ -200,7 +203,7 @@ export default function ReceiveBcPage() {
   if (!canReceive) {
     return (
       <div className="animate-slide-up">
-        <div className="glass-card rounded-2xl p-8 text-center">
+        <div className="glass-card rounded-[28px] p-8 text-center">
           <div className="w-14 h-14 rounded-full bg-[#FF9500]/10 flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="w-7 h-7 text-[#FF9500]" />
           </div>
@@ -240,7 +243,7 @@ export default function ReceiveBcPage() {
 
       {/* ── Error alert ── */}
       {error && (
-        <div className="glass-card rounded-2xl p-4 flex items-center gap-3 border border-[#FF3B30]/20 bg-[#FF3B30]/5">
+        <div className="glass-card rounded-[28px] p-4 flex items-center gap-3 border border-[#FF3B30]/20 bg-[#FF3B30]/5">
           <div className="w-8 h-8 rounded-full bg-[#FF3B30]/10 flex items-center justify-center flex-shrink-0">
             <AlertTriangle className="w-4 h-4 text-[#FF3B30]" />
           </div>
@@ -250,8 +253,8 @@ export default function ReceiveBcPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ── Infos générales ── */}
-        <div className="glass-card rounded-2xl p-6">
-          <h2 className="font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
+        <div className="glass-card rounded-[28px] p-6">
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4 flex items-center gap-2">
             <FileText className="w-5 h-5 text-[#007AFF]" />
             Informations de réception
           </h2>
@@ -295,9 +298,9 @@ export default function ReceiveBcPage() {
         </div>
 
         {/* ── Lignes ── */}
-        <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="glass-card rounded-[28px] overflow-hidden">
           <div className="p-5 border-b border-black/[0.06]">
-            <h2 className="font-semibold text-[#1D1D1F] flex items-center gap-2">
+            <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
               <Package className="w-5 h-5 text-[#007AFF]" />
               Articles à réceptionner
             </h2>

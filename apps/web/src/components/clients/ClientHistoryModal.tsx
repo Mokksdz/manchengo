@@ -4,6 +4,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { History, X, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authFetch } from '@/lib/api';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ClientHistoryModal');
 
 interface Client {
   id: number;
@@ -84,7 +87,7 @@ export function ClientHistoryModal({ isOpen, onClose, client }: ClientHistoryMod
       const res = await authFetch(`/admin/clients/${client.id}/history?${params}`, { credentials: 'include' });
       if (res.ok) setHistoryData(await res.json());
     } catch (error) {
-      console.error('Failed to load history:', error);
+      log.error('Failed to load history:', error);
     } finally {
       setIsLoading(false);
     }
@@ -101,7 +104,7 @@ export function ClientHistoryModal({ isOpen, onClose, client }: ClientHistoryMod
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="client-history-modal-title">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" onClick={onClose} />
-      <div className="relative bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in">
+      <div className="relative bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04] bg-white/60 backdrop-blur-sm">
           <div className="flex items-center gap-3">

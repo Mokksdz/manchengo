@@ -117,7 +117,7 @@ export function SupplyRisksPanel({ data, isLoading }: SupplyRisksPanelProps) {
             <CheckCircle className="w-6 h-6 text-[#34C759]" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-[#1D1D1F]">Supply Chain OK</h3>
+            <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Supply Chain OK</h3>
             <p className="text-sm text-[#34C759]">
               Aucun risque détecté sur les matières premières et les commandes fournisseurs
             </p>
@@ -261,7 +261,7 @@ export function SupplyRisksPanel({ data, isLoading }: SupplyRisksPanelProps) {
       {mpSurveillance.length > 0 && (
         <div className="glass-decision-card glass-tint-blue rounded-[20px] overflow-hidden">
           <div className="bg-gradient-to-br from-[#007AFF]/15 to-[#007AFF]/5 px-5 py-3 border-b border-[#007AFF]/10">
-            <h3 className="text-base font-semibold text-[#007AFF] flex items-center gap-2">
+            <h3 className="font-display text-[17px] font-bold text-[#007AFF] tracking-tight flex items-center gap-2">
               <Clock className="w-4 h-4" />
               👁️ En surveillance
             </h3>
@@ -288,7 +288,7 @@ export function SupplyRisksPanel({ data, isLoading }: SupplyRisksPanelProps) {
       {data.fournisseursBloquants.length > 0 && (
         <div className="glass-card rounded-[20px] overflow-hidden">
           <div className="px-5 py-3 border-b border-black/[0.04]">
-            <h3 className="text-base font-semibold text-[#1D1D1F] flex items-center gap-2">
+            <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
               <Users className="w-4 h-4" />
               Fournisseurs à surveiller ({data.fournisseursBloquants.length})
             </h3>
@@ -337,7 +337,7 @@ function MpRiskCard({ mp, variant }: { mp: MpCritiqueProduction; variant: 'criti
 
   return (
     <div className={cn(
-      'flex items-center gap-4 p-3 rounded-2xl glass-card',
+      'flex items-center gap-4 p-3 rounded-[28px] glass-card',
       isCritical ? 'border border-[#FF3B30]/15' : 'border border-[#FF9500]/15'
     )}>
       <div className={cn(
@@ -377,7 +377,7 @@ function BcRiskCard({ bc, variant }: { bc: BcCritiqueProduction; variant: 'criti
 
   return (
     <div className={cn(
-      'flex items-center gap-4 p-3 rounded-2xl glass-card',
+      'flex items-center gap-4 p-3 rounded-[28px] glass-card',
       isCritical ? 'border border-[#FF3B30]/15' : 'border border-[#FF9500]/15'
     )}>
       <div className={cn(

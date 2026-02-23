@@ -193,7 +193,7 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
               <Truck className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 id="reception-modal-title" className="text-lg font-semibold text-[#1D1D1F]">Nouvelle Réception MP</h2>
+              <h2 id="reception-modal-title" className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Nouvelle Réception MP</h2>
               <p className="text-sm text-blue-100">Enregistrer une livraison fournisseur</p>
             </div>
           </div>
@@ -212,12 +212,14 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#1D1D1F] mb-1">
-                Fournisseur <span className="text-red-500">*</span>
+              <label htmlFor="reception-supplier" className="block text-sm font-medium text-[#1D1D1F] mb-1">
+                Fournisseur <span className="text-red-500" aria-hidden="true">*</span>
               </label>
               <select
+                id="reception-supplier"
                 value={supplierId}
                 onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')}
+                aria-required="true"
                 className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#007AFF]"
               >
                 <option value="">Sélectionner...</option>
@@ -235,8 +237,9 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
               </button>
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#1D1D1F] mb-1">N° BL</label>
+              <label htmlFor="reception-bl" className="block text-sm font-medium text-[#1D1D1F] mb-1">N° BL</label>
               <input
+                id="reception-bl"
                 type="text"
                 value={blNumber}
                 onChange={(e) => setBlNumber(e.target.value)}
@@ -245,10 +248,11 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#1D1D1F] mb-1">
-                <Calendar className="w-4 h-4 inline mr-1" />Date
+              <label htmlFor="reception-date" className="block text-sm font-medium text-[#1D1D1F] mb-1">
+                <Calendar className="w-4 h-4 inline mr-1" aria-hidden="true" />Date
               </label>
               <input
+                id="reception-date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}

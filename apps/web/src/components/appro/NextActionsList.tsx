@@ -59,7 +59,7 @@ export function NextActionsList({ actions, emptyMessage }: NextActionsListProps)
         <div className="w-12 h-12 rounded-[16px] bg-gradient-to-br from-[#34C759]/10 to-[#30D158]/5 flex items-center justify-center mx-auto mb-4">
           <Check className="w-5.5 h-5.5 text-[#34C759]/70" />
         </div>
-        <p className="text-[16px] font-semibold text-[#1D1D1F] tracking-[-0.01em]">
+        <p className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
           {emptyMessage || 'Aucune action prioritaire'}
         </p>
         <p className="text-[13px] text-[#AEAEB2] mt-1.5">
@@ -73,7 +73,7 @@ export function NextActionsList({ actions, emptyMessage }: NextActionsListProps)
     <div className="glass-card overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
-        <h3 className="text-[13px] font-semibold text-[#1D1D1F] uppercase tracking-[0.06em]">
+        <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
           Actions prioritaires
         </h3>
         <span className="glass-pill text-[#86868B]">

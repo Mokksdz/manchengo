@@ -344,24 +344,22 @@ export class StockService {
         include: { lines: true },
       });
 
-      // Créer mouvements IN pour chaque ligne
-      for (const line of reception.lines) {
-        await tx.stockMovement.create({
-          data: {
-            movementType: 'IN',
-            productType: 'MP',
-            origin: 'RECEPTION',
-            productMpId: line.productMpId,
-            quantity: line.quantity,
-            unitCost: line.unitCost,
-            referenceType: 'RECEPTION',
-            referenceId: reception.id,
-            reference: reception.reference,
-            userId,
-            note: `Réception ${reception.reference}${data.blNumber ? ` - BL: ${data.blNumber}` : ''}`,
-          },
-        });
-      }
+      // Batch create stock movements (1 query instead of N)
+      await tx.stockMovement.createMany({
+        data: reception.lines.map((line) => ({
+          movementType: 'IN' as MovementType,
+          productType: 'MP' as ProductType,
+          origin: 'RECEPTION' as MovementOrigin,
+          productMpId: line.productMpId,
+          quantity: line.quantity,
+          unitCost: line.unitCost,
+          referenceType: 'RECEPTION',
+          referenceId: reception.id,
+          reference: reception.reference,
+          userId,
+          note: `Réception ${reception.reference}${data.blNumber ? ` - BL: ${data.blNumber}` : ''}`,
+        })),
+      });
 
       return reception;
     });
@@ -520,23 +518,21 @@ export class StockService {
           totalMpCost += mpUnitCost * Number(consumption.quantityPlanned);
         }
 
-        // 3. Créer mouvements OUT pour chaque MP consommée
-        for (const consumption of order.consumptions) {
-          await tx.stockMovement.create({
-            data: {
-              movementType: 'OUT',
-              productType: 'MP',
-              origin: 'PRODUCTION_OUT',
-              productMpId: consumption.productMpId,
-              quantity: Number(consumption.quantityPlanned),
-              referenceType: 'PRODUCTION',
-              referenceId: order.id,
-              reference: order.reference,
-              userId,
-              note: `Production ${order.reference} - Consommation ${consumption.productMp.name}`,
-            },
-          });
-        }
+        // 3. Batch create MP OUT movements (1 query instead of N)
+        await tx.stockMovement.createMany({
+          data: order.consumptions.map((consumption) => ({
+            movementType: 'OUT' as MovementType,
+            productType: 'MP' as ProductType,
+            origin: 'PRODUCTION_OUT' as MovementOrigin,
+            productMpId: consumption.productMpId,
+            quantity: Number(consumption.quantityPlanned),
+            referenceType: 'PRODUCTION',
+            referenceId: order.id,
+            reference: order.reference,
+            userId,
+            note: `Production ${order.reference} - Consommation ${consumption.productMp.name}`,
+          })),
+        });
 
         // 4. Calculer coût de revient PF
         const pfUnitCost = quantityProduced > 0 ? Math.round(totalMpCost / quantityProduced) : 0;
@@ -632,39 +628,61 @@ export class StockService {
     this.validateRoleForOrigin('VENTE', userRole);
 
     const executeLogic = async (tx: Prisma.TransactionClient) => {
-      // Vérifier stock PF disponible pour CHAQUE ligne
-      for (const line of lines) {
-        const stockPf = await this.calculateStockInTransaction(tx, 'PF', line.productPfId);
+      // Batch stock check: 1 query instead of N (N+1 elimination)
+      const pfIds = [...new Set(lines.map((l) => l.productPfId))];
 
-        if (stockPf < line.quantity) {
-          const product = await tx.productPf.findUnique({
-            where: { id: line.productPfId },
-            select: { name: true },
-          });
-          throw new BadRequestException(
-            `Stock PF insuffisant pour ${product?.name}: ` +
-            `disponible ${stockPf}, requis ${line.quantity}`,
-          );
-        }
+      const batchStocks = await tx.stockMovement.groupBy({
+        by: ['productPfId', 'movementType'],
+        where: { productType: 'PF', productPfId: { in: pfIds }, isDeleted: false },
+        _sum: { quantity: true },
+      });
+
+      const stockMap = new Map<number, number>();
+      for (const s of batchStocks) {
+        if (!s.productPfId) continue;
+        const prev = stockMap.get(s.productPfId) || 0;
+        const qty = s._sum.quantity || 0;
+        stockMap.set(s.productPfId, prev + (s.movementType === 'IN' ? qty : -qty));
       }
 
-      // Créer mouvements OUT pour chaque ligne
+      // Aggregate required quantities per product (handles duplicate productPfId in lines)
+      const requiredMap = new Map<number, number>();
       for (const line of lines) {
-        await tx.stockMovement.create({
-          data: {
-            movementType: 'OUT',
-            productType: 'PF',
-            origin: 'VENTE',
-            productPfId: line.productPfId,
-            quantity: line.quantity,
-            referenceType: 'INVOICE',
-            referenceId: invoiceId,
-            reference: invoiceReference,
-            userId,
-            note: `Vente facture ${invoiceReference}`,
-          },
+        requiredMap.set(line.productPfId, (requiredMap.get(line.productPfId) || 0) + line.quantity);
+      }
+
+      // Validate all stock levels in one pass
+      const insufficientIds = [...requiredMap.entries()]
+        .filter(([id, qty]) => (stockMap.get(id) || 0) < qty)
+        .map(([id]) => id);
+
+      if (insufficientIds.length > 0) {
+        const products = await tx.productPf.findMany({
+          where: { id: { in: insufficientIds } },
+          select: { id: true, name: true },
         });
+        const nameMap = new Map(products.map((p) => [p.id, p.name]));
+        const errors = insufficientIds.map((id) =>
+          `${nameMap.get(id)}: disponible ${stockMap.get(id) || 0}, requis ${requiredMap.get(id)}`,
+        );
+        throw new BadRequestException(`Stock PF insuffisant — ${errors.join('; ')}`);
       }
+
+      // Batch create movements via createMany (1 query instead of N)
+      await tx.stockMovement.createMany({
+        data: lines.map((line) => ({
+          movementType: 'OUT' as MovementType,
+          productType: 'PF' as ProductType,
+          origin: 'VENTE' as MovementOrigin,
+          productPfId: line.productPfId,
+          quantity: line.quantity,
+          referenceType: 'INVOICE',
+          referenceId: invoiceId,
+          reference: invoiceReference,
+          userId,
+          note: `Vente facture ${invoiceReference}`,
+        })),
+      });
 
       return { success: true, linesProcessed: lines.length };
     };
@@ -700,6 +718,7 @@ export class StockService {
   private async computeStockMp(): Promise<(StockLevel & { impactProduction: number })[]> {
     const products = await this.prisma.productMp.findMany({
       where: { isActive: true },
+      select: { id: true, code: true, name: true, unit: true, minStock: true },
       orderBy: { code: 'asc' },
     });
 
@@ -768,22 +787,24 @@ export class StockService {
   private async computeStockPf(): Promise<StockLevel[]> {
     const products = await this.prisma.productPf.findMany({
       where: { isActive: true },
+      select: { id: true, code: true, name: true, unit: true, minStock: true, priceHt: true },
       orderBy: { code: 'asc' },
     });
 
     const productIds = products.map((p) => p.id);
 
-    const allStocks = await this.prisma.stockMovement.groupBy({
-      by: ['productPfId', 'movementType'],
-      where: { productType: 'PF', productPfId: { in: productIds }, isDeleted: false },
-      _sum: { quantity: true },
-    });
-
-    const lastMovements = await this.prisma.stockMovement.groupBy({
-      by: ['productPfId'],
-      where: { productType: 'PF', productPfId: { in: productIds }, isDeleted: false },
-      _max: { createdAt: true },
-    });
+    const [allStocks, lastMovements] = await Promise.all([
+      this.prisma.stockMovement.groupBy({
+        by: ['productPfId', 'movementType'],
+        where: { productType: 'PF', productPfId: { in: productIds }, isDeleted: false },
+        _sum: { quantity: true },
+      }),
+      this.prisma.stockMovement.groupBy({
+        by: ['productPfId'],
+        where: { productType: 'PF', productPfId: { in: productIds }, isDeleted: false },
+        _max: { createdAt: true },
+      }),
+    ]);
 
     const stockMap = new Map<number, number>();
     for (const s of allStocks) {

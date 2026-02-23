@@ -63,7 +63,7 @@ export function ProductBatchTab({
     <div className="space-y-6">
       {/* Batch Configuration */}
       <div className="glass-card p-6">
-        <h2 className="text-lg font-semibold mb-4">Configuration du batch</h2>
+        <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-4">Configuration du batch</h2>
         <div className="flex items-end gap-6">
           <div>
             <label className="block text-[11px] font-medium uppercase tracking-wider text-[#86868B] mb-1">Nombre de batchs</label>

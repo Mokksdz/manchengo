@@ -7,6 +7,9 @@ import { RefreshCw, Smartphone, Activity, Clock, CheckCircle, Wifi, WifiOff } fr
 import { Skeleton } from '@/components/ui/skeleton-loader';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('Sync');
 
 export default function SyncPage() {
   const [devices, setDevices] = useState<DeviceSyncStatus[]>([]);
@@ -27,7 +30,7 @@ export default function SyncPage() {
       setDevices(devicesData);
       setEvents(eventsData);
     } catch (error) {
-      console.error('Failed to load sync data:', error);
+      log.error('Failed to load sync data', { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsLoading(false);
     }
@@ -113,8 +116,8 @@ export default function SyncPage() {
             <Smartphone className="w-5 h-5 text-[#34C759]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{activeDevices.length}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Appareils connectés</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{activeDevices.length}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Appareils connectés</p>
             <p className="text-[11px] text-[#AEAEB2]">sur {devices.length} enregistrés</p>
           </div>
         </div>
@@ -123,8 +126,8 @@ export default function SyncPage() {
             <Activity className="w-5 h-5 text-[#007AFF]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{todayEvents.length}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Événements aujourd'hui</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{todayEvents.length}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Événements aujourd'hui</p>
           </div>
         </div>
         <div className="glass-card p-4 flex items-center gap-3">
@@ -132,8 +135,8 @@ export default function SyncPage() {
             <CheckCircle className="w-5 h-5 text-[#AF52DE]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{events.length}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Total événements</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{events.length}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Total événements</p>
             <p className="text-[11px] text-[#AEAEB2]">dernières 24h</p>
           </div>
         </div>
@@ -147,7 +150,7 @@ export default function SyncPage() {
               <Smartphone className="w-4 h-4 text-[#007AFF]" />
             </div>
             <div>
-              <h3 className="font-semibold text-[#1D1D1F]">Appareils</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Appareils</h3>
               <p className="text-[11px] text-[#86868B]">{devices.length} enregistrés</p>
             </div>
           </div>
@@ -202,7 +205,7 @@ export default function SyncPage() {
               <Activity className="w-4 h-4 text-[#34C759]" />
             </div>
             <div>
-              <h3 className="font-semibold text-[#1D1D1F]">Événements récents</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Événements récents</h3>
               <p className="text-[11px] text-[#86868B]">Activité de synchronisation</p>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware, ForbiddenException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { randomBytes } from 'crypto';
+import { randomBytes, timingSafeEqual } from 'crypto';
 import { COOKIE_NAMES } from '../../auth/config/cookie.config';
 
 /**
@@ -52,7 +52,14 @@ export class CsrfMiddleware implements NestMiddleware {
     const cookieToken = req.cookies?.[CsrfMiddleware.CSRF_COOKIE];
     const headerToken = req.headers[CsrfMiddleware.CSRF_HEADER] as string;
 
-    if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+    if (!cookieToken || !headerToken || cookieToken.length !== headerToken.length) {
+      throw new ForbiddenException('CSRF token invalide ou manquant');
+    }
+
+    // Timing-safe comparison to prevent timing attacks
+    const cookieBuffer = Buffer.from(cookieToken, 'utf-8');
+    const headerBuffer = Buffer.from(headerToken, 'utf-8');
+    if (!timingSafeEqual(cookieBuffer, headerBuffer)) {
       throw new ForbiddenException('CSRF token invalide ou manquant');
     }
 

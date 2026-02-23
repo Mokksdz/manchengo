@@ -81,7 +81,7 @@ export function ProductionProductsTab({ products, searchQuery, onSearchChange, o
                     <Package className={cn('w-6 h-6', product.hasRecipe ? 'text-[#AF52DE]' : 'text-amber-500')} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-[#1D1D1F]">{product.name}</h3>
+                    <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">{product.name}</h3>
                     <p className="text-sm text-[#86868B] font-mono">{product.code}</p>
                   </div>
                 </div>

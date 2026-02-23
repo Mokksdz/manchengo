@@ -34,6 +34,14 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 
 const MIN_LEVEL: LogLevel = isDev ? 'debug' : 'error';
 
+/** Normalize unknown meta (e.g. catch-block errors) to Record<string, unknown> */
+function normalizeMeta(meta: unknown): Record<string, unknown> | undefined {
+  if (meta === undefined || meta === null) return undefined;
+  if (meta instanceof Error) return { error: meta.message, stack: meta.stack };
+  if (typeof meta === 'object' && !Array.isArray(meta)) return meta as Record<string, unknown>;
+  return { value: meta };
+}
+
 function shouldLog(level: LogLevel): boolean {
   return LOG_LEVELS[level] >= LOG_LEVELS[MIN_LEVEL];
 }
@@ -68,35 +76,39 @@ function createLogEntry(
  */
 export function createLogger(module: string) {
   return {
-    debug: (message: string, meta?: Record<string, unknown>) => {
+    debug: (message: string, meta?: unknown) => {
       if (!shouldLog('debug')) return;
-      const entry = createLogEntry('debug', module, message, meta);
+      const m = normalizeMeta(meta);
+      const entry = createLogEntry('debug', module, message, m);
       // eslint-disable-next-line no-console
-      console.debug(formatLog(entry), meta || '');
+      console.debug(formatLog(entry), m || '');
     },
 
-    info: (message: string, meta?: Record<string, unknown>) => {
+    info: (message: string, meta?: unknown) => {
       if (!shouldLog('info')) return;
-      const entry = createLogEntry('info', module, message, meta);
+      const m = normalizeMeta(meta);
+      const entry = createLogEntry('info', module, message, m);
       // eslint-disable-next-line no-console
-      console.info(formatLog(entry), meta || '');
+      console.info(formatLog(entry), m || '');
     },
 
-    warn: (message: string, meta?: Record<string, unknown>) => {
+    warn: (message: string, meta?: unknown) => {
       if (!shouldLog('warn')) return;
-      const entry = createLogEntry('warn', module, message, meta);
-      console.warn(formatLog(entry), meta || '');
+      const m = normalizeMeta(meta);
+      const entry = createLogEntry('warn', module, message, m);
+      console.warn(formatLog(entry), m || '');
     },
 
-    error: (message: string, meta?: Record<string, unknown>) => {
+    error: (message: string, meta?: unknown) => {
       if (!shouldLog('error')) return;
-      const entry = createLogEntry('error', module, message, meta);
-      console.warn(formatLog(entry), meta || '');
+      const m = normalizeMeta(meta);
+      const entry = createLogEntry('error', module, message, m);
+      console.warn(formatLog(entry), m || '');
 
       // Send errors to Sentry in production
       if (!isDev && typeof window !== 'undefined') {
         import('@/lib/sentry').then(({ captureError }) => {
-          captureError(new Error(`[${module}] ${message}`), meta);
+          captureError(new Error(`[${module}] ${message}`), m);
         }).catch(() => { /* Sentry not available */ });
       }
     },

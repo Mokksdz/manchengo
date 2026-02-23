@@ -53,8 +53,8 @@ export function ClientFilters({
             <Users className="w-5 h-5 text-[#1D1D1F]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{stats.total}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Total</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{stats.total}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Total</p>
           </div>
         </div>
         <div className="glass-card p-4 flex items-center gap-3">
@@ -62,8 +62,8 @@ export function ClientFilters({
             <Building2 className="w-5 h-5 text-[#007AFF]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{stats.distributeurs}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Distributeurs</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{stats.distributeurs}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Distributeurs</p>
           </div>
         </div>
         <div className="glass-card p-4 flex items-center gap-3">
@@ -71,8 +71,8 @@ export function ClientFilters({
             <Building2 className="w-5 h-5 text-[#AF52DE]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{stats.grossistes}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Grossistes</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{stats.grossistes}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Grossistes</p>
           </div>
         </div>
         <div className="glass-card p-4 flex items-center gap-3">
@@ -80,8 +80,8 @@ export function ClientFilters({
             <Building2 className="w-5 h-5 text-[#34C759]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{stats.superettes}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Superettes</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{stats.superettes}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Superettes</p>
           </div>
         </div>
         <div className="glass-card p-4 flex items-center gap-3">
@@ -89,8 +89,8 @@ export function ClientFilters({
             <Building2 className="w-5 h-5 text-[#FF9500]" />
           </div>
           <div>
-            <p className="text-[22px] font-semibold text-[#1D1D1F] tracking-tight">{stats.fastFood}</p>
-            <p className="text-[11px] font-medium text-[#86868B] uppercase tracking-wider">Fast Food</p>
+            <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1D1D1F]">{stats.fastFood}</p>
+            <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Fast Food</p>
           </div>
         </div>
       </div>

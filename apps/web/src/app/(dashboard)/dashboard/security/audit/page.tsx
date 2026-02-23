@@ -274,7 +274,7 @@ export default function SecurityAuditPage() {
 
       {/* Error */}
       {error && (
-        <div className="flex items-center gap-3 p-4 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-2xl text-sm font-medium text-[#FF3B30]">
+        <div className="flex items-center gap-3 p-4 bg-[#FF3B30]/10 border border-[#FF3B30]/20 rounded-[28px] text-sm font-medium text-[#FF3B30]">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           {error}
         </div>
@@ -336,7 +336,7 @@ export default function SecurityAuditPage() {
 
       {/* Legend */}
       <div className="glass-card p-5">
-        <h3 className="font-semibold text-[#1D1D1F] mb-3 flex items-center gap-2">
+        <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-3 flex items-center gap-2">
           <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#FF9500]/10 to-[#FF9500]/5 flex items-center justify-center">
             <Shield className="w-3 h-3 text-[#FF9500]" />
           </div>

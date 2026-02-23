@@ -98,8 +98,8 @@ export default function DashboardPage() {
           <div className={`${cardClass} p-6`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[13px] font-medium text-[#86868B]">Ordres aujourd&apos;hui</p>
-                <p className="text-[28px] font-semibold text-[#1D1D1F] mt-1">{pd.production.ordersToday}</p>
+                <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Ordres aujourd&apos;hui</p>
+                <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">{pd.production.ordersToday}</p>
               </div>
               <div className={iconBoxClass}>
                 <ClipboardList className="w-5 h-5" />
@@ -110,8 +110,8 @@ export default function DashboardPage() {
           <div className={`${cardClass} p-6`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[13px] font-medium text-[#86868B]">En attente</p>
-                <p className="text-[28px] font-semibold text-[#F57F17] mt-1">{pd.production.ordersPending}</p>
+                <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">En attente</p>
+                <p className="font-display text-[34px] font-black text-[#F57F17] tracking-tight tabular-nums leading-none mt-1">{pd.production.ordersPending}</p>
               </div>
               <div className={iconBoxClass}>
                 <Loader2 className="w-5 h-5" />
@@ -122,8 +122,8 @@ export default function DashboardPage() {
           <div className={`${cardClass} p-6`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[13px] font-medium text-[#86868B]">En cours</p>
-                <p className="text-[28px] font-semibold text-[#1565C0] mt-1">{pd.production.ordersInProgress}</p>
+                <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">En cours</p>
+                <p className="font-display text-[34px] font-black text-[#1565C0] tracking-tight tabular-nums leading-none mt-1">{pd.production.ordersInProgress}</p>
               </div>
               <div className={iconBoxClass}>
                 <Factory className="w-5 h-5" />
@@ -134,8 +134,8 @@ export default function DashboardPage() {
           <div className={`${cardClass} p-6`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[13px] font-medium text-[#86868B]">Terminés (7j)</p>
-                <p className="text-[28px] font-semibold text-[#2E7D32] mt-1">{pd.production.ordersCompleted}</p>
+                <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Terminés (7j)</p>
+                <p className="font-display text-[34px] font-black text-[#2E7D32] tracking-tight tabular-nums leading-none mt-1">{pd.production.ordersCompleted}</p>
               </div>
               <div className={iconBoxClass}>
                 <CheckCircle className="w-5 h-5" />
@@ -152,16 +152,16 @@ export default function DashboardPage() {
               <div className={iconBoxSmClass}>
                 <Beaker className="w-4 h-4" />
               </div>
-              <h3 className="font-semibold text-[#1D1D1F]">Production (7 jours)</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Production (7 jours)</h3>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 bg-[#FAFAFA] rounded-[12px]">
-                  <p className="text-[28px] font-semibold text-[#1D1D1F]">{pd.production.quantiteProduite}</p>
+                  <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none">{pd.production.quantiteProduite}</p>
                   <p className="text-[13px] text-[#86868B]">Quantité produite</p>
                 </div>
                 <div className="text-center p-4 bg-[#E8F5E9] rounded-[12px]">
-                  <p className="text-[28px] font-semibold text-[#2E7D32]">{pd.production.rendementMoyen}%</p>
+                  <p className="font-display text-[34px] font-black text-[#2E7D32] tracking-tight tabular-nums leading-none">{pd.production.rendementMoyen}%</p>
                   <p className="text-[13px] text-[#86868B]">Rendement moyen</p>
                 </div>
               </div>
@@ -175,7 +175,7 @@ export default function DashboardPage() {
                 <div className={iconBoxSmClass}>
                   <ShoppingCart className="w-4 h-4" />
                 </div>
-                <h3 className="font-semibold text-[#1D1D1F]">Approvisionnement MP</h3>
+                <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Approvisionnement MP</h3>
               </div>
               <Link href="/dashboard/appro" className="text-sm text-[#EC7620] hover:text-[#DD5C16] font-medium">
                 Voir cockpit →
@@ -184,19 +184,19 @@ export default function DashboardPage() {
             <div className="p-6">
               <div className="grid grid-cols-2 gap-3">
                 <div className="text-center p-3 bg-[#FFF8E1] rounded-[12px]">
-                  <p className="text-[22px] font-semibold text-[#F57F17]">{pd.approvisionnement.mpSousSeuil}</p>
+                  <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#F57F17]">{pd.approvisionnement.mpSousSeuil}</p>
                   <p className="text-[11px] text-[#86868B]">MP sous seuil</p>
                 </div>
                 <div className="text-center p-3 bg-[#FFEBEE] rounded-[12px]">
-                  <p className="text-[22px] font-semibold text-[#C62828]">{pd.approvisionnement.mpCritiques}</p>
+                  <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#C62828]">{pd.approvisionnement.mpCritiques}</p>
                   <p className="text-[11px] text-[#86868B]">MP critiques</p>
                 </div>
                 <div className="text-center p-3 bg-[#E3F2FD] rounded-[12px]">
-                  <p className="text-[22px] font-semibold text-[#1565C0]">{pd.approvisionnement.demandesEnvoyees ?? 0}</p>
+                  <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#1565C0]">{pd.approvisionnement.demandesEnvoyees ?? 0}</p>
                   <p className="text-[11px] text-[#86868B]">Demandes envoyées</p>
                 </div>
                 <div className="text-center p-3 bg-[#FAFAFA] rounded-[12px]">
-                  <p className="text-[22px] font-semibold text-[#6E6E73]">{pd.approvisionnement.demandesEnAttente ?? 0}</p>
+                  <p className="font-display text-[28px] font-black tracking-tight tabular-nums leading-none text-[#6E6E73]">{pd.approvisionnement.demandesEnAttente ?? 0}</p>
                   <p className="text-[11px] text-[#86868B]">Brouillons</p>
                 </div>
               </div>
@@ -212,7 +212,7 @@ export default function DashboardPage() {
               <div className="w-9 h-9 rounded-[10px] bg-[#FFF8E1] flex items-center justify-center">
                 <AlertTriangle className="w-4 h-4 text-[#F57F17]" />
               </div>
-              <h3 className="font-semibold text-[#1D1D1F]">Alertes Stock MP</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Alertes Stock MP</h3>
             </div>
             <div className="p-6">
               {pd.alertes.mpAlertList.length > 0 ? (
@@ -258,7 +258,7 @@ export default function DashboardPage() {
                 <div className={iconBoxSmClass}>
                   <Beaker className="w-4 h-4" />
                 </div>
-                <h3 className="font-semibold text-[#1D1D1F]">Recettes</h3>
+                <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Recettes</h3>
               </div>
               <Link href="/dashboard/production/recettes" className="text-sm text-[#EC7620] hover:text-[#DD5C16] font-medium">
                 Gérer →
@@ -272,7 +272,7 @@ export default function DashboardPage() {
                       <AlertTriangle className="w-5 h-5 text-[#F57F17]" />
                     </div>
                     <div>
-                      <p className="font-semibold text-[#1D1D1F]">
+                      <p className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">
                         {pd.alertes.recettesNonConfigurees} produit(s) sans recette
                       </p>
                       <p className="text-sm text-[#6E6E73]">
@@ -288,7 +288,7 @@ export default function DashboardPage() {
                       <CheckCircle className="w-5 h-5 text-[#2E7D32]" />
                     </div>
                     <div>
-                      <p className="font-semibold text-[#1D1D1F]">Recettes configurées</p>
+                      <p className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Recettes configurées</p>
                       <p className="text-sm text-[#6E6E73]">Production prête</p>
                     </div>
                   </div>
@@ -319,8 +319,8 @@ export default function DashboardPage() {
         <div className={`${cardClass} p-6`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[13px] font-medium text-[#86868B]">Stock MP</p>
-              <p className="text-[28px] font-semibold text-[#1D1D1F] mt-1">
+              <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Stock MP</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">
                 {(kpis?.stock.mp.total ?? 0).toLocaleString()}
               </p>
               {(kpis?.stock.mp.lowStock || 0) > 0 && (
@@ -340,8 +340,8 @@ export default function DashboardPage() {
         <div className={`${cardClass} p-6`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[13px] font-medium text-[#86868B]">Stock PF</p>
-              <p className="text-[28px] font-semibold text-[#1D1D1F] mt-1">
+              <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Stock PF</p>
+              <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">
                 {(kpis?.stock.pf.total ?? 0).toLocaleString()}
               </p>
               {(kpis?.stock.pf.lowStock || 0) > 0 && (
@@ -362,8 +362,8 @@ export default function DashboardPage() {
           <div className={`${cardClass} p-6`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[13px] font-medium text-[#86868B]">Ventes du jour</p>
-                <p className="text-[28px] font-semibold text-[#1D1D1F] mt-1">
+                <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Ventes du jour</p>
+                <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">
                   {formatCurrency(kpis?.sales.todayAmount || 0)}
                 </p>
                 <p className="text-[13px] text-[#AEAEB2] mt-1">
@@ -382,8 +382,8 @@ export default function DashboardPage() {
           <div className={`${cardClass} p-6`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[13px] font-medium text-[#86868B]">Synchronisation</p>
-                <p className="text-[28px] font-semibold text-[#1D1D1F] mt-1">
+                <p className="text-[12px] font-bold uppercase tracking-widest text-[#86868B]">Synchronisation</p>
+                <p className="font-display text-[34px] font-black text-[#1D1D1F] tracking-tight tabular-nums leading-none mt-1">
                   {kpis?.sync.pendingEvents || 0}
                 </p>
                 <p className="text-[13px] text-[#AEAEB2] mt-1">
@@ -410,7 +410,7 @@ export default function DashboardPage() {
         {canSeeSales && (
           <div className={`${cardClass} overflow-hidden`}>
             <div className={cardHeaderClass}>
-              <h3 className="font-semibold text-[#1D1D1F]">Ventes (7 derniers jours)</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Ventes (7 derniers jours)</h3>
             </div>
             <div className="p-6">
               <div className="h-64 flex items-end gap-2">
@@ -440,7 +440,7 @@ export default function DashboardPage() {
         {canSeeSync && (
           <div className={`${cardClass} overflow-hidden`}>
             <div className={cardHeaderClass}>
-              <h3 className="font-semibold text-[#1D1D1F]">État des appareils</h3>
+              <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">État des appareils</h3>
             </div>
             <div className="p-6">
               <div className="space-y-2">

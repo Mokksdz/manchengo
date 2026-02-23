@@ -32,7 +32,7 @@ function RecipeCard({ recipe, status, onClick }: { recipe: Recipe; status: Recip
                 {badge.text}
               </span>
             </div>
-            <h3 className="font-semibold text-[#1D1D1F]">{recipe.name || recipe.productPf?.name}</h3>
+            <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">{recipe.name || recipe.productPf?.name}</h3>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -70,7 +70,7 @@ export function RecipesTable({
     return (
       <div className="glass-card p-12 text-center animate-slide-up">
         <BookOpen className="w-16 h-16 text-[#E5E5E5] mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-[#1D1D1F] mb-2">
+        <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-2">
           Aucune recette configur\u00e9e
         </h3>
         <p className="text-[#86868B] mb-6 max-w-md mx-auto">

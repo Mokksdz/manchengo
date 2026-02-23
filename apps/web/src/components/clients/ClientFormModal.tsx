@@ -158,7 +158,7 @@ export function ClientFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 animate-scale-in max-w-lg">
+      <div className="relative w-full bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 animate-scale-in max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
           <h2 className="text-lg font-semibold text-[#1D1D1F]">
             {editingClient ? 'Modifier le client' : 'Nouveau client'}
@@ -179,22 +179,26 @@ export function ClientFormModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">Code *</label>
+              <label htmlFor="field-code" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">Code <span aria-hidden="true">*</span></label>
               <input
+                id="field-code"
                 type="text"
                 value={formData.code}
                 onChange={(e) => onFormChange({ ...formData, code: e.target.value })}
                 disabled={!!editingClient}
+                aria-required="true"
                 className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF] disabled:bg-[#F5F5F5]"
                 placeholder="CLI-004"
                 required
               />
             </div>
             <div>
-              <label className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">Type *</label>
+              <label htmlFor="field-type" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">Type <span aria-hidden="true">*</span></label>
               <select
+                id="field-type"
                 value={formData.type}
                 onChange={(e) => onFormChange({ ...formData, type: e.target.value as Client['type'] })}
+                aria-required="true"
                 className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]"
               >
                 {clientTypes.map((t) => (
@@ -205,11 +209,13 @@ export function ClientFormModal({
           </div>
 
           <div>
-            <label className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">Nom *</label>
+            <label htmlFor="field-name" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">Nom <span aria-hidden="true">*</span></label>
             <input
+              id="field-name"
               type="text"
               value={formData.name}
               onChange={(e) => onFormChange({ ...formData, name: e.target.value })}
+              aria-required="true"
               className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]"
               placeholder="Nom du client"
               required
@@ -218,7 +224,7 @@ export function ClientFormModal({
 
           {/* Champs fiscaux algeriens */}
           <div className="glass-card p-4 mt-4">
-            <h3 className="text-sm font-semibold text-[#1D1D1F] mb-3 flex items-center gap-2">
+            <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-3 flex items-center gap-2">
               <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#FF9500]/10 to-[#FF9500]/5 flex items-center justify-center">
                 <FileText className="w-3 h-3 text-[#FF9500]" />
               </div>
@@ -226,8 +232,9 @@ export function ClientFormModal({
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">NIF *</label>
+                <label htmlFor="field-nif" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">NIF <span aria-hidden="true">*</span></label>
                 <input
+                  id="field-nif"
                   ref={nifRef}
                   type="text"
                   value={formData.nif}
@@ -235,6 +242,9 @@ export function ClientFormModal({
                     onFormChange({ ...formData, nif: e.target.value });
                     if (fieldErrors.nif) setFieldErrors({ ...fieldErrors, nif: undefined });
                   }}
+                  aria-required="true"
+                  aria-invalid={!!fieldErrors.nif}
+                  aria-describedby={fieldErrors.nif ? 'field-nif-error' : undefined}
                   className={cn(
                     "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]",
                     fieldErrors.nif ? "border-[#FF3B30]/40 bg-[#FF3B30]/5" : "border-[#E5E5E5]"
@@ -243,14 +253,15 @@ export function ClientFormModal({
                   maxLength={15}
                 />
                 {fieldErrors.nif && (
-                  <p className="mt-1 text-xs text-[#FF3B30] flex items-center gap-1">
+                  <p id="field-nif-error" role="alert" className="mt-1 text-xs text-[#FF3B30] flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" /> {fieldErrors.nif}
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">RC *</label>
+                <label htmlFor="field-rc" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">RC <span aria-hidden="true">*</span></label>
                 <input
+                  id="field-rc"
                   ref={rcRef}
                   type="text"
                   value={formData.rc}
@@ -258,6 +269,9 @@ export function ClientFormModal({
                     onFormChange({ ...formData, rc: e.target.value.toUpperCase() });
                     if (fieldErrors.rc) setFieldErrors({ ...fieldErrors, rc: undefined });
                   }}
+                  aria-required="true"
+                  aria-invalid={!!fieldErrors.rc}
+                  aria-describedby={fieldErrors.rc ? 'field-rc-error' : undefined}
                   className={cn(
                     "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]",
                     fieldErrors.rc ? "border-[#FF3B30]/40 bg-[#FF3B30]/5" : "border-[#E5E5E5]"
@@ -265,7 +279,7 @@ export function ClientFormModal({
                   placeholder="17B0809707 ou A12345678"
                 />
                 {fieldErrors.rc && (
-                  <p className="mt-1 text-xs text-[#FF3B30] flex items-center gap-1">
+                  <p id="field-rc-error" role="alert" className="mt-1 text-xs text-[#FF3B30] flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" /> {fieldErrors.rc}
                   </p>
                 )}
@@ -273,8 +287,9 @@ export function ClientFormModal({
             </div>
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">AI *</label>
+                <label htmlFor="field-ai" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">AI <span aria-hidden="true">*</span></label>
                 <input
+                  id="field-ai"
                   ref={aiRef}
                   type="text"
                   value={formData.ai}
@@ -282,6 +297,9 @@ export function ClientFormModal({
                     onFormChange({ ...formData, ai: e.target.value });
                     if (fieldErrors.ai) setFieldErrors({ ...fieldErrors, ai: undefined });
                   }}
+                  aria-required="true"
+                  aria-invalid={!!fieldErrors.ai}
+                  aria-describedby={fieldErrors.ai ? 'field-ai-error' : undefined}
                   className={cn(
                     "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]",
                     fieldErrors.ai ? "border-[#FF3B30]/40 bg-[#FF3B30]/5" : "border-[#E5E5E5]"
@@ -290,14 +308,15 @@ export function ClientFormModal({
                   maxLength={10}
                 />
                 {fieldErrors.ai && (
-                  <p className="mt-1 text-xs text-[#FF3B30] flex items-center gap-1">
+                  <p id="field-ai-error" role="alert" className="mt-1 text-xs text-[#FF3B30] flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" /> {fieldErrors.ai}
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">NIS <span className="text-[#AEAEB2] text-[11px]">(optionnel)</span></label>
+                <label htmlFor="field-nis" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">NIS <span className="text-[#AEAEB2] text-[11px]">(optionnel)</span></label>
                 <input
+                  id="field-nis"
                   ref={nisRef}
                   type="text"
                   value={formData.nis}
@@ -305,6 +324,8 @@ export function ClientFormModal({
                     onFormChange({ ...formData, nis: e.target.value });
                     if (fieldErrors.nis) setFieldErrors({ ...fieldErrors, nis: undefined });
                   }}
+                  aria-invalid={!!fieldErrors.nis}
+                  aria-describedby={fieldErrors.nis ? 'field-nis-error' : undefined}
                   className={cn(
                     "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]",
                     fieldErrors.nis ? "border-[#FF3B30]/40 bg-[#FF3B30]/5" : "border-[#E5E5E5]"
@@ -313,7 +334,7 @@ export function ClientFormModal({
                   maxLength={15}
                 />
                 {fieldErrors.nis && (
-                  <p className="mt-1 text-xs text-[#FF3B30] flex items-center gap-1">
+                  <p id="field-nis-error" role="alert" className="mt-1 text-xs text-[#FF3B30] flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" /> {fieldErrors.nis}
                   </p>
                 )}
@@ -324,8 +345,9 @@ export function ClientFormModal({
           {/* Contact */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">T\u00e9l\u00e9phone <span className="text-[#AEAEB2] text-[11px]">(optionnel)</span></label>
+              <label htmlFor="field-phone" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">T\u00e9l\u00e9phone <span className="text-[#AEAEB2] text-[11px]">(optionnel)</span></label>
               <input
+                id="field-phone"
                 ref={phoneRef}
                 type="text"
                 value={formData.phone}
@@ -333,6 +355,8 @@ export function ClientFormModal({
                   onFormChange({ ...formData, phone: e.target.value });
                   if (fieldErrors.phone) setFieldErrors({ ...fieldErrors, phone: undefined });
                 }}
+                aria-invalid={!!fieldErrors.phone}
+                aria-describedby={fieldErrors.phone ? 'field-phone-error' : undefined}
                 className={cn(
                   "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]",
                   fieldErrors.phone ? "border-[#FF3B30]/40 bg-[#FF3B30]/5" : "border-[#E5E5E5]"
@@ -340,14 +364,15 @@ export function ClientFormModal({
                 placeholder="0551234567 ou +213551234567"
               />
               {fieldErrors.phone && (
-                <p className="mt-1 text-xs text-[#FF3B30] flex items-center gap-1">
+                <p id="field-phone-error" role="alert" className="mt-1 text-xs text-[#FF3B30] flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" /> {fieldErrors.phone}
                 </p>
               )}
             </div>
             <div>
-              <label className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">Adresse</label>
+              <label htmlFor="field-address" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">Adresse</label>
               <input
+                id="field-address"
                 type="text"
                 value={formData.address}
                 onChange={(e) => onFormChange({ ...formData, address: e.target.value })}
