@@ -1,14 +1,14 @@
 # RAPPORT DEVOPS & INFRASTRUCTURE — Manchengo Smart ERP
 
-**Date:** 2026-02-24 (mis a jour Phase 5: WAR ROOM DEPLOYE)
-**Score DevOps:** 83/100 (+5 — CI tests actifs, k6+chaos executes)
-**Status:** Production Phase 5. CI 201/201 tests pass, k6 load test execute, chaos 7/8 pass.
+**Date:** 2026-02-24 (mis a jour Phase 6: PRODUCTION MATURE)
+**Score DevOps:** 89/100 (+6 — Backup PostgreSQL 17 executed + restore test verified, CI ALL GREEN)
+**Status:** Production Phase 6. Backup PostgreSQL 17 executed + restore test verified, CI ALL GREEN.
 
 ---
 
 ## RESUME EXECUTIF
 
-Manchengo Smart ERP est **deploye et durci en production** depuis le 2026-02-23. Le frontend est sur Vercel (CDN global, auto-scaling), le backend sur Railway (avec PostgreSQL et Redis manages). La Phase 5 (WAR ROOM) a reactive les tests CI (201/201 pass avec PostgreSQL 16 + Redis 7 services), execute des tests de charge k6 (9,334 requetes, smoke + 500 VU), et execute des tests de resilience (7/8 pass). Le backup PostgreSQL est push dans origin/main mais le secret DATABASE_URL n'est pas configure dans GitHub Secrets.
+Manchengo Smart ERP est **deploye et durci en production** depuis le 2026-02-23. Le frontend est sur Vercel (CDN global, auto-scaling), le backend sur Railway (avec PostgreSQL et Redis manages). La Phase 6 (PRODUCTION MATURE) a execute le backup PostgreSQL 17 avec succes (pg_dump v17, format custom, compress=9, 229K), verifie le restore sur une DB vide (4 users, 3 products, 3 clients, 2 audit entries), et le CI est ALL GREEN (2 derniers runs SUCCESS, forceExit gere). Le secret DATABASE_URL est configure dans GitHub Secrets.
 
 ---
 
@@ -214,11 +214,13 @@ Health:
 - Logging des operations
 ```
 
-### STATUS Phase 5
-- Workflow `backup.yml` push dans origin/main (cron quotidien 02:00 UTC)
-- Upload artifacts avec retention 30 jours
-- **MAIS:** GitHub Secret `DATABASE_URL` non configure → workflow jamais execute
-- Pas de verification de restore
+### STATUS Phase 6
+- Workflow `backup.yml` **executed successfully** (Run 22367692644)
+- pg_dump **v17** matches Railway PostgreSQL 17.7
+- Backup size: **229K** (compressed format=custom, compress=9)
+- Restore test: **4 users, 3 products, 3 clients, 2 audit entries** restored on empty DB
+- Artifact: uploaded with **30-day retention**
+- GitHub Secret `DATABASE_URL`: **CONFIGURED**
 
 ### Fix Immediat
 ```yaml
@@ -273,16 +275,16 @@ spec:
 
 | Categorie | Score | Delta | Notes |
 |-----------|-------|-------|-------|
-| CI Pipeline | **78/100** | +26 | **201/201 tests pass**, PostgreSQL 16 + Redis 7 services. forceExit fix en cours. |
+| CI Pipeline | **82/100** | +4 | **2 derniers CI runs SUCCESS**, forceExit handled. 201/201 tests pass. |
 | CD Pipeline | 82/100 | — | Deploye en production (Vercel auto-deploy + Railway auto-deploy) |
 | Docker | 85/100 | — | Multi-stage, security, health checks |
 | Kubernetes | 72/100 | — | HPA, rolling update, mais pas de PDB (non utilise en prod actuelle) |
 | Monitoring | 80/100 | — | Stack complete Prom/Grafana/Loki (a connecter a prod) |
 | Alerting | 70/100 | — | Alertes basiques, pas de runbook |
-| Backup | **40/100** | +10 | Workflow push dans origin/main. Secret DATABASE_URL manquant → jamais execute |
-| Testing | **70/100** | +30 | **k6 execute** (9,334 reqs), **chaos 7/8** pass, Playwright Firefox configure |
+| Backup | **80/100** | +40 | Backup EXECUTED: pg_dump 17, restore test on empty DB verified, artifact uploaded 30 days, secret configured |
+| Testing | **75/100** | +5 | **k6 execute** (9,334 reqs), **chaos 7/8** pass, **backup restore test automated**, Playwright Firefox configure |
 | Security Infra | 85/100 | — | TLS 1.3, CORS whitelist, headers complets, Swagger off |
-| **GLOBAL** | **83/100** | **+5** | **Production Hardened — CI + testing deployes et verifies** |
+| **GLOBAL** | **89/100** | **+6** | **Production Mature — Backup executed + restore verified, CI ALL GREEN** |
 
 ---
 
@@ -325,7 +327,7 @@ spec:
 | Production Hosting | Vercel + Railway | PaaS managed | ✅ OK |
 | TLS/SSL | TLS 1.3 auto | TLS 1.3 | ✅ OK |
 | Monitoring | Stack configuree (non connectee a prod) | Prom/Grafana/Sentry | MEDIUM |
-| Backup | Workflow push, secret manquant | Quotidien + teste | **HIGH** |
+| Backup | Workflow execute, restore verifie | Quotidien + teste | ✅ OK |
 | Secrets | Env vars Railway/Vercel | Vault/K8s secrets | ✅ ACCEPTABLE |
 | Auto-scaling | Vercel (auto), Railway (manual) | Full auto-scaling | ACCEPTABLE |
 | Zero-downtime | Vercel atomic, Railway rolling | Blue/Green | ACCEPTABLE |
@@ -337,3 +339,4 @@ spec:
 *Mis a jour le 2026-02-22 apres WAR ROOM Phase 3 (Jest config fixe, 94 tests locaux)*
 *Mis a jour le 2026-02-23 apres Phase 4: Deploiement Production (Vercel + Railway)*
 *Mis a jour le 2026-02-24 apres Phase 5: CI 201/201 pass, k6 execute, chaos 7/8 pass (83/100)*
+*Mis a jour le 2026-02-24 apres Phase 6: Backup PostgreSQL 17 executed + restore verified, CI ALL GREEN (89/100)*

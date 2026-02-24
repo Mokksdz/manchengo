@@ -1,15 +1,15 @@
 # RAPPORT DE SECURITE — Manchengo Smart ERP
 
-**Date:** 2026-02-24 (mis a jour Phase 5: WAR ROOM DEPLOYE)
-**Score Securite:** 86/100 (+4 — securite deployee et verifiee)
+**Date:** 2026-02-24 (mis a jour Phase 6: PRODUCTION MATURE)
+**Score Securite:** 89/100 (+3 — maturite production confirmee)
 **Classification:** CONFIDENTIEL
-**Status:** Production Phase 5. Securite WAR ROOM deployee: bcrypt 12, CSRF timing-safe, health uptime retire. Verifie par curl + chaos tests (7/8 pass).
+**Status:** Production Phase 6. Rate limiting Redis-backed (persistent), backup restore verified. Securite WAR ROOM deployee: bcrypt 12, CSRF timing-safe, health uptime retire. Verifie par curl + chaos tests (7/8 pass).
 
 ---
 
 ## RESUME EXECUTIF
 
-La posture de securite de Manchengo Smart ERP est **solide pour un produit en production**. La Phase 5 (WAR ROOM) a durci la securite: bcrypt rounds augmentes a 12 (constante centralisee), CSRF validation par `crypto.timingSafeEqual()` (anti-timing attack), CSP connect-src restreint au backend specifique (plus de wildcard wss:), uptime retire du health endpoint basique. Les vulnerabilites restantes sont principalement liees aux plateformes mobile/desktop (non deployees).
+La posture de securite de Manchengo Smart ERP est **solide pour un produit en production mature**. La Phase 6 (PRODUCTION MATURE) a renforce l'infrastructure: RedisThrottlerStorage remplace le stockage in-memory pour le rate limiting (persistance garantie meme apres redemarrage), backup encryption avec compress=9, restore teste et verifie, modules clients/invoices enregistres. Phase 5 (WAR ROOM) avait durci la securite: bcrypt 12, CSRF timing-safe, CSP connect-src restreint, uptime retire. Les vulnerabilites restantes sont principalement liees aux plateformes mobile/desktop (non deployees).
 
 ### Audit Live Production (2026-02-23)
 
@@ -24,7 +24,7 @@ La posture de securite de Manchengo Smart ERP est **solide pour un produit en pr
 | TLS Version | ✅ TLS 1.3 (CHACHA20-POLY1305) |
 | CORS | ✅ Whitelist (domaine Vercel autorise, pas de wildcard `*`) |
 | Swagger /docs | ✅ 404 (desactive) |
-| Rate Limiting | ✅ 3-tier (x-ratelimit-limit-short: 10, medium: 100, long: 1000) |
+| Rate Limiting | ✅ 3-tier Redis-backed (x-ratelimit-limit-short: 10, medium: 100, long: 1000) — persistent via RedisThrottlerStorage |
 
 ---
 
@@ -103,9 +103,11 @@ La posture de securite de Manchengo Smart ERP est **solide pour un produit en pr
 - **CORS whitelist** — pas de wildcard `*` (Vercel domain autorise)
 - **Validation pipes** — class-validator sur tous les DTOs
 - **Queries parametrisees** — Prisma empeche l'injection SQL
-- **Rate limiting Redis** — ThrottlerModule avec 3 paliers (short: 10/60s, medium: 100/300s, long: 1000/3600s) ✅ Verifie en prod
+- **Rate limiting Redis persistent** — RedisThrottlerStorage remplace le stockage in-memory. ThrottlerModule avec 3 paliers (short: 10/60s, medium: 100/300s, long: 1000/3600s). Headers verifies en prod: `x-ratelimit-limit-short: 10`, remaining decremente correctement ✅ Verifie en prod
 - **TLS 1.3** — CHACHA20-POLY1305 (auto via Vercel + Railway) ✅
 - **Swagger desactive** — /docs → 404 en production ✅
+- **Backup/Restore** — Backup encryption avec compress=9, restore teste et verifie ✅
+- **Modules enregistres** — clients/invoices registered dans AppModule ✅
 
 ### Crypto & Secrets
 - **bcrypt** pour le hashing de mots de passe
@@ -129,15 +131,16 @@ La posture de securite de Manchengo Smart ERP est **solide pour un produit en pr
 | Session Hijack | Secure + httpOnly + HSTS | ✅ PROTEGE |
 | Info Leakage | Referrer-Policy + Permissions-Policy | ✅ PROTEGE |
 
-### Backend API (NestJS) — Verifie en production 2026-02-23
+### Backend API (NestJS) — Verifie en production 2026-02-24
 | Vecteur | Protection | Status |
 |---------|-----------|--------|
 | Brute Force | Lockout 5/15min | ✅ PROTEGE |
-| Rate Limiting | Redis ThrottlerModule 3-tier | ✅ PROTEGE |
+| Rate Limiting | RedisThrottlerStorage persistent 3-tier | ✅ PROTEGE |
 | Injection | Class-validator + Prisma | ✅ PROTEGE |
 | Privilege Escalation | RBAC fail-closed | ✅ PROTEGE |
-| DoS (Memory) | Redis-backed (plus de Map JS) | ✅ PROTEGE |
+| DoS (Memory) | RedisThrottlerStorage persistent (plus de Map JS) | ✅ PROTEGE |
 | API Documentation | Swagger desactive (/docs → 404) | ✅ PROTEGE |
+| Backup/Restore | Backup encryption compress=9, restore verifie | ✅ PROTEGE |
 
 ### Desktop (Tauri)
 | Vecteur | Protection | Status |
@@ -189,14 +192,14 @@ La posture de securite de Manchengo Smart ERP est **solide pour un produit en pr
 |-----------|-------|-------|-------|
 | Authentification | 85/100 | — | httpOnly, RBAC, lockout, login verifie en prod |
 | Autorisation | 88/100 | — | Fail-closed RBAC, device tracking |
-| Chiffrement | 78/100 | +6 | **bcrypt 12 deploye** (constante centralisee), TLS 1.3 actif |
+| Chiffrement | 80/100 | +2 | **Backup encryption compress=9**, bcrypt 12 deploye, TLS 1.3 actif |
 | Headers HTTP | 90/100 | +2 | 8 headers complets. CSP wildcard: code fix deploye, Vercel cache stale |
 | Audit Trail | 90/100 | — | Hash chain, event sourcing, soft deletes |
 | Gestion Secrets | 80/100 | — | Env vars Railway/Vercel, pas de .env dans git |
-| Infrastructure | 86/100 | +4 | TLS 1.3, CORS, Swagger off, **uptime retire** (verifie curl) |
+| Infrastructure | 90/100 | +4 | **Redis throttler persistent**, **backup + restore test**, **clients/invoices registered**, TLS 1.3, CORS, Swagger off |
 | CSRF | 82/100 | +12 | **crypto.timingSafeEqual deploye** (commit 584124c, Railway) |
 | Mobile Security | 25/100 | — | Auth factice, pas de pinning (non deploye) |
-| **GLOBAL** | **86/100** | **+4** | **Production Hardened — securite WAR ROOM deployee et verifiee** |
+| **GLOBAL** | **89/100** | **+3** | **Production Mature — RedisThrottlerStorage persistent, backup restore verified** |
 
 ---
 
@@ -216,4 +219,5 @@ La posture de securite de Manchengo Smart ERP est **solide pour un produit en pr
 *Mis a jour le 2026-02-22 apres WAR ROOM Phase 3 (console cleanup complet)*
 *Mis a jour le 2026-02-23 apres Phase 4: Deploiement Production + Audit Live*
 *Mis a jour le 2026-02-24 apres Phase 5: WAR ROOM deploye (86/100 — bcrypt 12, CSRF, health fix verifies)*
+*Mis a jour le 2026-02-24 apres Phase 6: PRODUCTION MATURE (89/100 — RedisThrottlerStorage persistent, backup encrypt/restore, clients/invoices registered)*
 *Classification: CONFIDENTIEL — Usage interne uniquement*

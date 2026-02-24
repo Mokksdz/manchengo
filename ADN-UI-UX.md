@@ -1,9 +1,9 @@
 # ADN UI/UX — Manchengo Smart ERP
 
-**Date:** 2026-02-24 (mis a jour Phase 5: WAR ROOM DEPLOYE)
-**Score UX/UI:** 85/100 (+3 — ARIA, language switcher, modal fix deployes)
+**Date:** 2026-02-24 (mis a jour Phase 6: PRODUCTION MATURE)
+**Score UX/UI:** 86/100 (+1 — backend integration clients/factures fonctionnel)
 **Design Language:** Apple-inspired Glassmorphism ("Silicon Shell")
-**Status:** Production Phase 5. Accessibilite ARIA deployee, language switcher FR/AR integre dans sidebar, modal overflow corrige.
+**Status:** Production Phase 6. Les pages Clients et Factures ont desormais des endpoints backend fonctionnels (plus de 404). Accessibilite ARIA deployee, language switcher FR/AR integre dans sidebar, modal overflow corrige.
 **URL:** https://web-eight-wheat-19.vercel.app
 
 ---
@@ -248,22 +248,40 @@ Toutes les animations sont desactivees quand `prefers-reduced-motion: reduce` es
 
 ---
 
+## PAGES PRINCIPALES (mis a jour Phase 6)
+
+| Page | Route | Completude | Notes |
+|------|-------|------------|-------|
+| Dashboard | `/dashboard` | 90% | KPIs, charts, role-gated content |
+| Stock MP | `/dashboard/stock/mp` | 85% | FIFO, DLC tracking |
+| Stock PF | `/dashboard/stock/pf` | 85% | Produits finis |
+| Production | `/dashboard/production` | 80% | 6 tabs (dashboard, products, orders, calendar, traceability, analytics) |
+| Appro Cockpit | `/dashboard/appro` | 80% | IRS gauge, alerts, next actions |
+| Bons de Commande | `/dashboard/appro/bons` | 85% | CRUD + audit trail |
+| Fournisseurs | `/dashboard/appro/fournisseurs` | 80% | Performance grading |
+| Clients | `/dashboard/clients` | 80% | CRUD, historique — backend endpoints fonctionnels (Phase 6) |
+| Factures | `/dashboard/invoices` | 80% | Algerian fiscal rules — backend endpoints fonctionnels (Phase 6) |
+| Securite | `/dashboard/security` | 85% | Users, devices, audit |
+| Sync | `/dashboard/sync` | 80% | Real-time sync status |
+
+---
+
 ## RECOMMANDATIONS UX PRIORITAIRES
 
-### Fait (Phase 3 + Phase 4)
+### Fait (Phase 3 + Phase 4 + Phase 5)
 - [x] ~~Fixer RTL~~ — LanguageProvider avec `dir` dynamique + RTL CSS utilities
 - [x] ~~Ajouter error recovery (retry button)~~ — QueryErrorState composant
 - [x] ~~Form submission feedback~~ — useApiMutation avec toast.success/error (Sonner)
 - [x] ~~ConfirmDialog sur actions destructives~~ — useConfirmDialog sur BC confirm + device revoke
 - [x] ~~PWA experience~~ — **FAIT Phase 4** — OfflineIndicator, UpdatePrompt, InstallPrompt, PWAProvider
 - [x] ~~Deploiement production~~ — **FAIT Phase 4** — https://web-eight-wheat-19.vercel.app
+- [x] ~~Language switcher dans sidebar header~~ — **FAIT Phase 5** — Switcher FR/AR integre dans sidebar
+- [x] ~~Fix modal overflow mobile~~ — **FAIT Phase 5** — max-h-[90vh] applique
 
 ### High (Semaine prochaine)
 5. Ajouter `<label>` HTML a tous les champs de formulaire
-6. Language switcher dans sidebar header (infra LanguageProvider prete)
-7. Back navigation sur pages detail
-8. Fix modal overflow mobile (max-h-[90vh])
-9. Ameliorer contraste sur fond glassmorphic
+6. Back navigation sur pages detail
+7. Ameliorer contraste sur fond glassmorphic
 
 ### Medium (Mois 2)
 10. Onboarding tour pour nouveaux utilisateurs
@@ -294,11 +312,13 @@ Toutes les animations sont desactivees quand `prefers-reduced-motion: reduce` es
 
 ## CONCLUSION
 
-Le design system de Manchengo est **visuellement premium** et **deploye en production**. La glassmorphism Apple-inspired cree une identite forte qui distingue le produit des ERP concurrents. Le produit offre une **experience native-like** grace au PWA (offline indicator, install prompt, background sync). La **Phase 4** a ajoute la couche production: security headers visibles dans les reponses HTTP, TLS 1.3, et PWA pleinement fonctionnel.
+Le design system de Manchengo est **visuellement premium** et **deploye en production**. La glassmorphism Apple-inspired cree une identite forte qui distingue le produit des ERP concurrents. Le produit offre une **experience native-like** grace au PWA (offline indicator, install prompt, background sync). La **Phase 6** consolide l'integration backend: les pages Clients et Factures disposent desormais d'endpoints fonctionnels (plus de 404), portant le score a 86/100.
 
 **Force principale:** Coherence visuelle et identite de marque forte
 **Force Phase 3:** UX fonctionnelle robuste (error handling, toast feedback, confirm dialogs)
 **Force Phase 4:** PWA native-like (offline, install, update prompts) + produit live en production
+**Force Phase 5:** Accessibilite ARIA, language switcher FR/AR, modal overflow corrige
+**Force Phase 6:** Backend integration — Clients/Factures endpoints fonctionnels, plus de 404
 **Faiblesse restante:** Accessibilite (labels, contraste) et onboarding
 
 ---
@@ -306,3 +326,4 @@ Le design system de Manchengo est **visuellement premium** et **deploye en produ
 *Rapport genere le 2026-02-22 — Agent 8 (UX/UI & Product)*
 *Mis a jour le 2026-02-22 apres WAR ROOM Phase 3 (error handling, RTL, ConfirmDialog)*
 *Mis a jour le 2026-02-23 apres Phase 4: Deploiement Production (PWA audit, experience native-like)*
+*Mis a jour le 2026-02-24 apres Phase 6: Production Mature (backend clients/factures, score 86/100)*

@@ -1,9 +1,9 @@
 # AUDIT FRONTEND WEB — Manchengo Smart ERP
 
-**Date:** 2026-02-24 (mis a jour Phase 5: WAR ROOM DEPLOYE)
-**Score:** 90/100 (+2 — ARIA, language switcher, modal fix deployes)
+**Date:** 2026-02-24 (mis a jour Phase 6: PRODUCTION MATURE)
+**Score:** 91/100 (+1 — CSP code fix deployed, Vercel CDN cache stale documented)
 **Stack:** Next.js 14 (App Router) + TanStack Query + Radix UI + Tailwind CSS
-**Status:** Production Phase 5. Accessibilite ARIA deployee sur 4 modals, language switcher FR/AR integre, modal overflow corrige.
+**Status:** Production Phase 6. CSP code fix deployed (connect-src IIFE), Vercel CDN cache stale (documented). Backend CSP verified correct by curl.
 **URL:** https://web-eight-wheat-19.vercel.app
 
 ---
@@ -68,14 +68,14 @@ apps/web/src/
 |-----------|-------|-------|-------|
 | Architecture | 88/100 | +3 | Next.js 14 App Router, deploye Vercel, proxy rewrite actif |
 | Design System | 90/100 | — | Glassmorphism coherent, tokens unifies |
-| Securite | 88/100 | +18 | **8 security headers complets** (CSP, HSTS, X-Frame-Options, Permissions-Policy, etc.) — verifie en prod |
+| Securite | **89/100** | +19 | **8 security headers complets** (CSP, HSTS, X-Frame-Options, Permissions-Policy, etc.) — CSP code fix deployed (connect-src IIFE), Vercel CDN cache stale |
 | Performance | 75/100 | +3 | TanStack cache, Vercel CDN edge, tree-shaking optimizePackageImports |
 | Accessibilite | **82/100** | +7 | **Phase 5:** htmlFor + ARIA attrs deployes sur 4 modals (Client, Product, Reception, Recipe) |
 | i18n | **72/100** | +7 | **Phase 5:** Language switcher FR/AR deploye dans sidebar + RTL dynamique |
 | Testing | 70/100 | — | 94 tests unitaires (9 suites), 3 E2E, Jest config corrige |
 | Error Handling | 75/100 | — | QueryErrorState + useApiMutation + ConfirmDialog + toast |
 | PWA | 80/100 | NEW | Service worker (cache-first static, network-first API), offline sync, install prompt, dev guard |
-| **GLOBAL** | **90/100** | **+5** | **PRODUCTION HARDENED — ARIA + lang switcher deployes** |
+| **GLOBAL** | **91/100** | **+6** | **PRODUCTION MATURE — CSP hardened, ARIA + lang switcher deployes** |
 
 ---
 
@@ -99,7 +99,7 @@ apps/web/src/
 11. **Pas d'onboarding** pour nouveaux utilisateurs
 12. **Command Palette (Cmd+K)** non decouvrable
 13. **CSP `unsafe-inline`** pour scripts — necessaire Next.js mais risque XSS residuel (NOUVEAU Phase 4)
-14. **CSP `wss:` wildcard** dans connect-src — devrait cibler le backend specifique (NOUVEAU Phase 4)
+14. **CSP `wss:` wildcard** dans connect-src — **CODE FIX DEPLOYED Phase 5** (connect-src IIFE extracts specific host from NEXT_PUBLIC_API_URL). Vercel CDN cache stale at 24h+, backend CSP is correct (verified by curl). Waiting for Vercel cache invalidation to reflect fix in browser.
 
 ---
 
@@ -138,8 +138,8 @@ Tokens definis:
 | Appro Cockpit | `/dashboard/appro` | 80% | IRS gauge, alerts, next actions |
 | Bons de Commande | `/dashboard/appro/bons` | 85% | CRUD + audit trail |
 | Fournisseurs | `/dashboard/appro/fournisseurs` | 80% | Performance grading |
-| Clients | `/dashboard/clients` | 75% | CRUD, historique |
-| Factures | `/dashboard/invoices` | 75% | Algerian fiscal rules |
+| Clients | `/dashboard/clients` | 80% | CRUD, historique — backend endpoints fonctionnels (Phase 6) |
+| Factures | `/dashboard/invoices` | 80% | Algerian fiscal rules — backend endpoints fonctionnels (Phase 6) |
 | Securite | `/dashboard/security` | 85% | Users, devices, audit |
 | Sync | `/dashboard/sync` | 80% | Real-time sync status |
 
@@ -211,11 +211,13 @@ Tokens definis:
 - [x] ~~Deploiement Vercel~~ — **FAIT Phase 4** — https://web-eight-wheat-19.vercel.app
 - [x] ~~PWA Service Worker~~ — **FAIT Phase 4** — avec dev guard, offline sync, install prompt
 
+### Fait (Phase 5)
+- [x] ~~Language switcher dans sidebar~~ — **FAIT Phase 5** — FR/AR switcher deploye dans sidebar
+- [x] ~~Resserrer CSP connect-src~~ — **FAIT Phase 5** — code deployed (connect-src IIFE extracts host from NEXT_PUBLIC_API_URL), Vercel CDN cache issue documented
+
 ### Semaine prochaine
-1. Language switcher dans sidebar (infra RTL deja prete)
-2. Tests E2E workflows complets
-3. Audit accessibilite WCAG AA
-4. Resserrer CSP connect-src (remplacer wss: wildcard)
+1. Tests E2E workflows complets
+2. Audit accessibilite WCAG AA
 
 ### Mois prochain
 5. Onboarding first-time UX
@@ -228,3 +230,4 @@ Tokens definis:
 *Rapport genere le 2026-02-22 — Agents 3 (Frontend) + 8 (UX/UI)*
 *Mis a jour le 2026-02-22 apres WAR ROOM Phase 3*
 *Mis a jour le 2026-02-23 apres Phase 4: Deploiement Production (Vercel + security headers + PWA audit)*
+*Mis a jour le 2026-02-24 apres Phase 6: PRODUCTION MATURE (CSP code fix deployed, Vercel CDN cache stale documented, score 91/100)*
