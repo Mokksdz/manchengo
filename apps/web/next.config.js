@@ -1,3 +1,4 @@
+// Build: 2026-02-24T20:10Z — Force Vercel redeploy for CSP fix
 const { withSentryConfig } = require('@sentry/nextjs');
 
 const isDesktopExport = process.env.NEXT_OUTPUT === 'export';
