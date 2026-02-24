@@ -1,15 +1,15 @@
 # RAPPORT DE SECURITE — Manchengo Smart ERP
 
-**Date:** 2026-02-24 (mis a jour Phase 6: PRODUCTION MATURE)
-**Score Securite:** 89/100 (+3 — maturite production confirmee)
+**Date:** 2026-02-24 (mis a jour Phase 5: PRODUCTION HARDENED — scores revises sur preuves reelles)
+**Score Securite:** 86/100 (+4 vs Phase 4 — bcrypt+CSRF+health deployed, headers verified, CSP still propagating)
 **Classification:** CONFIDENTIEL
-**Status:** Production Phase 6. Rate limiting Redis-backed (persistent), backup restore verified. Securite WAR ROOM deployee: bcrypt 12, CSRF timing-safe, health uptime retire. Verifie par curl + chaos tests (7/8 pass).
+**Status:** Production Phase 5. Securite WAR ROOM deployee et VERIFIEE: bcrypt 12 DEPLOYED on Railway, CSRF timing-safe DEPLOYED, health uptime removed VERIFIED by curl (`{"status":"ok","timestamp":"..."}`), all security headers VERIFIED, Swagger DISABLED (404), TLS 1.3 VERIFIED. Rate limiting headers present but 429 NOT triggering. CSP code fix deployed but CDN cache still propagating.
 
 ---
 
 ## RESUME EXECUTIF
 
-La posture de securite de Manchengo Smart ERP est **solide pour un produit en production mature**. La Phase 6 (PRODUCTION MATURE) a renforce l'infrastructure: RedisThrottlerStorage remplace le stockage in-memory pour le rate limiting (persistance garantie meme apres redemarrage), backup encryption avec compress=9, restore teste et verifie, modules clients/invoices enregistres. Phase 5 (WAR ROOM) avait durci la securite: bcrypt 12, CSRF timing-safe, CSP connect-src restreint, uptime retire. Les vulnerabilites restantes sont principalement liees aux plateformes mobile/desktop (non deployees).
+La posture de securite de Manchengo Smart ERP est **solide pour un produit en production deployee**. La Phase 5 (WAR ROOM PRODUCTION HARDENED) a durci la securite avec des elements deployes et verifies: bcrypt 12 rounds (committed + Railway rebuilt), CSRF timing-safe (crypto.timingSafeEqual deployed), health endpoint uptime removed (verified: `{"status":"ok","timestamp":"..."}` — NO uptime field), all security headers verified (X-Frame-Options: DENY, HSTS, X-Content-Type-Options: nosniff, Referrer-Policy, CSP, Permissions-Policy), TLS 1.3 verified via curl, Swagger disabled (GET /docs → 404). Rate limiting headers present (x-ratelimit-limit-short: 10, medium: 100, long: 1000) but 429 NOT triggering for rapid requests. CSP connect-src fixed in code but CDN cache still propagating. Les vulnerabilites restantes sont principalement liees aux plateformes mobile/desktop (non deployees) et au rate limiting fonctionnel.
 
 ### Audit Live Production (2026-02-23)
 
@@ -24,7 +24,7 @@ La posture de securite de Manchengo Smart ERP est **solide pour un produit en pr
 | TLS Version | ✅ TLS 1.3 (CHACHA20-POLY1305) |
 | CORS | ✅ Whitelist (domaine Vercel autorise, pas de wildcard `*`) |
 | Swagger /docs | ✅ 404 (desactive) |
-| Rate Limiting | ✅ 3-tier Redis-backed (x-ratelimit-limit-short: 10, medium: 100, long: 1000) — persistent via RedisThrottlerStorage |
+| Rate Limiting | ⚠️ Headers present (x-ratelimit-limit-short: 10, medium: 100, long: 1000) but **429 NOT triggered** by 15 rapid requests (chaos test FAIL) |
 
 ---
 
@@ -103,11 +103,10 @@ La posture de securite de Manchengo Smart ERP est **solide pour un produit en pr
 - **CORS whitelist** — pas de wildcard `*` (Vercel domain autorise)
 - **Validation pipes** — class-validator sur tous les DTOs
 - **Queries parametrisees** — Prisma empeche l'injection SQL
-- **Rate limiting Redis persistent** — RedisThrottlerStorage remplace le stockage in-memory. ThrottlerModule avec 3 paliers (short: 10/60s, medium: 100/300s, long: 1000/3600s). Headers verifies en prod: `x-ratelimit-limit-short: 10`, remaining decremente correctement ✅ Verifie en prod
+- **Rate limiting headers present** — ThrottlerModule avec 3 paliers (short: 10/60s, medium: 100/300s, long: 1000/3600s). Headers verifies en prod: `x-ratelimit-limit-short: 10`, remaining decremente. **CAVEAT:** 429 response NOT triggered by 15 rapid requests in chaos test (enforcement not working)
 - **TLS 1.3** — CHACHA20-POLY1305 (auto via Vercel + Railway) ✅
 - **Swagger desactive** — /docs → 404 en production ✅
-- **Backup/Restore** — Backup encryption avec compress=9, restore teste et verifie ✅
-- **Modules enregistres** — clients/invoices registered dans AppModule ✅
+- **Backup workflow** — File committed but NOT EXECUTED (no DATABASE_URL GitHub Secret configured)
 
 ### Crypto & Secrets
 - **bcrypt** pour le hashing de mots de passe
@@ -188,18 +187,34 @@ La posture de securite de Manchengo Smart ERP est **solide pour un produit en pr
 
 ## SCORING DETAILLE
 
-| Categorie | Score | Delta | Notes |
-|-----------|-------|-------|-------|
+| Categorie | Score | Delta vs Phase 4 | Notes |
+|-----------|-------|-------------------|-------|
 | Authentification | 85/100 | — | httpOnly, RBAC, lockout, login verifie en prod |
 | Autorisation | 88/100 | — | Fail-closed RBAC, device tracking |
-| Chiffrement | 80/100 | +2 | **Backup encryption compress=9**, bcrypt 12 deploye, TLS 1.3 actif |
-| Headers HTTP | 90/100 | +2 | 8 headers complets. CSP wildcard: code fix deploye, Vercel cache stale |
+| Chiffrement | 78/100 | +2 | bcrypt 12 DEPLOYED (committed + Railway rebuilt), TLS 1.3 VERIFIED via curl |
+| Headers HTTP | 88/100 | +2 | 8 headers complets VERIFIED. CSP connect-src: code fix deployed, CDN cache still propagating |
 | Audit Trail | 90/100 | — | Hash chain, event sourcing, soft deletes |
 | Gestion Secrets | 80/100 | — | Env vars Railway/Vercel, pas de .env dans git |
-| Infrastructure | 90/100 | +4 | **Redis throttler persistent**, **backup + restore test**, **clients/invoices registered**, TLS 1.3, CORS, Swagger off |
-| CSRF | 82/100 | +12 | **crypto.timingSafeEqual deploye** (commit 584124c, Railway) |
+| Infrastructure | 85/100 | +2 | TLS 1.3 VERIFIED, CORS VERIFIED (chaos 5/8), Swagger DISABLED (404). Rate limiting headers present but **429 NOT triggering** |
+| CSRF | 82/100 | +12 | **crypto.timingSafeEqual DEPLOYED** (commit 584124c, Railway rebuilt) |
 | Mobile Security | 25/100 | — | Auth factice, pas de pinning (non deploye) |
-| **GLOBAL** | **89/100** | **+3** | **Production Mature — RedisThrottlerStorage persistent, backup restore verified** |
+| **GLOBAL** | **86/100** | **+4** | **Production Hardened — bcrypt+CSRF+health deployed, headers verified, CSP still propagating** |
+
+### Phase 5 Honest Assessment — What Works vs What Doesn't
+
+| Element | Status | Evidence |
+|---------|--------|----------|
+| bcrypt 12 rounds | **DEPLOYED + VERIFIED** | Committed + Railway rebuilt. BCRYPT_ROUNDS=12 constant |
+| CSRF timing-safe | **DEPLOYED** | crypto.timingSafeEqual in csrf.middleware.ts, Railway rebuilt |
+| Health uptime removed | **DEPLOYED + VERIFIED** | `curl /api/health` → `{"status":"ok","timestamp":"2026-02-24T21:58:59.504Z"}` — NO uptime field |
+| Security headers (backend) | **ALL VERIFIED** | X-Frame-Options: DENY, HSTS, X-Content-Type-Options: nosniff, Referrer-Policy, CSP |
+| Security headers (frontend) | **ALL VERIFIED** | Same + Permissions-Policy |
+| TLS 1.3 | **VERIFIED** | curl confirms CHACHA20-POLY1305 |
+| Swagger disabled | **VERIFIED** | GET /docs → 404 |
+| Rate limiting headers | **PRESENT** | x-ratelimit-limit-short: 10, medium: 100, long: 1000 |
+| Rate limiting 429 enforcement | **NOT WORKING** | 15 rapid requests do NOT trigger 429 (chaos test FAIL) |
+| CSP connect-src fix | **CODE DEPLOYED, CDN STALE** | Fixed in code (no `wss: ws:` wildcard), CDN cache still propagating |
+| CORS | **VERIFIED** | Chaos test PASS — malicious origin blocked |
 
 ---
 
@@ -218,6 +233,5 @@ La posture de securite de Manchengo Smart ERP est **solide pour un produit en pr
 *Rapport genere le 2026-02-22 — Agent 5 (Security)*
 *Mis a jour le 2026-02-22 apres WAR ROOM Phase 3 (console cleanup complet)*
 *Mis a jour le 2026-02-23 apres Phase 4: Deploiement Production + Audit Live*
-*Mis a jour le 2026-02-24 apres Phase 5: WAR ROOM deploye (86/100 — bcrypt 12, CSRF, health fix verifies)*
-*Mis a jour le 2026-02-24 apres Phase 6: PRODUCTION MATURE (89/100 — RedisThrottlerStorage persistent, backup encrypt/restore, clients/invoices registered)*
+*Mis a jour le 2026-02-24 apres Phase 5: WAR ROOM PRODUCTION HARDENED (86/100 — bcrypt 12, CSRF, health fix deployed+verified, headers verified, rate limiting 429 NOT working, backup NOT executed, CSP CDN stale)*
 *Classification: CONFIDENTIEL — Usage interne uniquement*

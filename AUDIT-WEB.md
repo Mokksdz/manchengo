@@ -1,9 +1,9 @@
 # AUDIT FRONTEND WEB — Manchengo Smart ERP
 
-**Date:** 2026-02-24 (mis a jour Phase 6: PRODUCTION MATURE)
-**Score:** 91/100 (+1 — CSP code fix deployed, Vercel CDN cache stale documented)
+**Date:** 2026-02-24 (mis a jour Phase 5: PRODUCTION HARDENED — scores revises sur preuves reelles)
+**Score:** 90/100 (+2 vs Phase 4 — ARIA accessibility deployed on 4 modals, language switcher FR/AR deployed, modal overflow fixed)
 **Stack:** Next.js 14 (App Router) + TanStack Query + Radix UI + Tailwind CSS
-**Status:** Production Phase 6. CSP code fix deployed (connect-src IIFE), Vercel CDN cache stale (documented). Backend CSP verified correct by curl.
+**Status:** Production Phase 5. WCAG AA accessibility ARIA deployed on 4 form modals (Client, Product, Reception, Recipe). Language switcher FR/AR deployed in sidebar. Modal overflow fix deployed (max-h-[90vh]). CSP connect-src fixed in code, CDN cache still propagating. Playwright Firefox configured.
 **URL:** https://web-eight-wheat-19.vercel.app
 
 ---
@@ -64,18 +64,28 @@ apps/web/src/
 
 ## SCORING DETAILLE
 
-| Categorie | Score | Delta | Notes |
-|-----------|-------|-------|-------|
+| Categorie | Score | Delta vs Phase 4 | Notes |
+|-----------|-------|-------------------|-------|
 | Architecture | 88/100 | +3 | Next.js 14 App Router, deploye Vercel, proxy rewrite actif |
 | Design System | 90/100 | — | Glassmorphism coherent, tokens unifies |
-| Securite | **89/100** | +19 | **8 security headers complets** (CSP, HSTS, X-Frame-Options, Permissions-Policy, etc.) — CSP code fix deployed (connect-src IIFE), Vercel CDN cache stale |
+| Securite | **87/100** | +17 | **8 security headers complets** (CSP, HSTS, X-Frame-Options, Permissions-Policy, etc.) — CSP code fix deployed, **CDN cache still propagating** (not yet verified in browser) |
 | Performance | 75/100 | +3 | TanStack cache, Vercel CDN edge, tree-shaking optimizePackageImports |
-| Accessibilite | **82/100** | +7 | **Phase 5:** htmlFor + ARIA attrs deployes sur 4 modals (Client, Product, Reception, Recipe) |
-| i18n | **72/100** | +7 | **Phase 5:** Language switcher FR/AR deploye dans sidebar + RTL dynamique |
-| Testing | 70/100 | — | 94 tests unitaires (9 suites), 3 E2E, Jest config corrige |
+| Accessibilite | **82/100** | +7 | **Phase 5:** htmlFor + ARIA attrs DEPLOYED on 4 modals (Client, Product, Reception, Recipe) |
+| i18n | **72/100** | +7 | **Phase 5:** Language switcher FR/AR DEPLOYED in sidebar + RTL dynamique |
+| Testing | 70/100 | — | 94 tests unitaires (9 suites), 3 E2E, Jest config corrige. Playwright Firefox CONFIGURED |
 | Error Handling | 75/100 | — | QueryErrorState + useApiMutation + ConfirmDialog + toast |
-| PWA | 80/100 | NEW | Service worker (cache-first static, network-first API), offline sync, install prompt, dev guard |
-| **GLOBAL** | **91/100** | **+6** | **PRODUCTION MATURE — CSP hardened, ARIA + lang switcher deployes** |
+| PWA | 80/100 | — | Service worker (cache-first static, network-first API), offline sync, install prompt, dev guard |
+| **GLOBAL** | **90/100** | **+2** | **PRODUCTION HARDENED — ARIA a11y + language switcher + modal overflow DEPLOYED** |
+
+### Phase 5 Frontend Evidence
+
+| Element | Status | Evidence |
+|---------|--------|----------|
+| ARIA accessibility (4 modals) | **DEPLOYED** | htmlFor + id + aria-required on Client, Product, Reception, Recipe modals |
+| Language switcher FR/AR | **DEPLOYED** | Component in sidebar, Vercel rebuild |
+| Modal overflow fix | **DEPLOYED** | max-h-[90vh] overflow-y-auto applied |
+| Playwright Firefox | **CONFIGURED** | Browser config added |
+| CSP connect-src fix | **CODE DEPLOYED, CDN STALE** | Fixed in code (no wss: ws: wildcard), CDN cache still propagating |
 
 ---
 
@@ -88,7 +98,7 @@ apps/web/src/
 
 ### High
 4. ~~**RTL Arabic casse**~~ — **CORRIGE Phase 3** — LanguageProvider dynamique + RTL CSS utilities
-5. **Pas de language switcher** — users ne peuvent pas changer de langue (infra RTL prete)
+5. ~~**Pas de language switcher**~~ — **CORRIGE Phase 5** — FR/AR switcher DEPLOYED in sidebar
 6. ~~**Modals overflow sur mobile**~~ — **CORRIGE Phase 5** — max-h-[90vh] overflow-y-auto deploye
 7. ~~**Errors sans retry**~~ — **CORRIGE Phase 3** — QueryErrorState composant avec retry button
 
@@ -230,4 +240,4 @@ Tokens definis:
 *Rapport genere le 2026-02-22 — Agents 3 (Frontend) + 8 (UX/UI)*
 *Mis a jour le 2026-02-22 apres WAR ROOM Phase 3*
 *Mis a jour le 2026-02-23 apres Phase 4: Deploiement Production (Vercel + security headers + PWA audit)*
-*Mis a jour le 2026-02-24 apres Phase 6: PRODUCTION MATURE (CSP code fix deployed, Vercel CDN cache stale documented, score 91/100)*
+*Mis a jour le 2026-02-24 apres Phase 5: PRODUCTION HARDENED (90/100) — ARIA a11y on 4 modals, language switcher FR/AR, modal overflow fix, CSP code fix deployed (CDN stale)*

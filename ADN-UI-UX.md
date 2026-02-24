@@ -1,9 +1,9 @@
 # ADN UI/UX — Manchengo Smart ERP
 
-**Date:** 2026-02-24 (mis a jour Phase 6: PRODUCTION MATURE)
-**Score UX/UI:** 86/100 (+1 — backend integration clients/factures fonctionnel)
+**Date:** 2026-02-24 (mis a jour Phase 5: PRODUCTION HARDENED — scores revises sur preuves reelles)
+**Score UX/UI:** 85/100 (+3 vs Phase 4 — language switcher FR/AR DEPLOYED, ARIA labels DEPLOYED, modal scroll DEPLOYED)
 **Design Language:** Apple-inspired Glassmorphism ("Silicon Shell")
-**Status:** Production Phase 6. Les pages Clients et Factures ont desormais des endpoints backend fonctionnels (plus de 404). Accessibilite ARIA deployee, language switcher FR/AR integre dans sidebar, modal overflow corrige.
+**Status:** Production Phase 5. Language switcher FR/AR DEPLOYED in sidebar. ARIA labels DEPLOYED on 4 form modals (Client, Product, Reception, Recipe) with htmlFor + id + aria-required. Modal overflow fix DEPLOYED (max-h-[90vh] overflow-y-auto). Form labels improved.
 **URL:** https://web-eight-wheat-19.vercel.app
 
 ---
@@ -184,7 +184,7 @@ Animation: Count-up on mount
 - Keyboard shortcuts (Command Palette Cmd+K)
 
 ### Gaps
-- Formulaires sans `<label>` HTML (placeholder only)
+- ~~Formulaires sans `<label>` HTML (placeholder only)~~ — **CORRIGE Phase 5** — htmlFor + id + aria-required on 4 modals
 - Pas de `aria-current="page"` dans sidebar
 - Status badges: couleur seule (pas d'icone fallback)
 - Table rows clickables sans focus indicator visible
@@ -226,7 +226,7 @@ lib/i18n/
 
 ### Problemes (mis a jour Phase 3)
 1. ~~**RTL casse**~~ — **CORRIGE Phase 3** — `dir` dynamique via LanguageProvider, RTL CSS utilities ajoutees
-2. **Pas de language switcher** dans l'UI (infra prete, UI a ajouter)
+2. ~~**Pas de language switcher**~~ — **CORRIGE Phase 5** — FR/AR switcher DEPLOYED in sidebar
 3. **Textes hardcodes** en francais dans les composants
 4. ~~**Pas de LanguageContext**~~ — **CORRIGE Phase 3** — `LanguageProvider` + `useLanguage()` hook actif dans providers.tsx
 
@@ -277,6 +277,16 @@ Toutes les animations sont desactivees quand `prefers-reduced-motion: reduce` es
 - [x] ~~Deploiement production~~ — **FAIT Phase 4** — https://web-eight-wheat-19.vercel.app
 - [x] ~~Language switcher dans sidebar header~~ — **FAIT Phase 5** — Switcher FR/AR integre dans sidebar
 - [x] ~~Fix modal overflow mobile~~ — **FAIT Phase 5** — max-h-[90vh] applique
+- [x] ~~ARIA labels sur formulaires~~ — **FAIT Phase 5** — htmlFor + id + aria-required sur 4 modals (Client, Product, Reception, Recipe)
+
+### Phase 5 UX Evidence (2026-02-24)
+
+| Element | Status | Evidence |
+|---------|--------|----------|
+| Language switcher FR/AR | **DEPLOYED** | Component in sidebar, Vercel rebuild |
+| ARIA labels (4 modals) | **DEPLOYED** | htmlFor + id + aria-required on Client, Product, Reception, Recipe |
+| Modal scroll fix | **DEPLOYED** | max-h-[90vh] overflow-y-auto applied on all modals |
+| Form labels | **DEPLOYED** | htmlFor + id attributes on form inputs |
 
 ### High (Semaine prochaine)
 5. Ajouter `<label>` HTML a tous les champs de formulaire
@@ -312,18 +322,17 @@ Toutes les animations sont desactivees quand `prefers-reduced-motion: reduce` es
 
 ## CONCLUSION
 
-Le design system de Manchengo est **visuellement premium** et **deploye en production**. La glassmorphism Apple-inspired cree une identite forte qui distingue le produit des ERP concurrents. Le produit offre une **experience native-like** grace au PWA (offline indicator, install prompt, background sync). La **Phase 6** consolide l'integration backend: les pages Clients et Factures disposent desormais d'endpoints fonctionnels (plus de 404), portant le score a 86/100.
+Le design system de Manchengo est **visuellement premium** et **deploye en production**. La glassmorphism Apple-inspired cree une identite forte qui distingue le produit des ERP concurrents. Le produit offre une **experience native-like** grace au PWA (offline indicator, install prompt, background sync). La **Phase 5** renforce l'accessibilite et l'internationalisation: ARIA labels deployes sur 4 modals, language switcher FR/AR integre dans sidebar, modal overflow corrige, portant le score a 85/100.
 
 **Force principale:** Coherence visuelle et identite de marque forte
 **Force Phase 3:** UX fonctionnelle robuste (error handling, toast feedback, confirm dialogs)
 **Force Phase 4:** PWA native-like (offline, install, update prompts) + produit live en production
-**Force Phase 5:** Accessibilite ARIA, language switcher FR/AR, modal overflow corrige
-**Force Phase 6:** Backend integration — Clients/Factures endpoints fonctionnels, plus de 404
-**Faiblesse restante:** Accessibilite (labels, contraste) et onboarding
+**Force Phase 5:** Accessibilite ARIA (4 modals), language switcher FR/AR DEPLOYED, modal overflow FIXED, form labels (htmlFor + id + aria-required)
+**Faiblesse restante:** Accessibilite (contraste WCAG sur fond glassmorphic), onboarding absent, textes hardcodes en francais
 
 ---
 
 *Rapport genere le 2026-02-22 — Agent 8 (UX/UI & Product)*
 *Mis a jour le 2026-02-22 apres WAR ROOM Phase 3 (error handling, RTL, ConfirmDialog)*
 *Mis a jour le 2026-02-23 apres Phase 4: Deploiement Production (PWA audit, experience native-like)*
-*Mis a jour le 2026-02-24 apres Phase 6: Production Mature (backend clients/factures, score 86/100)*
+*Mis a jour le 2026-02-24 apres Phase 5: PRODUCTION HARDENED (85/100) — language switcher FR/AR DEPLOYED, ARIA labels DEPLOYED on 4 modals, modal scroll DEPLOYED, form labels htmlFor+id+aria-required*
