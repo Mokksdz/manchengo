@@ -34,6 +34,12 @@ jobs:
           curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17
+          # Ensure pg_dump 17 is used (ubuntu-latest ships with 16)
+          sudo update-alternatives --set pg_dump /usr/lib/postgresql/17/bin/pg_dump || true
+          sudo update-alternatives --set pg_restore /usr/lib/postgresql/17/bin/pg_restore || true
+          sudo update-alternatives --set psql /usr/lib/postgresql/17/bin/psql || true
+          echo "/usr/lib/postgresql/17/bin" >> $GITHUB_PATH
+          pg_dump --version
 
       - name: Create backup from production
         env:
