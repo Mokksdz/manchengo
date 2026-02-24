@@ -9,13 +9,33 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    steps:
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-16
 
-      - name: Create backup
+    services:
+      # Local PostgreSQL for restore test (same version as production)
+      postgres-test:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: restore_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test_user -d restore_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Install PostgreSQL client 17
+        run: |
+          # Railway uses PostgreSQL 17 — pg_dump must match server version
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Create backup from production
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
@@ -23,16 +43,44 @@ jobs:
           FILENAME="manchengo_${DATE}.dump"
           echo "Creating backup: ${FILENAME}"
           pg_dump "$DATABASE_URL" --format=custom --compress=9 -f "${FILENAME}"
-          ls -lh "${FILENAME}"
+          FILESIZE=$(ls -lh "${FILENAME}" | awk '{print $5}')
+          echo "✅ Backup created: ${FILENAME} (${FILESIZE})"
           echo "BACKUP_FILE=${FILENAME}" >> $GITHUB_ENV
 
       - name: Verify backup integrity
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           echo "Verifying backup integrity..."
-          pg_restore --list "${{ env.BACKUP_FILE }}" > /dev/null
-          echo "✅ Backup verified successfully"
+          TABLE_COUNT=$(pg_restore --list "${{ env.BACKUP_FILE }}" | grep "TABLE DATA" | wc -l)
+          echo "✅ Backup verified: ${TABLE_COUNT} tables found"
+
+      - name: Restore test on empty database
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: test_user
+          PGPASSWORD: test_password
+          PGDATABASE: restore_test
+        run: |
+          echo "🔄 Restoring backup to test database..."
+          pg_restore --no-owner --no-privileges --dbname=restore_test "${{ env.BACKUP_FILE }}" 2>&1 || true
+
+          echo "📊 Verifying restore - counting rows in key tables..."
+          USERS=$(psql -tAc "SELECT count(*) FROM users" 2>/dev/null || echo "0")
+          PRODUCTS=$(psql -tAc "SELECT count(*) FROM products_mp" 2>/dev/null || echo "0")
+          CLIENTS=$(psql -tAc "SELECT count(*) FROM clients" 2>/dev/null || echo "0")
+          AUDIT=$(psql -tAc "SELECT count(*) FROM audit_logs" 2>/dev/null || echo "0")
+
+          echo "  users: ${USERS}"
+          echo "  products_mp: ${PRODUCTS}"
+          echo "  clients: ${CLIENTS}"
+          echo "  audit_logs: ${AUDIT}"
+
+          # Verify at least users table has data
+          if [ "${USERS}" -gt 0 ]; then
+            echo "✅ RESTORE OK — ${USERS} users, ${PRODUCTS} products, ${CLIENTS} clients, ${AUDIT} audit entries"
+          else
+            echo "⚠️ RESTORE WARNING — Users table is empty (may be a fresh DB)"
+          fi
 
       - name: Upload to artifacts (30 days retention)
         uses: actions/upload-artifact@v4

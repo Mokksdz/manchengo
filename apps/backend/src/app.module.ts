@@ -3,7 +3,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
 import { CsrfMiddleware } from './common/middleware/csrf.middleware';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard, ThrottlerStorage } from '@nestjs/throttler';
+import { RedisThrottlerStorage } from './common/throttler/redis-throttler-storage';
 import { PrismaModule } from './prisma/prisma.module';
 import { LoggerModule } from './common/logger';
 import { AuditModule } from './common/audit';
@@ -33,6 +34,9 @@ import { EventsModule } from './common/events/events.module';
 import { PaginationModule } from './common/pagination/pagination.module';
 import { EmailModule } from './common/email';
 import { ReportsModule } from './reports/reports.module';
+import { AccountingModule } from './accounting/accounting.module';
+import { ClientsModule } from './clients/clients.module';
+import { InvoicesModule } from './invoices/invoices.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -48,23 +52,25 @@ import { ScheduleModule } from '@nestjs/schedule';
     // ═══════════════════════════════════════════════════════════════════════════
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ([
-        {
-          name: 'short',
-          ttl: config.get<number>('THROTTLE_SHORT_TTL', 1000),
-          limit: config.get<number>('THROTTLE_SHORT_LIMIT', 10),
-        },
-        {
-          name: 'medium',
-          ttl: config.get<number>('THROTTLE_MEDIUM_TTL', 60000),
-          limit: config.get<number>('THROTTLE_MEDIUM_LIMIT', 100),
-        },
-        {
-          name: 'long',
-          ttl: config.get<number>('THROTTLE_LONG_TTL', 3600000),
-          limit: config.get<number>('THROTTLE_LONG_LIMIT', 1000),
-        },
-      ]),
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            name: 'short',
+            ttl: config.get<number>('THROTTLE_SHORT_TTL', 1000),
+            limit: config.get<number>('THROTTLE_SHORT_LIMIT', 10),
+          },
+          {
+            name: 'medium',
+            ttl: config.get<number>('THROTTLE_MEDIUM_TTL', 60000),
+            limit: config.get<number>('THROTTLE_MEDIUM_LIMIT', 100),
+          },
+          {
+            name: 'long',
+            ttl: config.get<number>('THROTTLE_LONG_TTL', 3600000),
+            limit: config.get<number>('THROTTLE_LONG_LIMIT', 1000),
+          },
+        ],
+      }),
     }),
 
     // Scheduling for cron jobs
@@ -102,8 +108,17 @@ import { ScheduleModule } from '@nestjs/schedule';
     PaginationModule, // Cursor & Offset pagination utilities
     EmailModule,      // Global - Nodemailer SMTP email service
     ReportsModule,    // Advanced reporting with PDF/Excel export
+    AccountingModule, // Accounting - Journal entries, PC Compta, Sage, VAT
+    ClientsModule,    // Client CRUD - Distributeurs, Grossistes, etc.
+    InvoicesModule,   // Invoice CRUD - Facturation avec lignes et paiements
   ],
   providers: [
+    // Rate limiting - Redis-backed for persistence across restarts
+    RedisThrottlerStorage,
+    {
+      provide: ThrottlerStorage,
+      useExisting: RedisThrottlerStorage,
+    },
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
