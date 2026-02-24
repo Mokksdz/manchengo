@@ -84,13 +84,7 @@ jobs:
         run: npx prisma db push --skip-generate
 
       - name: Run Tests
-        run: |
-          npm test -- --ci --coverage --forceExit 2>&1 | tee /tmp/test-output.txt
-          if grep -q "Test Suites:.*failed" /tmp/test-output.txt; then
-            echo "❌ Tests failed!"
-            exit 1
-          fi
-          echo "✅ All tests passed (forceExit open handles ignored)"
+        run: npm test -- --ci --coverage --forceExit --passWithNoTests
 
       - name: Upload Coverage
         if: always()

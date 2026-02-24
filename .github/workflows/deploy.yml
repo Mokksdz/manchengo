@@ -1,8 +1,8 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # GitHub Actions CD - Manchengo Smart ERP Auto-Deploy
 # ═══════════════════════════════════════════════════════════════════════════════
-# Deploys to production on merge to main
-# MIGRATION RUNS BEFORE DEPLOYMENT to prevent schema mismatches
+# Manual dispatch only — triggered via Actions UI or API, NOT on push/merge.
+# MIGRATION RUNS BEFORE DEPLOYMENT to prevent schema mismatches.
 
 name: Deploy
 

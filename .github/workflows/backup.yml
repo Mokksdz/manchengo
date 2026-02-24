@@ -39,7 +39,17 @@ jobs:
           sudo update-alternatives --set pg_restore /usr/lib/postgresql/17/bin/pg_restore || true
           sudo update-alternatives --set psql /usr/lib/postgresql/17/bin/psql || true
           echo "/usr/lib/postgresql/17/bin" >> $GITHUB_PATH
-          pg_dump --version
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
+      - name: Validate secrets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set. Configure it in Settings > Secrets."
+            exit 1
+          fi
+          echo "DATABASE_URL secret is configured."
 
       - name: Create backup from production
         env:
@@ -48,9 +58,9 @@ jobs:
           DATE=$(date +%Y%m%d_%H%M%S)
           FILENAME="manchengo_${DATE}.dump"
           echo "Creating backup: ${FILENAME}"
-          pg_dump "$DATABASE_URL" --format=custom --compress=9 -f "${FILENAME}"
+          pg_dump "$DATABASE_URL" --format=custom --compress=gzip:9 -f "${FILENAME}"
           FILESIZE=$(ls -lh "${FILENAME}" | awk '{print $5}')
-          echo "✅ Backup created: ${FILENAME} (${FILESIZE})"
+          echo "Backup created: ${FILENAME} (${FILESIZE})"
           echo "BACKUP_FILE=${FILENAME}" >> $GITHUB_ENV
 
       - name: Verify backup integrity
