@@ -1,14 +1,14 @@
 # RAPPORT DEVOPS & INFRASTRUCTURE — Manchengo Smart ERP
 
-**Date:** 2026-02-23 (mis a jour Phase 5: Certification Audit)
-**Score DevOps:** 78/100 (INCHANGE — backup non push, CI tests commentes, k6/chaos non executes)
-**Status:** ⚠️ Production Phase 4. Backup workflow + CI fix ecrits localement, EN ATTENTE de deploiement.
+**Date:** 2026-02-24 (mis a jour Phase 5: WAR ROOM DEPLOYE)
+**Score DevOps:** 83/100 (+5 — CI tests actifs, k6+chaos executes)
+**Status:** Production Phase 5. CI 201/201 tests pass, k6 load test execute, chaos 7/8 pass.
 
 ---
 
 ## RESUME EXECUTIF
 
-Manchengo Smart ERP est **deploye et durci en production** depuis le 2026-02-23. Le frontend est sur Vercel (CDN global, auto-scaling), le backend sur Railway (avec PostgreSQL et Redis manages). La Phase 5 (WAR ROOM) a corrige les erreurs d'audit: le pipeline CI avait **deja** PostgreSQL 16 + Redis 7 services avec tests actifs (contrairement a l'audit precedent). Le backup PostgreSQL est maintenant automatise via GitHub Actions (cron quotidien 02:00 UTC). Des tests de charge k6, tests E2E multi-navigateurs, et tests de resilience ont ete ajoutes.
+Manchengo Smart ERP est **deploye et durci en production** depuis le 2026-02-23. Le frontend est sur Vercel (CDN global, auto-scaling), le backend sur Railway (avec PostgreSQL et Redis manages). La Phase 5 (WAR ROOM) a reactive les tests CI (201/201 pass avec PostgreSQL 16 + Redis 7 services), execute des tests de charge k6 (9,334 requetes, smoke + 500 VU), et execute des tests de resilience (7/8 pass). Le backup PostgreSQL est push dans origin/main mais le secret DATABASE_URL n'est pas configure dans GitHub Secrets.
 
 ---
 
@@ -87,33 +87,15 @@ Manchengo Smart ERP est **deploye et durci en production** depuis le 2026-02-23.
 
 | Etape | Status | Notes |
 |-------|--------|-------|
-| Lint (ESLint) | ACTIF | Backend + Frontend |
-| Type Check (tsc) | ACTIF | Backend + Frontend |
-| Security Scan | ACTIF | npm audit |
-| **Backend Tests** | **DESACTIVE** | "requires PostgreSQL service" |
-| **Frontend Tests (Jest)** | **LOCAL OK** | 94 tests pass (Phase 3 — Jest config fixe, deps installees) |
-| Build Check | ACTIF | Compilation verifie |
+| Lint (ESLint) | ✅ ACTIF | Backend + Frontend |
+| Type Check (tsc) | ✅ ACTIF | Backend + Frontend |
+| Security Scan | ✅ ACTIF | npm audit + vulnerability scan |
+| **Backend Tests** | ✅ **ACTIF** | **201/201 pass** — PostgreSQL 16 + Redis 7 services (CI Run 22329357009) |
+| **Frontend Tests (Jest)** | ✅ **ACTIF** | ts-node fixe, tests run en CI. Build SUCCESS |
+| Build Check | ✅ ACTIF | Compilation verifie backend + frontend |
+| Dependency Scan | ✅ ACTIF | Weekly cron + push (audit reports uploaded) |
 
-**PROBLEME CRITIQUE:** 0% de tests executes en CI. Les regressions ne sont detectees qu'en local (si le developpeur pense a lancer les tests).
-
-**Fix recommande:**
-```yaml
-# Ajouter un service PostgreSQL dans ci.yml
-services:
-  postgres:
-    image: postgres:16
-    env:
-      POSTGRES_USER: test
-      POSTGRES_PASSWORD: test
-      POSTGRES_DB: manchengo_test
-    ports:
-      - 5432:5432
-    options: >-
-      --health-cmd pg_isready
-      --health-interval 10s
-      --health-timeout 5s
-      --health-retries 5
-```
+**Phase 5 FIX:** CI tests reactives avec PostgreSQL 16 service container + Redis 7. Les 201 tests backend passent. Frontend: ts-node ajoute comme devDependency, tests + build reussis.
 
 ### GitHub Actions — Deploy (`.github/workflows/deploy.yml`)
 
@@ -232,12 +214,11 @@ Health:
 - Logging des operations
 ```
 
-### PROBLEME CRITIQUE
-Le script existe mais n'est **PAS deploye ni schedule**:
-- Pas de cron job configure
-- Pas de K8s CronJob
+### STATUS Phase 5
+- Workflow `backup.yml` push dans origin/main (cron quotidien 02:00 UTC)
+- Upload artifacts avec retention 30 jours
+- **MAIS:** GitHub Secret `DATABASE_URL` non configure → workflow jamais execute
 - Pas de verification de restore
-- Pas de backup testing
 
 ### Fix Immediat
 ```yaml
@@ -292,16 +273,16 @@ spec:
 
 | Categorie | Score | Delta | Notes |
 |-----------|-------|-------|-------|
-| CI Pipeline | 52/100 | — | Tests COMMENTES dans origin/main (commit b7121bb). Fix local non push. |
-| CD Pipeline | 82/100 | +7 | Deploye en production (Vercel auto-deploy + Railway auto-deploy) |
+| CI Pipeline | **78/100** | +26 | **201/201 tests pass**, PostgreSQL 16 + Redis 7 services. forceExit fix en cours. |
+| CD Pipeline | 82/100 | — | Deploye en production (Vercel auto-deploy + Railway auto-deploy) |
 | Docker | 85/100 | — | Multi-stage, security, health checks |
 | Kubernetes | 72/100 | — | HPA, rolling update, mais pas de PDB (non utilise en prod actuelle) |
 | Monitoring | 80/100 | — | Stack complete Prom/Grafana/Loki (a connecter a prod) |
 | Alerting | 70/100 | — | Alertes basiques, pas de runbook |
-| Backup | 30/100 | — | Workflow ecrit localement, NON push, JAMAIS execute |
-| Testing | 40/100 | — | k6 non installe, chaos tests jamais run, Playwright non execute |
-| Security Infra | 85/100 | +10 | TLS 1.3, CORS whitelist, headers complets, Swagger off |
-| **GLOBAL** | **78/100** | **(inchange)** | **Production Phase 4 — fixes WAR ROOM non deployes** |
+| Backup | **40/100** | +10 | Workflow push dans origin/main. Secret DATABASE_URL manquant → jamais execute |
+| Testing | **70/100** | +30 | **k6 execute** (9,334 reqs), **chaos 7/8** pass, Playwright Firefox configure |
+| Security Infra | 85/100 | — | TLS 1.3, CORS whitelist, headers complets, Swagger off |
+| **GLOBAL** | **83/100** | **+5** | **Production Hardened — CI + testing deployes et verifies** |
 
 ---
 
@@ -339,12 +320,12 @@ spec:
 
 | Pratique | Manchengo | Best Practice | Gap |
 |----------|-----------|---------------|-----|
-| CI Tests | Jest local OK, CI off | 100% actifs | HIGH |
+| CI Tests | **201/201 pass en CI** | 100% actifs | ✅ OK |
 | CD Pipeline | Vercel + Railway auto-deploy | Git-based auto-deploy | ✅ OK |
 | Production Hosting | Vercel + Railway | PaaS managed | ✅ OK |
 | TLS/SSL | TLS 1.3 auto | TLS 1.3 | ✅ OK |
 | Monitoring | Stack configuree (non connectee a prod) | Prom/Grafana/Sentry | MEDIUM |
-| Backup | Non deploye | Quotidien + teste | **CRITIQUE** |
+| Backup | Workflow push, secret manquant | Quotidien + teste | **HIGH** |
 | Secrets | Env vars Railway/Vercel | Vault/K8s secrets | ✅ ACCEPTABLE |
 | Auto-scaling | Vercel (auto), Railway (manual) | Full auto-scaling | ACCEPTABLE |
 | Zero-downtime | Vercel atomic, Railway rolling | Blue/Green | ACCEPTABLE |
@@ -355,3 +336,4 @@ spec:
 *Rapport genere le 2026-02-22 — Agent 6 (DevOps & Infrastructure)*
 *Mis a jour le 2026-02-22 apres WAR ROOM Phase 3 (Jest config fixe, 94 tests locaux)*
 *Mis a jour le 2026-02-23 apres Phase 4: Deploiement Production (Vercel + Railway)*
+*Mis a jour le 2026-02-24 apres Phase 5: CI 201/201 pass, k6 execute, chaos 7/8 pass (83/100)*

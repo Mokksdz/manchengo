@@ -1,9 +1,9 @@
 # AUDIT FRONTEND WEB — Manchengo Smart ERP
 
-**Date:** 2026-02-23 (mis a jour Phase 5: Certification Audit)
-**Score:** 88/100 (INCHANGE — code WAR ROOM non deploye)
+**Date:** 2026-02-24 (mis a jour Phase 5: WAR ROOM DEPLOYE)
+**Score:** 90/100 (+2 — ARIA, language switcher, modal fix deployes)
 **Stack:** Next.js 14 (App Router) + TanStack Query + Radix UI + Tailwind CSS
-**Status:** ⚠️ Production Phase 4. ARIA, language switcher, modal fix ecrits localement, EN ATTENTE de deploiement.
+**Status:** Production Phase 5. Accessibilite ARIA deployee sur 4 modals, language switcher FR/AR integre, modal overflow corrige.
 **URL:** https://web-eight-wheat-19.vercel.app
 
 ---
@@ -70,12 +70,12 @@ apps/web/src/
 | Design System | 90/100 | — | Glassmorphism coherent, tokens unifies |
 | Securite | 88/100 | +18 | **8 security headers complets** (CSP, HSTS, X-Frame-Options, Permissions-Policy, etc.) — verifie en prod |
 | Performance | 75/100 | +3 | TanStack cache, Vercel CDN edge, tree-shaking optimizePackageImports |
-| Accessibilite | 75/100 | — | Bonne base (ARIA, focus trap), gaps forms |
-| i18n | 65/100 | — | RTL dynamique, LanguageProvider actif, pas de switcher UI |
+| Accessibilite | **82/100** | +7 | **Phase 5:** htmlFor + ARIA attrs deployes sur 4 modals (Client, Product, Reception, Recipe) |
+| i18n | **72/100** | +7 | **Phase 5:** Language switcher FR/AR deploye dans sidebar + RTL dynamique |
 | Testing | 70/100 | — | 94 tests unitaires (9 suites), 3 E2E, Jest config corrige |
 | Error Handling | 75/100 | — | QueryErrorState + useApiMutation + ConfirmDialog + toast |
 | PWA | 80/100 | NEW | Service worker (cache-first static, network-first API), offline sync, install prompt, dev guard |
-| **GLOBAL** | **88/100** | **+3** | **EN PRODUCTION sur Vercel** |
+| **GLOBAL** | **90/100** | **+5** | **PRODUCTION HARDENED — ARIA + lang switcher deployes** |
 
 ---
 
@@ -89,7 +89,7 @@ apps/web/src/
 ### High
 4. ~~**RTL Arabic casse**~~ — **CORRIGE Phase 3** — LanguageProvider dynamique + RTL CSS utilities
 5. **Pas de language switcher** — users ne peuvent pas changer de langue (infra RTL prete)
-6. **Modals overflow sur mobile** — `max-w-lg` sans contrainte viewport
+6. ~~**Modals overflow sur mobile**~~ — **CORRIGE Phase 5** — max-h-[90vh] overflow-y-auto deploye
 7. ~~**Errors sans retry**~~ — **CORRIGE Phase 3** — QueryErrorState composant avec retry button
 
 ### Medium

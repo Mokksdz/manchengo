@@ -1,9 +1,9 @@
 # ADN UI/UX — Manchengo Smart ERP
 
-**Date:** 2026-02-23 (mis a jour Phase 5: Certification Audit)
-**Score UX/UI:** 82/100 (INCHANGE — code WAR ROOM non deploye)
+**Date:** 2026-02-24 (mis a jour Phase 5: WAR ROOM DEPLOYE)
+**Score UX/UI:** 85/100 (+3 — ARIA, language switcher, modal fix deployes)
 **Design Language:** Apple-inspired Glassmorphism ("Silicon Shell")
-**Status:** ⚠️ Production Phase 4. Accessibilite ARIA, language switcher, modal fix ecrits localement, EN ATTENTE de deploiement.
+**Status:** Production Phase 5. Accessibilite ARIA deployee, language switcher FR/AR integre dans sidebar, modal overflow corrige.
 **URL:** https://web-eight-wheat-19.vercel.app
 
 ---
