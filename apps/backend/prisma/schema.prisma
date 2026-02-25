@@ -354,11 +354,10 @@ model Supplier {
   code      String   @unique // FOUR-001
   name      String
   
-  // Champs fiscaux algériens (OBLIGATOIRES pour conformité)
-  // Defaults provided for migration, but validation enforces real values
-  rc        String   @default("MIGRATED") // Registre de Commerce - alphanum, min 1 lettre
-  nif       String   @default("000000000000000") // Numéro Identification Fiscale - 15 chiffres
-  ai        String   @default("MIGRATED") // Article d'Imposition - alphanum 3-20 chars
+  // Champs fiscaux algériens (optionnels à la création, requis pour facturation)
+  rc        String   @default("") // Registre de Commerce - alphanum, min 1 lettre
+  nif       String   @default("") // Numéro Identification Fiscale - 15 chiffres
+  ai        String   @default("") // Article d'Imposition - alphanum 3-20 chars
   nis       String?  // Numéro Identification Statistique - optionnel, 15 chiffres si présent
   
   phone     String   @default("0000000000") // Téléphone Algérie (05/06/07 + 8 chiffres)

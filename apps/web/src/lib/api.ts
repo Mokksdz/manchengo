@@ -725,9 +725,9 @@ export const appro = {
   // Créer un fournisseur
   createSupplier: (data: {
     name: string;
-    rc: string;
-    nif: string;
-    ai: string;
+    rc?: string;
+    nif?: string;
+    ai?: string;
     nis?: string;
     phone: string;
     address: string;

@@ -1,5 +1,6 @@
 import {
   IsNotEmpty,
+  IsOptional,
   IsEnum,
   IsInt,
   IsArray,
@@ -59,6 +60,26 @@ export class CreateInvoiceDto {
   @ValidateNested({ each: true })
   @Type(() => CreateInvoiceLineDto)
   lines: CreateInvoiceLineDto[];
+}
+
+export class UpdateInvoiceDto {
+  @IsOptional()
+  @IsInt()
+  clientId?: number;
+
+  @IsOptional()
+  @IsDateString()
+  date?: string;
+
+  @IsOptional()
+  @IsEnum(PaymentMethodDto, { message: 'Mode de paiement: ESPECES, CHEQUE ou VIREMENT' })
+  paymentMethod?: PaymentMethodDto;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateInvoiceLineDto)
+  lines?: CreateInvoiceLineDto[];
 }
 
 export class UpdateInvoiceStatusDto {

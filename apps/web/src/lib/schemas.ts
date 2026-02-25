@@ -22,9 +22,9 @@ export const clientSchema = z.object({
   type: z.enum(['DISTRIBUTEUR', 'GROSSISTE', 'SUPERETTE', 'FAST_FOOD', 'AUTRE'], {
     error: 'Type de client invalide',
   }),
-  nif: nifSchema,
-  rc: rcSchema,
-  ai: aiSchema,
+  nif: nifSchema.optional().or(z.literal('')),
+  rc: rcSchema.optional().or(z.literal('')),
+  ai: aiSchema.optional().or(z.literal('')),
   nis: nisSchema,
   phone: phoneDzSchema,
   address: z.string().optional(),
@@ -36,9 +36,9 @@ export type ClientFormData = z.infer<typeof clientSchema>;
 
 export const supplierSchema = z.object({
   name: z.string().min(1, 'Le nom du fournisseur est obligatoire'),
-  rc: rcSchema,
-  nif: nifSchema,
-  ai: aiSchema,
+  rc: rcSchema.optional().or(z.literal('')),
+  nif: nifSchema.optional().or(z.literal('')),
+  ai: aiSchema.optional().or(z.literal('')),
   nis: nisSchema,
   phone: z.string().regex(PHONE_DZ_REGEX, 'Téléphone invalide (format: 05/06/07 + 8 chiffres)'),
   address: z.string().min(1, 'L\'adresse est obligatoire'),

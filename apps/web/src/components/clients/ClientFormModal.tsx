@@ -34,21 +34,15 @@ function validateForm(data: ClientFormData, isEditing: boolean): FieldErrors {
     errors.name = 'Le nom du client est obligatoire';
   }
 
-  if (!data.nif.trim()) {
-    errors.nif = 'Le NIF est obligatoire';
-  } else if (!VALIDATION.NIF.test(data.nif)) {
+  if (data.nif.trim() && !VALIDATION.NIF.test(data.nif)) {
     errors.nif = 'NIF invalide \u2013 15 chiffres requis';
   }
 
-  if (!data.rc.trim()) {
-    errors.rc = 'Le RC est obligatoire';
-  } else if (!VALIDATION.RC.test(data.rc)) {
+  if (data.rc.trim() && !VALIDATION.RC.test(data.rc)) {
     errors.rc = 'RC invalide \u2013 doit contenir au moins une lettre et des chiffres (8 \u00e0 15 caract\u00e8res)';
   }
 
-  if (!data.ai.trim()) {
-    errors.ai = 'L\'AI est obligatoire';
-  } else if (!VALIDATION.AI.test(data.ai)) {
+  if (data.ai.trim() && !VALIDATION.AI.test(data.ai)) {
     errors.ai = 'AI invalide \u2013 6 \u00e0 10 chiffres requis';
   }
 
@@ -230,9 +224,12 @@ export function ClientFormModal({
               </div>
               Informations fiscales (conformit\u00e9 DGI)
             </h3>
+            <div className="p-2.5 mb-3 text-xs text-[#FF9500] bg-[#FF9500]/8 border border-[#FF9500]/15 rounded-lg">
+              Les coordonn\u00e9es fiscales seront requises pour valider les factures de ce client.
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="field-nif" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">NIF <span aria-hidden="true">*</span></label>
+                <label htmlFor="field-nif" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">NIF <span className="text-[#AEAEB2] text-[11px]">(optionnel)</span></label>
                 <input
                   id="field-nif"
                   ref={nifRef}
@@ -242,7 +239,7 @@ export function ClientFormModal({
                     onFormChange({ ...formData, nif: e.target.value });
                     if (fieldErrors.nif) setFieldErrors({ ...fieldErrors, nif: undefined });
                   }}
-                  aria-required="true"
+                  aria-required="false"
                   aria-invalid={!!fieldErrors.nif}
                   aria-describedby={fieldErrors.nif ? 'field-nif-error' : undefined}
                   className={cn(
@@ -259,7 +256,7 @@ export function ClientFormModal({
                 )}
               </div>
               <div>
-                <label htmlFor="field-rc" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">RC <span aria-hidden="true">*</span></label>
+                <label htmlFor="field-rc" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">RC <span className="text-[#AEAEB2] text-[11px]">(optionnel)</span></label>
                 <input
                   id="field-rc"
                   ref={rcRef}
@@ -269,7 +266,7 @@ export function ClientFormModal({
                     onFormChange({ ...formData, rc: e.target.value.toUpperCase() });
                     if (fieldErrors.rc) setFieldErrors({ ...fieldErrors, rc: undefined });
                   }}
-                  aria-required="true"
+                  aria-required="false"
                   aria-invalid={!!fieldErrors.rc}
                   aria-describedby={fieldErrors.rc ? 'field-rc-error' : undefined}
                   className={cn(
@@ -287,7 +284,7 @@ export function ClientFormModal({
             </div>
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
-                <label htmlFor="field-ai" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">AI <span aria-hidden="true">*</span></label>
+                <label htmlFor="field-ai" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">AI <span className="text-[#AEAEB2] text-[11px]">(optionnel)</span></label>
                 <input
                   id="field-ai"
                   ref={aiRef}
@@ -297,7 +294,7 @@ export function ClientFormModal({
                     onFormChange({ ...formData, ai: e.target.value });
                     if (fieldErrors.ai) setFieldErrors({ ...fieldErrors, ai: undefined });
                   }}
-                  aria-required="true"
+                  aria-required="false"
                   aria-invalid={!!fieldErrors.ai}
                   aria-describedby={fieldErrors.ai ? 'field-ai-error' : undefined}
                   className={cn(

@@ -5,6 +5,7 @@ import {
   IsBoolean,
   Matches,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -23,26 +24,29 @@ export class CreateSupplierDto {
   @MinLength(2, { message: 'Le nom doit contenir au moins 2 caractères' })
   name: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Le Registre de Commerce (RC) est obligatoire' })
+  @ValidateIf((o) => o.rc && o.rc.trim() !== '')
   @Matches(/^(?=.*[A-Za-z])[A-Za-z0-9]+$/, {
     message: 'RC invalide: doit être alphanumérique et contenir au moins une lettre',
   })
-  rc: string;
+  rc?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Le NIF est obligatoire' })
+  @ValidateIf((o) => o.nif && o.nif.trim() !== '')
   @Matches(/^\d{15}$/, {
     message: 'NIF invalide: doit contenir exactement 15 chiffres',
   })
-  nif: string;
+  nif?: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: "L'Article d'Imposition (AI) est obligatoire" })
+  @ValidateIf((o) => o.ai && o.ai.trim() !== '')
   @Matches(/^[A-Za-z0-9]{3,20}$/, {
     message: 'AI invalide: doit être alphanumérique, entre 3 et 20 caractères',
   })
-  ai: string;
+  ai?: string;
 
   @IsOptional()
   @IsString()

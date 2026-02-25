@@ -74,24 +74,18 @@ function validateForm(data: FormData): FormErrors {
     errors.name = 'Le nom doit contenir au moins 2 caractères';
   }
 
-  // RC - Registre de Commerce
-  if (!data.rc.trim()) {
-    errors.rc = 'Le Registre de Commerce (RC) est obligatoire';
-  } else if (!/^(?=.*[A-Za-z])[A-Za-z0-9]+$/.test(data.rc.trim())) {
+  // RC - Registre de Commerce (optionnel, validé si renseigné)
+  if (data.rc.trim() && !/^(?=.*[A-Za-z])[A-Za-z0-9]+$/.test(data.rc.trim())) {
     errors.rc = 'RC invalide: doit être alphanumérique et contenir au moins une lettre';
   }
 
-  // NIF - 15 chiffres
-  if (!data.nif.trim()) {
-    errors.nif = 'Le NIF est obligatoire';
-  } else if (!/^\d{15}$/.test(data.nif.trim())) {
+  // NIF - 15 chiffres (optionnel, validé si renseigné)
+  if (data.nif.trim() && !/^\d{15}$/.test(data.nif.trim())) {
     errors.nif = 'NIF invalide: doit contenir exactement 15 chiffres';
   }
 
-  // AI - Article d'Imposition
-  if (!data.ai.trim()) {
-    errors.ai = "L'Article d'Imposition (AI) est obligatoire";
-  } else if (!/^[A-Za-z0-9]{3,20}$/.test(data.ai.trim())) {
+  // AI - Article d'Imposition (optionnel, validé si renseigné)
+  if (data.ai.trim() && !/^[A-Za-z0-9]{3,20}$/.test(data.ai.trim())) {
     errors.ai = 'AI invalide: doit être alphanumérique, entre 3 et 20 caractères';
   }
 
@@ -226,9 +220,9 @@ export default function NouveauFournisseurPage() {
     try {
       await appro.createSupplier({
         name: formData.name.trim(),
-        rc: formData.rc.trim(),
-        nif: formData.nif.trim(),
-        ai: formData.ai.trim(),
+        rc: formData.rc.trim() || undefined,
+        nif: formData.nif.trim() || undefined,
+        ai: formData.ai.trim() || undefined,
         nis: formData.nis.trim() || undefined,
         phone: formData.phone.trim(),
         address: formData.address.trim(),
@@ -317,8 +311,7 @@ export default function NouveauFournisseurPage() {
                 onChange={(v) => updateField('rc', v)}
                 error={errors.rc}
                 placeholder="Ex: 16A1234567"
-                hint="Alphanumérique, au moins une lettre"
-                required
+                hint="Optionnel — alphanumérique, au moins une lettre"
               />
 
               <FormInput
@@ -328,9 +321,8 @@ export default function NouveauFournisseurPage() {
                 onChange={(v) => updateField('nif', v.replace(/\D/g, ''))}
                 error={errors.nif}
                 placeholder="000000000000000"
-                hint="15 chiffres"
+                hint="Optionnel — 15 chiffres"
                 maxLength={15}
-                required
               />
             </div>
 
@@ -342,8 +334,7 @@ export default function NouveauFournisseurPage() {
                 onChange={(v) => updateField('ai', v)}
                 error={errors.ai}
                 placeholder="Ex: 16500123456"
-                hint="3 à 20 caractères alphanumériques"
-                required
+                hint="Optionnel — 3 à 20 caractères alphanumériques"
               />
 
               <FormInput
@@ -418,9 +409,9 @@ export default function NouveauFournisseurPage() {
             <div className="text-sm text-blue-800">
               <p className="font-medium mb-1">Informations fiscales algériennes</p>
               <ul className="list-disc list-inside text-blue-700 space-y-0.5">
-                <li>RC, NIF et AI sont obligatoires pour la facturation</li>
+                <li>RC, NIF et AI sont optionnels à la création</li>
                 <li>Ces informations apparaîtront sur les bons de commande</li>
-                <li>Vérifiez l'exactitude des numéros avant validation</li>
+                <li>Vous pourrez les compléter ultérieurement via la fiche fournisseur</li>
               </ul>
             </div>
           </div>

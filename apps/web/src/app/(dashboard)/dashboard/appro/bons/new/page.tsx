@@ -99,9 +99,9 @@ const supplierValidation: Record<
   { required: boolean; pattern?: RegExp; label: string; minLength?: number; hint?: string }
 > = {
   name: { required: true, label: 'Raison sociale', minLength: 2 },
-  rc: { required: true, label: 'Registre de commerce', pattern: /^(?=.*[A-Za-z])[A-Za-z0-9]+$/, hint: 'Alphanumérique, au moins une lettre' },
-  nif: { required: true, label: 'NIF', pattern: /^\d{15}$/, hint: '15 chiffres' },
-  ai: { required: true, label: "Article d'imposition", pattern: /^[A-Za-z0-9]{3,20}$/, hint: '3-20 caractères alphanumériques' },
+  rc: { required: false, label: 'Registre de commerce', pattern: /^(?=.*[A-Za-z])[A-Za-z0-9]+$/, hint: 'Optionnel — alphanumérique, au moins une lettre' },
+  nif: { required: false, label: 'NIF', pattern: /^\d{15}$/, hint: 'Optionnel — 15 chiffres' },
+  ai: { required: false, label: "Article d'imposition", pattern: /^[A-Za-z0-9]{3,20}$/, hint: 'Optionnel — 3-20 caractères alphanumériques' },
   nis: { required: false, label: 'NIS', pattern: /^\d{15}$/, hint: '15 chiffres (optionnel)' },
   phone: { required: true, label: 'Téléphone', pattern: /^(05|06|07)\d{8}$/, hint: '05/06/07 + 8 chiffres' },
   address: { required: true, label: 'Adresse', minLength: 5 },
@@ -344,7 +344,6 @@ export default function NewBonCommandePage() {
     if (!selectedMp) errs.push('Aucune MP sélectionnée');
     if (!supplierId) errs.push('Fournisseur obligatoire');
     if (quantity <= 0) errs.push('Quantité doit être > 0');
-    if (unitPrice <= 0) errs.push('Prix unitaire doit être > 0');
     if (!expectedDelivery) errs.push('Date de livraison obligatoire');
     return errs;
   };
@@ -358,7 +357,6 @@ export default function NewBonCommandePage() {
     lines.forEach((l, i) => {
       if (l.productMpId !== null) {
         if (l.quantity <= 0) errs.push(`Ligne ${i + 1}: quantité doit être > 0`);
-        if (l.unitPrice <= 0) errs.push(`Ligne ${i + 1}: prix doit être > 0`);
       }
     });
     // Check for duplicate products
@@ -371,7 +369,7 @@ export default function NewBonCommandePage() {
   const checkWarnings = (): string[] => {
     const warns: string[] = [];
     if (hasContext && selectedMp) {
-      if (selectedMp.lastPrice && selectedMp.lastPrice > 0) {
+      if (selectedMp.lastPrice && selectedMp.lastPrice > 0 && unitPrice > 0) {
         if (unitPrice > selectedMp.lastPrice * 2)
           warns.push(`Prix très élevé: ${unitPrice} DA (dernier: ${selectedMp.lastPrice} DA)`);
         if (unitPrice < selectedMp.lastPrice * 0.5)
@@ -383,7 +381,7 @@ export default function NewBonCommandePage() {
       lines.forEach((l, i) => {
         if (l.productMpId) {
           const mp = allProducts.find((p) => p.id === l.productMpId);
-          if (mp?.lastPrice && mp.lastPrice > 0) {
+          if (mp?.lastPrice && mp.lastPrice > 0 && l.unitPrice > 0) {
             if (l.unitPrice > mp.lastPrice * 2)
               warns.push(`Ligne ${i + 1}: prix très élevé (${l.unitPrice} DA vs dernier ${mp.lastPrice} DA)`);
             if (l.unitPrice < mp.lastPrice * 0.5)
@@ -748,7 +746,7 @@ export default function NewBonCommandePage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-[#1D1D1F] mb-2">
-                    Prix unitaire (DA) <span className="text-[#FF3B30]">*</span>
+                    Prix unitaire (DA) <span className="text-[#AEAEB2] text-xs font-normal">(optionnel)</span>
                   </label>
                   <input
                     type="number"
@@ -850,12 +848,20 @@ export default function NewBonCommandePage() {
                         </div>
                       </div>
 
-                      {line.productMpId && line.quantity > 0 && line.unitPrice > 0 && (
+                      {line.productMpId && line.quantity > 0 && (
                         <div className="text-right">
-                          <span className="text-xs text-[#86868B]">Sous-total: </span>
-                          <span className="text-sm font-semibold text-[#1D1D1F]">
-                            {(line.quantity * line.unitPrice).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DA
-                          </span>
+                          {line.unitPrice > 0 ? (
+                            <>
+                              <span className="text-xs text-[#86868B]">Sous-total: </span>
+                              <span className="text-sm font-semibold text-[#1D1D1F]">
+                                {(line.quantity * line.unitPrice).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} DA
+                              </span>
+                            </>
+                          ) : (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF9500]/10 text-[#FF9500]">
+                              Prix à définir
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -911,6 +917,11 @@ export default function NewBonCommandePage() {
           {!hasContext && lines.filter((l) => l.productMpId).length > 0 && (
             <p className="text-xs text-[#AEAEB2] text-right mt-1">
               {lines.filter((l) => l.productMpId).length} ligne(s) produit
+            </p>
+          )}
+          {(hasContext ? unitPrice <= 0 : lines.some((l) => l.productMpId && l.unitPrice <= 0)) && (
+            <p className="text-xs text-[#FF9500] text-right mt-1">
+              Certains prix ne sont pas renseignés — le total est partiel
             </p>
           )}
         </div>

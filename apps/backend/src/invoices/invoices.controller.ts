@@ -17,7 +17,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { InvoicesService } from './invoices.service';
-import { CreateInvoiceDto, UpdateInvoiceStatusDto } from './dto/invoice.dto';
+import { CreateInvoiceDto, UpdateInvoiceDto, UpdateInvoiceStatusDto } from './dto/invoice.dto';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INVOICES CONTROLLER — REST API for Invoice Management
@@ -25,6 +25,7 @@ import { CreateInvoiceDto, UpdateInvoiceStatusDto } from './dto/invoice.dto';
 // GET /api/invoices            — List all invoices (ADMIN, COMMERCIAL)
 // GET /api/invoices/:id        — Get one invoice with details
 // POST /api/invoices           — Create a new invoice (ADMIN, COMMERCIAL)
+// PUT /api/invoices/:id        — Update invoice (DRAFT only) (ADMIN, COMMERCIAL)
 // PUT /api/invoices/:id/status — Update invoice status (ADMIN)
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -57,6 +58,17 @@ export class InvoicesController {
   async create(@Body() dto: CreateInvoiceDto, @Req() req: any) {
     const userId = req.user?.id || req.user?.sub;
     return this.invoicesService.create(dto, userId);
+  }
+
+  @Put(':id/edit')
+  @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateInvoiceDto,
+    @Req() req: any,
+  ) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.invoicesService.update(id, dto, userId);
   }
 
   @Put(':id/status')

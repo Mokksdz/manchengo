@@ -82,7 +82,8 @@ export interface SupplierScoreBreakdown {
 // SUPPLIERS SERVICE - Gestion des fournisseurs avec conformité fiscale algérienne
 // ═══════════════════════════════════════════════════════════════════════════════
 // RÈGLES MÉTIER:
-// - RC, NIF, AI obligatoires et validés (format algérien)
+// - RC, NIF, AI optionnels à la création, validés si renseignés (format algérien)
+// - Unicité fiscale vérifiée uniquement si champs non vides
 // - Suppression INTERDITE si réception existante
 // - Désactivation via isActive uniquement
 // - Code auto-généré (FOUR-XXX)
@@ -116,36 +117,42 @@ export class SuppliersService {
 
   /**
    * Vérifie l'unicité des identifiants fiscaux
+   * Skip la vérification si les champs sont vides (non renseignés)
    */
   private async checkFiscalUniqueness(
     rc: string,
     nif: string,
     excludeId?: number,
   ): Promise<void> {
-    const existingRc = await this.prisma.supplier.findFirst({
-      where: {
-        rc,
-        ...(excludeId ? { id: { not: excludeId } } : {}),
-      },
-    });
+    // Ne vérifier l'unicité que si le champ est réellement renseigné
+    if (rc && rc.trim() !== '' && rc !== 'MIGRATED') {
+      const existingRc = await this.prisma.supplier.findFirst({
+        where: {
+          rc,
+          ...(excludeId ? { id: { not: excludeId } } : {}),
+        },
+      });
 
-    if (existingRc) {
-      throw new ConflictException(
-        `Un fournisseur avec ce RC existe déjà: ${existingRc.name} (${existingRc.code})`,
-      );
+      if (existingRc) {
+        throw new ConflictException(
+          `Un fournisseur avec ce RC existe déjà: ${existingRc.name} (${existingRc.code})`,
+        );
+      }
     }
 
-    const existingNif = await this.prisma.supplier.findFirst({
-      where: {
-        nif,
-        ...(excludeId ? { id: { not: excludeId } } : {}),
-      },
-    });
+    if (nif && nif.trim() !== '' && nif !== '000000000000000') {
+      const existingNif = await this.prisma.supplier.findFirst({
+        where: {
+          nif,
+          ...(excludeId ? { id: { not: excludeId } } : {}),
+        },
+      });
 
-    if (existingNif) {
-      throw new ConflictException(
-        `Un fournisseur avec ce NIF existe déjà: ${existingNif.name} (${existingNif.code})`,
-      );
+      if (existingNif) {
+        throw new ConflictException(
+          `Un fournisseur avec ce NIF existe déjà: ${existingNif.name} (${existingNif.code})`,
+        );
+      }
     }
   }
 
@@ -218,8 +225,8 @@ export class SuppliersService {
    * Crée un nouveau fournisseur
    */
   async create(dto: CreateSupplierDto): Promise<SupplierResponseDto> {
-    // Vérifier l'unicité des identifiants fiscaux
-    await this.checkFiscalUniqueness(dto.rc, dto.nif);
+    // Vérifier l'unicité des identifiants fiscaux (skip si vides)
+    await this.checkFiscalUniqueness(dto.rc || '', dto.nif || '');
 
     const code = await this.generateCode();
 
@@ -227,9 +234,9 @@ export class SuppliersService {
       data: {
         code,
         name: dto.name.trim(),
-        rc: dto.rc.trim().toUpperCase(),
-        nif: dto.nif.trim(),
-        ai: dto.ai.trim().toUpperCase(),
+        rc: dto.rc?.trim().toUpperCase() || '',
+        nif: dto.nif?.trim() || '',
+        ai: dto.ai?.trim().toUpperCase() || '',
         nis: dto.nis?.trim() || null,
         phone: dto.phone.trim(),
         address: dto.address.trim(),
