@@ -73,6 +73,7 @@ const nextConfig = {
               (() => {
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
                 // Build connect-src with specific WebSocket URLs (no wildcards)
+                // 'self' covers /api/* proxy rewrites — no need for explicit /api source
                 const parts = ["'self'"];
                 if (apiUrl && apiUrl.startsWith('http')) {
                   parts.push(apiUrl);
@@ -81,9 +82,11 @@ const nextConfig = {
                     parts.push(`wss://${host}`);
                     parts.push(`ws://${host}`);
                   } catch { /* ignore parse errors */ }
-                } else {
-                  // Relative API URL (e.g. /api via proxy rewrite) — no external WS needed
-                  parts.push('/api');
+                }
+                // In dev, allow WebSocket for Next.js HMR
+                if (process.env.NODE_ENV === 'development') {
+                  parts.push('ws://localhost:3001');
+                  parts.push('ws://localhost:8081');
                 }
                 return "connect-src " + parts.join(' ');
               })(),
@@ -98,10 +101,13 @@ const nextConfig = {
     ];
   },
 
-  // Proxy API requests to backend (dev only; not available in static export)
+  // Proxy API requests to backend
   ...(isDesktopExport ? {} : {
     async rewrites() {
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+      const backendUrl = process.env.BACKEND_URL
+        || (process.env.NODE_ENV === 'production'
+          ? 'https://manchengo-backend-production.up.railway.app'
+          : 'http://localhost:3000');
       return [
         {
           source: '/api/:path*',
