@@ -806,7 +806,14 @@ export class AdminService {
     if (existing) {
       throw new ConflictException(`Client avec code ${dto.code} existe déjà`);
     }
-    return this.prisma.client.create({ data: dto });
+    return this.prisma.client.create({
+      data: {
+        ...dto,
+        nif: dto.nif?.trim() || '',
+        rc: dto.rc?.trim().toUpperCase() || '',
+        ai: dto.ai?.trim().toUpperCase() || '',
+      },
+    });
   }
 
   async updateClient(id: number, dto: UpdateClientDto) {

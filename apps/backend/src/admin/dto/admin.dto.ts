@@ -119,24 +119,27 @@ export class CreateClientDto {
   @IsEnum(ClientType)
   type: ClientType;
 
-  // Champs fiscaux algériens - Validation stricte conformité DGI
-  @ApiProperty({ example: '000000000000000', description: 'Numéro d\'Identification Fiscale (15 chiffres)' })
+  // Champs fiscaux algériens - Optionnels à la création, requis pour validation facture (DRAFT→PAID)
+  @ApiPropertyOptional({ example: '000000000000000', description: 'Numéro d\'Identification Fiscale (15 chiffres)' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Le NIF est obligatoire' })
-  @Matches(/^(?!0{15}$)\d{15}$/, { message: 'NIF invalide – 15 chiffres requis, ne peut pas être tout zéros' })
-  nif: string;
+  @ValidateIf((o) => o.nif && o.nif.trim() !== '')
+  @Matches(/^\d{15}$/, { message: 'NIF invalide – 15 chiffres requis' })
+  nif?: string;
 
-  @ApiProperty({ example: '17B0809707', description: 'Registre de Commerce (8-15 caractères, lettres et chiffres)' })
+  @ApiPropertyOptional({ example: '17B0809707', description: 'Registre de Commerce (lettres et chiffres)' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Le RC est obligatoire' })
-  @Matches(/^(?=.*[A-Z])(?=.*\d)[A-Z0-9]{8,15}$/, { message: 'RC invalide – doit contenir au moins une lettre et des chiffres (8 à 15 caractères)' })
-  rc: string;
+  @ValidateIf((o) => o.rc && o.rc.trim() !== '')
+  @Matches(/^(?=.*[A-Za-z])[A-Za-z0-9]+$/, { message: 'RC invalide – doit contenir au moins une lettre et des chiffres' })
+  rc?: string;
 
-  @ApiProperty({ example: '16123456', description: 'Article d\'Imposition (6 à 10 chiffres)' })
+  @ApiPropertyOptional({ example: '16123456', description: 'Article d\'Imposition (3 à 20 caractères alphanumériques)' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'L\'AI est obligatoire' })
-  @Matches(/^\d{6,10}$/, { message: 'AI invalide – 6 à 10 chiffres requis' })
-  ai: string;
+  @ValidateIf((o) => o.ai && o.ai.trim() !== '')
+  @Matches(/^[A-Za-z0-9]{3,20}$/, { message: 'AI invalide – 3 à 20 caractères alphanumériques requis' })
+  ai?: string;
 
   @ApiPropertyOptional({ example: '000000000000000', description: 'Numéro d\'Identification Statistique (15 chiffres si renseigné)' })
   @IsOptional()
