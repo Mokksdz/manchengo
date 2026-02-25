@@ -179,7 +179,6 @@ export class InvoicesService {
     // Determine effective values
     const effectivePaymentMethod = dto.paymentMethod || invoice.paymentMethod;
     const effectiveDate = dto.date ? new Date(dto.date) : invoice.date;
-    const effectiveClientId = dto.clientId || invoice.clientId;
 
     // Build update data
     const updateData: any = {
