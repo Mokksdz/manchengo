@@ -48,13 +48,18 @@ export const SupplierModal = memo(function SupplierModal({ isOpen, onClose, onSu
   const validate = () => {
     const errors: Record<string, string> = {};
     if (!form.name.trim()) errors.name = 'Nom requis';
-    if (!form.rc.trim()) errors.rc = 'RC requis';
-    if (!form.nif.trim()) errors.nif = 'NIF requis';
-    if (!form.ai.trim()) errors.ai = 'AI requis';
+    if (!form.phone.trim()) errors.phone = 'Téléphone requis';
+    else if (!/^(05|06|07)\d{8}$/.test(form.phone.trim())) errors.phone = 'Format: 05/06/07 + 8 chiffres';
+    if (!form.address.trim()) errors.address = 'Adresse requise';
+    else if (form.address.trim().length < 5) errors.address = 'Min 5 caractères';
+    // Fiscal fields optional — validate format only if filled
+    if (form.rc.trim() && !/^(?=.*[A-Za-z])[A-Za-z0-9]+$/.test(form.rc.trim())) errors.rc = 'RC invalide';
+    if (form.nif.trim() && !/^\d{15}$/.test(form.nif.trim())) errors.nif = 'NIF invalide (15 chiffres)';
+    if (form.ai.trim() && !/^[A-Za-z0-9]{3,20}$/.test(form.ai.trim())) errors.ai = 'AI invalide (3-20 car.)';
     return errors;
   };
 
-  const canSubmit = form.name.trim() && form.rc.trim() && form.nif.trim() && form.ai.trim();
+  const canSubmit = form.name.trim().length > 0 && form.phone.trim().length > 0 && form.address.trim().length >= 5;
 
   const handleSubmit = async () => {
     const errors = validate();
@@ -70,24 +75,23 @@ export const SupplierModal = memo(function SupplierModal({ isOpen, onClose, onSu
       const res = await authFetch('/suppliers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           name: form.name.trim(),
-          rc: form.rc.trim(),
-          nif: form.nif.trim(),
-          ai: form.ai.trim(),
+          rc: form.rc.trim() || undefined,
+          nif: form.nif.trim() || undefined,
+          ai: form.ai.trim() || undefined,
           nis: form.nis.trim() || undefined,
-          phone: form.phone.trim() || undefined,
-          address: form.address.trim() || undefined,
+          phone: form.phone.trim(),
+          address: form.address.trim(),
         }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.message || 'Erreur lors de la création du fournisseur');
       }
 
-      const newSupplier = await res.json();
+      const newSupplier = data;
       onSuccess(newSupplier);
       onClose();
     } catch (err: unknown) {
@@ -147,7 +151,7 @@ export const SupplierModal = memo(function SupplierModal({ isOpen, onClose, onSu
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#1D1D1F] mb-1">
-                <FileCheck className="w-4 h-4 inline mr-1" />RC <span className="text-red-500">*</span>
+                <FileCheck className="w-4 h-4 inline mr-1" />RC <span className="text-[#86868B] text-xs">(optionnel)</span>
               </label>
               <input
                 type="text"
@@ -162,7 +166,7 @@ export const SupplierModal = memo(function SupplierModal({ isOpen, onClose, onSu
             </div>
             <div>
               <label className="block text-sm font-medium text-[#1D1D1F] mb-1">
-                NIF <span className="text-red-500">*</span>
+                NIF <span className="text-[#86868B] text-xs">(optionnel)</span>
               </label>
               <input
                 type="text"
@@ -180,7 +184,7 @@ export const SupplierModal = memo(function SupplierModal({ isOpen, onClose, onSu
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#1D1D1F] mb-1">
-                AI <span className="text-red-500">*</span>
+                AI <span className="text-[#86868B] text-xs">(optionnel)</span>
               </label>
               <input
                 type="text"
@@ -207,28 +211,36 @@ export const SupplierModal = memo(function SupplierModal({ isOpen, onClose, onSu
 
           <div>
             <label className="block text-sm font-medium text-[#1D1D1F] mb-1">
-              <Phone className="w-4 h-4 inline mr-1" />Téléphone
+              <Phone className="w-4 h-4 inline mr-1" />Téléphone <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="0555 12 34 56"
-              className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-emerald-500"
+              placeholder="0555123456"
+              className={cn(
+                "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500",
+                fieldErrors.phone ? "border-red-300" : "border-[#E5E5E5]"
+              )}
             />
+            {fieldErrors.phone && <p className="text-xs text-red-500 mt-1">{fieldErrors.phone}</p>}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-[#1D1D1F] mb-1">
-              <MapPin className="w-4 h-4 inline mr-1" />Adresse
+              <MapPin className="w-4 h-4 inline mr-1" />Adresse <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })}
               placeholder="Zone Industrielle, Alger"
-              className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-emerald-500"
+              className={cn(
+                "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500",
+                fieldErrors.address ? "border-red-300" : "border-[#E5E5E5]"
+              )}
             />
+            {fieldErrors.address && <p className="text-xs text-red-500 mt-1">{fieldErrors.address}</p>}
           </div>
         </div>
 

@@ -217,9 +217,9 @@ export default function DashboardPage() {
             <div className="p-6">
               {pd.alertes.mpAlertList.length > 0 ? (
                 <div className="space-y-2">
-                  {pd.alertes.mpAlertList.map((alert, i) => (
+                  {pd.alertes.mpAlertList.map((alert) => (
                     <div
-                      key={i}
+                      key={`${alert.code}-${alert.status}`}
                       className={`flex items-center justify-between p-3 rounded-[12px] ${
                         alert.status === 'RUPTURE' ? 'bg-[#FFEBEE]' : 'bg-[#FFF8E1]'
                       }`}
@@ -414,11 +414,11 @@ export default function DashboardPage() {
             </div>
             <div className="p-6">
               <div className="h-64 flex items-end gap-2">
-                {salesChart.map((day, i) => {
+                {salesChart.map((day) => {
                   const maxAmount = Math.max(...salesChart.map((d) => d.amount), 1);
                   const height = (day.amount / maxAmount) * 100;
                   return (
-                    <div key={i} className="flex-1 flex flex-col items-center">
+                    <div key={day.date} className="flex-1 flex flex-col items-center">
                       <div
                         className="w-full rounded-t-lg bg-gradient-to-t from-[#DD5C16] via-[#EC7620] to-[#F5A159]"
                         style={{ height: `${Math.max(height, 4)}%` }}

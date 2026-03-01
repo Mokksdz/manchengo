@@ -1,4 +1,5 @@
-import { IsString, IsNotEmpty, IsOptional, IsDateString, MinLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsDateString, MinLength, IsInt, IsPositive, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -78,6 +79,8 @@ export class CreateDeliveryDto {
     description: 'Invoice ID to create delivery for',
   })
   @IsNotEmpty()
+  @IsInt()
+  @IsPositive()
   invoiceId: number;
 
   @ApiPropertyOptional({
@@ -150,6 +153,9 @@ export class DeliveryQueryDto {
 
   @ApiPropertyOptional({ description: 'Filter by client ID' })
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsPositive()
   clientId?: number;
 
   @ApiPropertyOptional({ description: 'Filter by date from' })
@@ -164,9 +170,16 @@ export class DeliveryQueryDto {
 
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   page?: number;
 
   @ApiPropertyOptional({ description: 'Items per page', default: 20 })
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
   limit?: number;
 }

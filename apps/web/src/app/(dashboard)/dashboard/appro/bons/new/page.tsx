@@ -480,9 +480,9 @@ export default function NewBonCommandePage() {
     try {
       const result = await appro.createSupplier({
         name: supplierForm.name.trim(),
-        rc: supplierForm.rc.trim(),
-        nif: supplierForm.nif.trim(),
-        ai: supplierForm.ai.trim(),
+        rc: supplierForm.rc.trim() || undefined,
+        nif: supplierForm.nif.trim() || undefined,
+        ai: supplierForm.ai.trim() || undefined,
         nis: supplierForm.nis.trim() || undefined,
         phone: supplierForm.phone.trim(),
         address: supplierForm.address.trim(),
@@ -1002,7 +1002,7 @@ export default function NewBonCommandePage() {
                 <div>
                   <label className="block text-sm font-medium text-[#1D1D1F] mb-1.5">
                     <Hash className="w-3.5 h-3.5 inline mr-1.5 text-[#86868B]" />
-                    RC <span className="text-[#FF3B30]">*</span>
+                    RC <span className="text-[#86868B] text-xs">(optionnel)</span>
                   </label>
                   <input
                     type="text"
@@ -1020,7 +1020,7 @@ export default function NewBonCommandePage() {
                 <div>
                   <label className="block text-sm font-medium text-[#1D1D1F] mb-1.5">
                     <Hash className="w-3.5 h-3.5 inline mr-1.5 text-[#86868B]" />
-                    NIF <span className="text-[#FF3B30]">*</span>
+                    NIF <span className="text-[#86868B] text-xs">(optionnel)</span>
                   </label>
                   <input
                     type="text"
@@ -1043,7 +1043,7 @@ export default function NewBonCommandePage() {
                 <div>
                   <label className="block text-sm font-medium text-[#1D1D1F] mb-1.5">
                     <Hash className="w-3.5 h-3.5 inline mr-1.5 text-[#86868B]" />
-                    AI <span className="text-[#FF3B30]">*</span>
+                    AI <span className="text-[#86868B] text-xs">(optionnel)</span>
                   </label>
                   <input
                     type="text"

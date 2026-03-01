@@ -76,8 +76,8 @@ export class SecurityController {
           },
         },
         orderBy: { createdAt: 'desc' },
-        take: limit ? parseInt(limit) : 50,
-        skip: offset ? parseInt(offset) : 0,
+        take: limit ? parseInt(limit, 10) : 50,
+        skip: offset ? parseInt(offset, 10) : 0,
       }),
       this.prisma.user.count({ where }),
     ]);
@@ -221,8 +221,8 @@ export class SecurityController {
     return this.devicesService.getAllDevices({
       userId,
       isActive: isActive !== undefined ? isActive === 'true' : undefined,
-      limit: limit ? parseInt(limit) : 50,
-      offset: offset ? parseInt(offset) : 0,
+      limit: limit ? parseInt(limit, 10) : 50,
+      offset: offset ? parseInt(offset, 10) : 0,
     });
   }
 
@@ -288,8 +288,8 @@ export class SecurityController {
       deviceId,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
-      limit: limit ? parseInt(limit) : 50,
-      offset: offset ? parseInt(offset) : 0,
+      limit: limit ? parseInt(limit, 10) : 50,
+      offset: offset ? parseInt(offset, 10) : 0,
     });
   }
 }

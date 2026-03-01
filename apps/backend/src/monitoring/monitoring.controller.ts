@@ -75,8 +75,8 @@ export class MonitoringController {
       status,
       type,
       severity,
-      limit: limit ? parseInt(limit) : 50,
-      offset: offset ? parseInt(offset) : 0,
+      limit: limit ? parseInt(limit, 10) : 50,
+      offset: offset ? parseInt(offset, 10) : 0,
     });
   }
 

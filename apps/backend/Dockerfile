@@ -30,6 +30,12 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 COPY apps/backend/package.json ./
 
+# Run as non-root user for security
+RUN addgroup --system --gid 1001 manchengo && \
+    adduser --system --uid 1001 manchengo
+RUN chown -R manchengo:manchengo /app
+USER manchengo
+
 EXPOSE 3000
 
 CMD ["node", "dist/src/main"]

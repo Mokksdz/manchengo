@@ -119,12 +119,12 @@ export class SuppliersController {
     @Query('limit') limit?: string,
   ) {
     return this.suppliersService.getHistory(id, {
-      year: year ? parseInt(year) : undefined,
-      month: month ? parseInt(month) : undefined,
+      year: year ? parseInt(year, 10) : undefined,
+      month: month ? parseInt(month, 10) : undefined,
       from: from ? new Date(from) : undefined,
       to: to ? new Date(to) : undefined,
-      page: page ? parseInt(page) : 1,
-      limit: limit ? parseInt(limit) : 20,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
     });
   }
 

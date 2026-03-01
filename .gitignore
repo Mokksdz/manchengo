@@ -74,3 +74,6 @@ secrets/
 *.pfx
 *.jks
 *.keystore
+
+# Test results
+tests/load/k6-results.json

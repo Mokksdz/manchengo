@@ -72,8 +72,8 @@ export class AdminController {
     @Query('type') type?: string,
   ) {
     return this.adminService.getStockMovements({
-      page: page ? parseInt(page) : undefined,
-      limit: limit ? parseInt(limit) : undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
       type,
     });
   }
@@ -96,8 +96,8 @@ export class AdminController {
     @Query('search') search?: string,
   ) {
     return this.adminService.getInvoices({
-      page: page ? parseInt(page) : undefined,
-      limit: limit ? parseInt(limit) : undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
       status,
       search,
     });
@@ -119,8 +119,8 @@ export class AdminController {
     @Query('status') status?: string,
   ) {
     return this.adminService.getProductionOrders({
-      page: page ? parseInt(page) : undefined,
-      limit: limit ? parseInt(limit) : undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
       status,
     });
   }
@@ -156,12 +156,12 @@ export class AdminController {
     @Query('limit') limit?: string,
   ) {
     return this.adminService.getClientHistory(id, {
-      year: year ? parseInt(year) : undefined,
-      month: month ? parseInt(month) : undefined,
+      year: year ? parseInt(year, 10) : undefined,
+      month: month ? parseInt(month, 10) : undefined,
       from: from ? new Date(from) : undefined,
       to: to ? new Date(to) : undefined,
-      page: page ? parseInt(page) : 1,
-      limit: limit ? parseInt(limit) : 20,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
     });
   }
 
@@ -189,8 +189,8 @@ export class AdminController {
     @Query('role') role?: string,
   ) {
     return this.adminService.getUsers({
-      page: page ? parseInt(page) : undefined,
-      limit: limit ? parseInt(limit) : undefined,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
       role,
     });
   }
@@ -447,8 +447,8 @@ export class AdminController {
   ) {
     return this.adminService.getSecurityLogs({
       action,
-      limit: limit ? parseInt(limit) : 25,
-      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit, 10) : 25,
+      page: page ? parseInt(page, 10) : 1,
     });
   }
 

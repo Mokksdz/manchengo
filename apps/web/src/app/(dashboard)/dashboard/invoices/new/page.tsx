@@ -265,11 +265,11 @@ export default function CreateInvoicePage() {
           })),
         }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.message || 'Erreur lors de la création');
       }
-      const created = await res.json();
+      const created = data;
       setCreatedInvoice({ id: created.id, reference: created.reference });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');

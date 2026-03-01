@@ -9,6 +9,7 @@ import {
   ArrayMinSize,
   Min,
   Max,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -50,6 +51,12 @@ export class ReceptionLineDto {
   @IsOptional()
   @IsDateString({}, { message: 'manufactureDate doit être une date valide ISO' })
   manufactureDate?: string;
+
+  @ApiPropertyOptional({ description: 'Taux TVA (0, 9 ou 19)', example: 19 })
+  @IsOptional()
+  @IsInt({ message: 'tvaRate doit être un entier' })
+  @IsIn([0, 9, 19], { message: 'tvaRate doit être 0, 9 ou 19' })
+  tvaRate?: number;
 }
 
 /**

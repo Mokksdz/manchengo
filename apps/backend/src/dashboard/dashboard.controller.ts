@@ -30,7 +30,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Get sales chart data' })
   @ApiQuery({ name: 'days', required: false, description: 'Number of days (default: 7)' })
   async getSalesChart(@Query('days') days?: string) {
-    const parsedDays = days ? Math.min(Math.max(parseInt(days) || 7, 1), MAX_DAYS) : 7;
+    const parsedDays = days ? Math.min(Math.max(parseInt(days, 10) || 7, 1), MAX_DAYS) : 7;
     return this.dashboardService.getSalesChart(parsedDays);
   }
 
@@ -40,7 +40,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Get production chart data' })
   @ApiQuery({ name: 'days', required: false, description: 'Number of days (default: 7)' })
   async getProductionChart(@Query('days') days?: string) {
-    const parsedDays = days ? Math.min(Math.max(parseInt(days) || 7, 1), MAX_DAYS) : 7;
+    const parsedDays = days ? Math.min(Math.max(parseInt(days, 10) || 7, 1), MAX_DAYS) : 7;
     return this.dashboardService.getProductionChart(parsedDays);
   }
 
@@ -58,7 +58,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Get recent sync events' })
   @ApiQuery({ name: 'limit', required: false })
   async getRecentSyncEvents(@Query('limit') limit?: string) {
-    const parsedLimit = limit ? Math.min(Math.max(parseInt(limit) || 20, 1), MAX_LIMIT) : 20;
+    const parsedLimit = limit ? Math.min(Math.max(parseInt(limit, 10) || 20, 1), MAX_LIMIT) : 20;
     return this.dashboardService.getRecentSyncEvents(parsedLimit);
   }
 
