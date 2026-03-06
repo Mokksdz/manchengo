@@ -55,8 +55,12 @@ function validateEnv() {
     }
 
     // Reject localhost in CORS_ORIGINS for production
+    // Allow tauri://localhost and https://tauri.localhost (Tauri desktop app protocol)
     const corsOrigins = process.env.CORS_ORIGINS || '';
-    if (/localhost|127\.0\.0\.1/i.test(corsOrigins)) {
+    const nonTauriOrigins = corsOrigins
+      .split(',')
+      .filter((o) => !o.startsWith('tauri://') && !o.startsWith('https://tauri.'));
+    if (/localhost|127\.0\.0\.1/i.test(nonTauriOrigins.join(','))) {
       throw new Error(
         'SECURITY: CORS_ORIGINS contains localhost — this is not allowed in production.',
       );
