@@ -328,7 +328,7 @@ export class ApproService {
         seuilSecurite: product.seuilSecurite,
         seuilCommande: product.seuilCommande,
         leadTimeFournisseur: product.leadTimeFournisseur,
-        consommationMoyJour: product.consommationMoyJour != null ? Number(product.consommationMoyJour) : null,
+        consommationMoyJour: product.consommationMoyJour !== null ? Number(product.consommationMoyJour) : null,
         joursCouverture, // Calculé dynamiquement
         criticiteParam: product.criticite,
         criticiteEffective,

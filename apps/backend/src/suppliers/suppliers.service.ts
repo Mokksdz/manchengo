@@ -695,7 +695,7 @@ export class SuppliersService {
     });
     const monoSourceMap = new Map<number, number>();
     for (const entry of monoSourceCounts) {
-      if (entry.fournisseurPrincipalId != null) {
+      if (entry.fournisseurPrincipalId !== null) {
         monoSourceMap.set(entry.fournisseurPrincipalId, entry._count);
       }
     }
