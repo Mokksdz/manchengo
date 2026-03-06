@@ -197,15 +197,23 @@ export const auth = {
   /**
    * Login - tokens are set as httpOnly cookies by the server
    * Returns user info only (no tokens in response body)
+   * NOTE: Uses authFetch (not apiFetch) to avoid 401 retry/refresh logic
+   * which would mask the real error message ("Identifiants invalides", "Compte verrouillé", etc.)
    */
-  login: (email: string, password: string) =>
-    apiFetch<{
-      message: string;
-      user: User;
-    }>('/auth/login', {
+  login: async (email: string, password: string): Promise<{ message: string; user: User }> => {
+    const response = await authFetch('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
-    }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      const message = Array.isArray(error.message)
+        ? error.message.join(', ')
+        : error.message;
+      throw new Error(message || 'Erreur de connexion');
+    }
+    return response.json();
+  },
 
   /**
    * Refresh - uses httpOnly cookie automatically
