@@ -25,6 +25,9 @@ import {
   Query,
   UseGuards,
   ParseIntPipe,
+  HttpException,
+  HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ApproService } from './appro.service';
@@ -48,6 +51,8 @@ import {
 @Controller('appro')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ApproController {
+  private readonly logger = new Logger(ApproController.name);
+
   constructor(
     private readonly approService: ApproService,
     private readonly approAlertService: ApproAlertService,
@@ -65,7 +70,13 @@ export class ApproController {
   })
   @ApiResponse({ status: 200, description: 'Dashboard APPRO', type: DashboardResponseDto })
   async getDashboard() {
-    return this.approService.getDashboard();
+    try {
+      return await this.approService.getDashboard();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[DIAG] Dashboard: ${msg}`, error instanceof Error ? error.stack : '');
+      throw new HttpException({ message: msg }, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
