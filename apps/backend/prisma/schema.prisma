@@ -288,7 +288,8 @@ model ProductMp {
   isPerishable Boolean @default(true) @map("is_perishable")
 
   // Stock physique (dernier inventaire — mis à jour par inventory.service)
-  lastPhysicalStock     Decimal   @default(0) @map("last_physical_stock") @db.Decimal(15, 4)
+  // Nullable: existing rows from migration 20250128 may have NULL (column added without DEFAULT)
+  lastPhysicalStock     Decimal?  @default(0) @map("last_physical_stock") @db.Decimal(15, 4)
   lastPhysicalStockDate DateTime? @map("last_physical_stock_date")
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -329,7 +330,8 @@ model ProductPf {
   familyId Int? @map("family_id")
 
   // Stock physique (dernier inventaire — mis à jour par inventory.service)
-  lastPhysicalStock     Decimal   @default(0) @map("last_physical_stock") @db.Decimal(15, 4)
+  // Nullable: existing rows from migration 20250128 may have NULL (column added without DEFAULT)
+  lastPhysicalStock     Decimal?  @default(0) @map("last_physical_stock") @db.Decimal(15, 4)
   lastPhysicalStockDate DateTime? @map("last_physical_stock_date")
 
   createdAt DateTime @default(now()) @map("created_at")
