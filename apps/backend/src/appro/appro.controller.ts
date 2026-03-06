@@ -25,6 +25,9 @@ import {
   Query,
   UseGuards,
   ParseIntPipe,
+  HttpException,
+  HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ApproService } from './appro.service';
@@ -48,6 +51,8 @@ import {
 @Controller('appro')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ApproController {
+  private readonly logger = new Logger(ApproController.name);
+
   constructor(
     private readonly approService: ApproService,
     private readonly approAlertService: ApproAlertService,
@@ -59,13 +64,24 @@ export class ApproController {
 
   @Get('dashboard')
   @Roles('ADMIN', 'APPRO')
-  @ApiOperation({ 
-    summary: 'Dashboard APPRO', 
-    description: 'Retourne le tableau de bord complet avec IRS, MP critiques, stats et alertes' 
+  @ApiOperation({
+    summary: 'Dashboard APPRO',
+    description: 'Retourne le tableau de bord complet avec IRS, MP critiques, stats et alertes'
   })
   @ApiResponse({ status: 200, description: 'Dashboard APPRO', type: DashboardResponseDto })
   async getDashboard() {
-    return this.approService.getDashboard();
+    try {
+      return await this.approService.getDashboard();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack?.split('\n').slice(0, 5).join(' | ') : '';
+      this.logger.error(`Dashboard APPRO error: ${message}`, stack);
+      // Throw 422 so global filter doesn't mask the real message in production
+      throw new HttpException(
+        { message: `Dashboard error: ${message}`, debug: stack },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -79,24 +95,33 @@ export class ApproController {
     description: 'Retourne toutes les MP avec leur état calculé (SAIN, SOUS_SEUIL, A_COMMANDER, RUPTURE, BLOQUANT_PRODUCTION)' 
   })
   async getStockMp(@Query() query: StockMpQueryDto) {
-    const stockMp = await this.approService.getStockMpWithState();
-    
-    // Filtrer si nécessaire
-    let filtered = stockMp;
-    
-    if (query.state) {
-      filtered = filtered.filter(mp => mp.state === query.state);
+    try {
+      const stockMp = await this.approService.getStockMpWithState();
+
+      // Filtrer si nécessaire
+      let filtered = stockMp;
+
+      if (query.state) {
+        filtered = filtered.filter(mp => mp.state === query.state);
+      }
+
+      if (query.criticite) {
+        filtered = filtered.filter(mp => mp.criticiteEffective === query.criticite);
+      }
+
+      if (query.criticalOnly) {
+        filtered = await this.approService.getCriticalMp();
+      }
+
+      return filtered;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Stock MP error: ${message}`, error instanceof Error ? error.stack : '');
+      throw new HttpException(
+        { message: `Stock MP error: ${message}` },
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
     }
-    
-    if (query.criticite) {
-      filtered = filtered.filter(mp => mp.criticiteEffective === query.criticite);
-    }
-    
-    if (query.criticalOnly) {
-      filtered = await this.approService.getCriticalMp();
-    }
-    
-    return filtered;
   }
 
   @Get('stock-mp/critical')
