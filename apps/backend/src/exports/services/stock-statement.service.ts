@@ -31,6 +31,7 @@ export class StockStatementService {
 
   /**
    * Calculate stock statement for MP products
+   * Batched queries to avoid N+1 performance issue
    */
   private async getMpStatement(
     startDate: Date,
@@ -42,47 +43,100 @@ export class StockStatementService {
       },
     });
 
+    // Batch: collect all lot IDs across all products
+    const allLotIds = products.flatMap(p => p.lots?.map((l: any) => l.id) || []);
+
+    if (allLotIds.length === 0) {
+      return products.map(product => ({
+        productCode: product.code,
+        productName: product.name,
+        unit: product.unit,
+        initialStock: 0,
+        entries: 0,
+        exits: 0,
+        finalStock: 0,
+        averageValue: 0,
+      }));
+    }
+
+    // Batch: 2 queries instead of 2*N
+    const [allMovements, allPriorMovements] = await Promise.all([
+      this.prisma.stockMovement.findMany({
+        where: {
+          lotMpId: { in: allLotIds },
+          createdAt: { gte: startDate, lte: endDate },
+          isDeleted: false,
+        },
+        select: { lotMpId: true, movementType: true, quantity: true, unitCost: true },
+      }),
+      this.prisma.stockMovement.findMany({
+        where: {
+          lotMpId: { in: allLotIds },
+          createdAt: { lt: startDate },
+          isDeleted: false,
+        },
+        select: { lotMpId: true, movementType: true, quantity: true, unitCost: true },
+      }),
+    ]);
+
+    // Group movements by lotMpId for efficient lookup
+    const movementsByLot = new Map<number, typeof allMovements>();
+    for (const m of allMovements) {
+      if (!m.lotMpId) continue;
+      const existing = movementsByLot.get(m.lotMpId) || [];
+      existing.push(m);
+      movementsByLot.set(m.lotMpId, existing);
+    }
+
+    const priorByLot = new Map<number, typeof allPriorMovements>();
+    for (const m of allPriorMovements) {
+      if (!m.lotMpId) continue;
+      const existing = priorByLot.get(m.lotMpId) || [];
+      existing.push(m);
+      priorByLot.set(m.lotMpId, existing);
+    }
+
     const statements: StockStatementEntry[] = [];
 
     for (const product of products) {
-      // Get movements for this product in the period
-      const movements = await this.prisma.stockMovement.findMany({
-        where: {
-          lotMpId: { in: product.lots.map((l) => l.id) },
-          createdAt: { gte: startDate, lte: endDate },
-        },
-      });
+      const lotIds = product.lots.map((l: any) => l.id);
 
-      // Calculate entries and exits
+      // Calculate entries and exits from pre-fetched data
       let entries = 0;
       let exits = 0;
-
-      for (const mov of movements) {
-        if (mov.movementType === 'IN') {
-          entries += mov.quantity;
-        } else {
-          exits += Math.abs(mov.quantity);
+      const productMovements: typeof allMovements = [];
+      for (const lotId of lotIds) {
+        for (const mov of movementsByLot.get(lotId) || []) {
+          productMovements.push(mov);
+          if (mov.movementType === 'IN') {
+            entries += mov.quantity;
+          } else {
+            exits += Math.abs(mov.quantity);
+          }
         }
       }
 
-      // Get movements before period for initial stock
-      const priorMovements = await this.prisma.stockMovement.findMany({
-        where: {
-          lotMpId: { in: product.lots.map((l) => l.id) },
-          createdAt: { lt: startDate },
-        },
-      });
-
+      // Calculate initial stock from pre-fetched prior movements
       let initialStock = 0;
-      for (const mov of priorMovements) {
-        if (mov.movementType === 'IN') {
-          initialStock += mov.quantity;
-        } else {
-          initialStock -= Math.abs(mov.quantity);
+      const productPriorMovements: typeof allPriorMovements = [];
+      for (const lotId of lotIds) {
+        for (const mov of priorByLot.get(lotId) || []) {
+          productPriorMovements.push(mov);
+          if (mov.movementType === 'IN') {
+            initialStock += mov.quantity;
+          } else {
+            initialStock -= Math.abs(mov.quantity);
+          }
         }
       }
 
       const finalStock = initialStock + entries - exits;
+
+      // Calculate weighted average cost (CUMP) from all IN movements
+      const allInMovements = [...productPriorMovements, ...productMovements].filter(m => m.movementType === 'IN');
+      const totalCost = allInMovements.reduce((sum, m) => sum + (Number(m.quantity) * (m.unitCost || 0)), 0);
+      const totalQtyIn = allInMovements.reduce((sum, m) => sum + Number(m.quantity), 0);
+      const averageValue = totalQtyIn > 0 ? Math.round(totalCost / totalQtyIn) : 0;
 
       statements.push({
         productCode: product.code,
@@ -92,7 +146,7 @@ export class StockStatementService {
         entries,
         exits,
         finalStock,
-        averageValue: 0, // Would need purchase price tracking
+        averageValue,
       });
     }
 
@@ -101,6 +155,7 @@ export class StockStatementService {
 
   /**
    * Calculate stock statement for PF products
+   * Batched queries to avoid N+1 performance issue
    */
   private async getPfStatement(
     startDate: Date,
@@ -112,43 +167,86 @@ export class StockStatementService {
       },
     });
 
+    // Batch: collect all lot IDs across all products
+    const allLotIds = products.flatMap(p => p.lots?.map((l: any) => l.id) || []);
+
+    if (allLotIds.length === 0) {
+      return products.map(product => ({
+        productCode: product.code,
+        productName: product.name,
+        unit: product.unit,
+        initialStock: 0,
+        entries: 0,
+        exits: 0,
+        finalStock: 0,
+        averageValue: product.priceHt,
+      }));
+    }
+
+    // Batch: 2 queries instead of 2*N
+    const [allMovements, allPriorMovements] = await Promise.all([
+      this.prisma.stockMovement.findMany({
+        where: {
+          lotPfId: { in: allLotIds },
+          createdAt: { gte: startDate, lte: endDate },
+          isDeleted: false,
+        },
+        select: { lotPfId: true, movementType: true, quantity: true },
+      }),
+      this.prisma.stockMovement.findMany({
+        where: {
+          lotPfId: { in: allLotIds },
+          createdAt: { lt: startDate },
+          isDeleted: false,
+        },
+        select: { lotPfId: true, movementType: true, quantity: true },
+      }),
+    ]);
+
+    // Group movements by lotPfId for efficient lookup
+    const movementsByLot = new Map<number, typeof allMovements>();
+    for (const m of allMovements) {
+      if (!m.lotPfId) continue;
+      const existing = movementsByLot.get(m.lotPfId) || [];
+      existing.push(m);
+      movementsByLot.set(m.lotPfId, existing);
+    }
+
+    const priorByLot = new Map<number, typeof allPriorMovements>();
+    for (const m of allPriorMovements) {
+      if (!m.lotPfId) continue;
+      const existing = priorByLot.get(m.lotPfId) || [];
+      existing.push(m);
+      priorByLot.set(m.lotPfId, existing);
+    }
+
     const statements: StockStatementEntry[] = [];
 
     for (const product of products) {
-      // Get movements for this product in the period
-      const movements = await this.prisma.stockMovement.findMany({
-        where: {
-          lotPfId: { in: product.lots.map((l) => l.id) },
-          createdAt: { gte: startDate, lte: endDate },
-        },
-      });
+      const lotIds = product.lots.map((l: any) => l.id);
 
-      // Calculate entries and exits
+      // Calculate entries and exits from pre-fetched data
       let entries = 0;
       let exits = 0;
-
-      for (const mov of movements) {
-        if (mov.movementType === 'IN') {
-          entries += mov.quantity;
-        } else {
-          exits += Math.abs(mov.quantity);
+      for (const lotId of lotIds) {
+        for (const mov of movementsByLot.get(lotId) || []) {
+          if (mov.movementType === 'IN') {
+            entries += mov.quantity;
+          } else {
+            exits += Math.abs(mov.quantity);
+          }
         }
       }
 
-      // Get movements before period for initial stock
-      const priorMovements = await this.prisma.stockMovement.findMany({
-        where: {
-          lotPfId: { in: product.lots.map((l) => l.id) },
-          createdAt: { lt: startDate },
-        },
-      });
-
+      // Calculate initial stock from pre-fetched prior movements
       let initialStock = 0;
-      for (const mov of priorMovements) {
-        if (mov.movementType === 'IN') {
-          initialStock += mov.quantity;
-        } else {
-          initialStock -= Math.abs(mov.quantity);
+      for (const lotId of lotIds) {
+        for (const mov of priorByLot.get(lotId) || []) {
+          if (mov.movementType === 'IN') {
+            initialStock += mov.quantity;
+          } else {
+            initialStock -= Math.abs(mov.quantity);
+          }
         }
       }
 

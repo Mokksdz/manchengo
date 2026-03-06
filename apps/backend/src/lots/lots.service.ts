@@ -154,6 +154,9 @@ export class LotsService {
     receptionId?: number;
     unitCost?: number;
   }): Promise<LotInfo> {
+    if (data.quantity <= 0) {
+      throw new BadRequestException('La quantité du lot doit être supérieure à 0');
+    }
     const lotNumber = data.lotNumber || (await this.generateLotNumber('MP'));
 
     const lot = await this.prisma.lotMp.create({
@@ -200,80 +203,100 @@ export class LotsService {
     productId: number,
     quantityNeeded: number,
     blockIfExpired = true,
+    existingTx?: any,
   ): Promise<FifoConsumption[]> {
-    // Récupérer les lots actifs triés FIFO (plus ancien d'abord)
-    const lots = await this.prisma.lotMp.findMany({
-      where: {
-        productId,
-        isActive: true,
-        quantityRemaining: { gt: 0 },
-      },
-      orderBy: [
-        { expiryDate: 'asc' },
-        { manufactureDate: 'asc' },
-        { createdAt: 'asc' },
-      ],
-    });
+    if (quantityNeeded <= 0) {
+      throw new BadRequestException('La quantité demandée doit être supérieure à 0');
+    }
+    const executeLogic = async (tx: any) => {
+      // Récupérer les lots AVAILABLE triés FIFO (plus ancien d'abord)
+      const lots = await tx.lotMp.findMany({
+        where: {
+          productId,
+          isActive: true,
+          status: 'AVAILABLE',
+          quantityRemaining: { gt: 0 },
+        },
+        orderBy: [
+          { expiryDate: 'asc' },
+          { manufactureDate: 'asc' },
+          { createdAt: 'asc' },
+        ],
+      });
 
-    // Calculer stock disponible (hors expirés si blockIfExpired)
-    const today = new Date();
-    let availableStock = 0;
-    const validLots: typeof lots = [];
+      // Calculer stock disponible (hors expirés si blockIfExpired)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let availableStock = 0;
+      const validLots: typeof lots = [];
 
-    for (const lot of lots) {
-      const isExpired = lot.expiryDate && lot.expiryDate < today;
-      
-      if (blockIfExpired && isExpired) {
-        continue; // Ignorer les lots expirés
+      for (const lot of lots) {
+        const expiryNorm = lot.expiryDate ? new Date(lot.expiryDate) : null;
+        if (expiryNorm) expiryNorm.setHours(0, 0, 0, 0);
+        const isExpired = expiryNorm && expiryNorm < today;
+
+        if (blockIfExpired && isExpired) {
+          continue; // Ignorer les lots expirés
+        }
+
+        validLots.push(lot);
+        availableStock += lot.quantityRemaining;
       }
 
-      validLots.push(lot);
-      availableStock += lot.quantityRemaining;
-    }
-
-    if (availableStock < quantityNeeded) {
-      const expiredCount = lots.length - validLots.length;
-      if (expiredCount > 0 && blockIfExpired) {
+      if (availableStock < quantityNeeded) {
+        const expiredCount = lots.length - validLots.length;
+        if (expiredCount > 0 && blockIfExpired) {
+          throw new BadRequestException(
+            `Stock insuffisant: ${availableStock} disponible (${expiredCount} lot(s) expiré(s) bloqué(s)). ` +
+            `Besoin: ${quantityNeeded}`,
+          );
+        }
         throw new BadRequestException(
-          `Stock insuffisant: ${availableStock} disponible (${expiredCount} lot(s) expiré(s) bloqué(s)). ` +
-          `Besoin: ${quantityNeeded}`,
+          `Stock insuffisant: ${availableStock} disponible, ${quantityNeeded} demandé`,
         );
       }
-      throw new BadRequestException(
-        `Stock insuffisant: ${availableStock} disponible, ${quantityNeeded} demandé`,
-      );
+
+      // Consommer FIFO
+      const consumptions: FifoConsumption[] = [];
+      let remaining = quantityNeeded;
+
+      for (const lot of validLots) {
+        if (remaining <= 0) break;
+
+        const toConsume = Math.min(lot.quantityRemaining, remaining);
+        const newQuantity = lot.quantityRemaining - toConsume;
+
+        // Mettre à jour le lot
+        await tx.lotMp.update({
+          where: { id: lot.id },
+          data: {
+            quantityRemaining: newQuantity,
+            isActive: newQuantity > 0,
+            ...(newQuantity === 0 ? { status: 'CONSUMED', consumedAt: new Date() } : {}),
+          },
+        });
+
+        consumptions.push({
+          lotId: lot.id,
+          lotNumber: lot.lotNumber,
+          quantity: toConsume,
+          unitCost: lot.unitCost ?? undefined,
+        });
+
+        remaining -= toConsume;
+      }
+
+      return consumptions;
+    };
+
+    // Use existing transaction if provided, otherwise create a Serializable one
+    if (existingTx) {
+      return executeLogic(existingTx);
     }
-
-    // Consommer FIFO
-    const consumptions: FifoConsumption[] = [];
-    let remaining = quantityNeeded;
-
-    for (const lot of validLots) {
-      if (remaining <= 0) break;
-
-      const toConsume = Math.min(lot.quantityRemaining, remaining);
-      const newQuantity = lot.quantityRemaining - toConsume;
-
-      // Mettre à jour le lot
-      await this.prisma.lotMp.update({
-        where: { id: lot.id },
-        data: {
-          quantityRemaining: newQuantity,
-          isActive: newQuantity > 0,
-        },
-      });
-
-      consumptions.push({
-        lotId: lot.id,
-        lotNumber: lot.lotNumber,
-        quantity: toConsume,
-        unitCost: lot.unitCost ?? undefined,
-      });
-
-      remaining -= toConsume;
-    }
-
-    return consumptions;
+    return this.prisma.$transaction(
+      (tx) => executeLogic(tx),
+      { isolationLevel: 'Serializable', timeout: 10000 },
+    );
   }
 
   /**
@@ -373,6 +396,9 @@ export class LotsService {
     unitCost?: number;
     defaultExpiryDays?: number;
   }): Promise<LotInfo> {
+    if (data.quantity <= 0) {
+      throw new BadRequestException('La quantité du lot doit être supérieure à 0');
+    }
     const lotNumber = data.lotNumber || (await this.generateLotNumber('PF'));
     const manufactureDate = new Date();
 
@@ -425,78 +451,98 @@ export class LotsService {
     productId: number,
     quantityNeeded: number,
     blockIfExpired = true,
+    existingTx?: any,
   ): Promise<FifoConsumption[]> {
-    // Récupérer les lots actifs triés FIFO
-    const lots = await this.prisma.lotPf.findMany({
-      where: {
-        productId,
-        isActive: true,
-        quantityRemaining: { gt: 0 },
-      },
-      orderBy: [
-        { expiryDate: 'asc' },
-        { manufactureDate: 'asc' },
-        { createdAt: 'asc' },
-      ],
-    });
+    if (quantityNeeded <= 0) {
+      throw new BadRequestException('La quantité demandée doit être supérieure à 0');
+    }
+    const executeLogic = async (tx: any) => {
+      // Récupérer les lots AVAILABLE triés FIFO
+      const lots = await tx.lotPf.findMany({
+        where: {
+          productId,
+          isActive: true,
+          status: 'AVAILABLE',
+          quantityRemaining: { gt: 0 },
+        },
+        orderBy: [
+          { expiryDate: 'asc' },
+          { manufactureDate: 'asc' },
+          { createdAt: 'asc' },
+        ],
+      });
 
-    const today = new Date();
-    let availableStock = 0;
-    const validLots: typeof lots = [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let availableStock = 0;
+      const validLots: typeof lots = [];
 
-    for (const lot of lots) {
-      const isExpired = lot.expiryDate && lot.expiryDate < today;
-      
-      if (blockIfExpired && isExpired) {
-        continue;
+      for (const lot of lots) {
+        const expiryNorm = lot.expiryDate ? new Date(lot.expiryDate) : null;
+        if (expiryNorm) expiryNorm.setHours(0, 0, 0, 0);
+        const isExpired = expiryNorm && expiryNorm < today;
+
+        if (blockIfExpired && isExpired) {
+          continue;
+        }
+
+        validLots.push(lot);
+        availableStock += lot.quantityRemaining;
       }
 
-      validLots.push(lot);
-      availableStock += lot.quantityRemaining;
-    }
-
-    if (availableStock < quantityNeeded) {
-      const expiredCount = lots.length - validLots.length;
-      if (expiredCount > 0 && blockIfExpired) {
+      if (availableStock < quantityNeeded) {
+        const expiredCount = lots.length - validLots.length;
+        if (expiredCount > 0 && blockIfExpired) {
+          throw new BadRequestException(
+            `Stock insuffisant: ${availableStock} disponible (${expiredCount} lot(s) expiré(s) non vendable(s)). ` +
+            `Besoin: ${quantityNeeded}`,
+          );
+        }
         throw new BadRequestException(
-          `Stock insuffisant: ${availableStock} disponible (${expiredCount} lot(s) expiré(s) non vendable(s)). ` +
-          `Besoin: ${quantityNeeded}`,
+          `Stock insuffisant: ${availableStock} disponible, ${quantityNeeded} demandé`,
         );
       }
-      throw new BadRequestException(
-        `Stock insuffisant: ${availableStock} disponible, ${quantityNeeded} demandé`,
-      );
+
+      // Consommer FIFO
+      const consumptions: FifoConsumption[] = [];
+      let remaining = quantityNeeded;
+
+      for (const lot of validLots) {
+        if (remaining <= 0) break;
+
+        const toConsume = Math.min(lot.quantityRemaining, remaining);
+        const newQuantity = lot.quantityRemaining - toConsume;
+
+        await tx.lotPf.update({
+          where: { id: lot.id },
+          data: {
+            quantityRemaining: newQuantity,
+            isActive: newQuantity > 0,
+            ...(newQuantity === 0 ? { status: 'CONSUMED', consumedAt: new Date() } : {}),
+          },
+        });
+
+        consumptions.push({
+          lotId: lot.id,
+          lotNumber: lot.lotNumber,
+          quantity: toConsume,
+          unitCost: lot.unitCost ?? undefined,
+        });
+
+        remaining -= toConsume;
+      }
+
+      return consumptions;
+    };
+
+    // Use existing transaction if provided, otherwise create a Serializable one
+    if (existingTx) {
+      return executeLogic(existingTx);
     }
-
-    // Consommer FIFO
-    const consumptions: FifoConsumption[] = [];
-    let remaining = quantityNeeded;
-
-    for (const lot of validLots) {
-      if (remaining <= 0) break;
-
-      const toConsume = Math.min(lot.quantityRemaining, remaining);
-      const newQuantity = lot.quantityRemaining - toConsume;
-
-      await this.prisma.lotPf.update({
-        where: { id: lot.id },
-        data: {
-          quantityRemaining: newQuantity,
-          isActive: newQuantity > 0,
-        },
-      });
-
-      consumptions.push({
-        lotId: lot.id,
-        lotNumber: lot.lotNumber,
-        quantity: toConsume,
-        unitCost: lot.unitCost ?? undefined,
-      });
-
-      remaining -= toConsume;
-    }
-
-    return consumptions;
+    return this.prisma.$transaction(
+      (tx) => executeLogic(tx),
+      { isolationLevel: 'Serializable', timeout: 10000 },
+    );
   }
 
   /**
@@ -543,6 +589,47 @@ export class LotsService {
         ? `Vente impossible (${expiredLots} lot(s) expiré(s))`
         : `Stock insuffisant: ${availableStock} disponible`,
     };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BLOCAGE AUTOMATIQUE DES LOTS EXPIRÉS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Bloque automatiquement tous les lots dont la DLC est dépassée.
+   * Appelé périodiquement (cron) ou manuellement par ADMIN.
+   */
+  async blockExpiredLots(): Promise<{ mpBlocked: number; pfBlocked: number }> {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const mpResult = await this.prisma.lotMp.updateMany({
+      where: {
+        expiryDate: { lt: now },
+        status: 'AVAILABLE',
+        quantityRemaining: { gt: 0 },
+      },
+      data: {
+        status: 'BLOCKED',
+        blockedAt: new Date(),
+        blockedReason: 'DLC_EXPIRED_AUTO',
+      },
+    });
+
+    const pfResult = await this.prisma.lotPf.updateMany({
+      where: {
+        expiryDate: { lt: now },
+        status: 'AVAILABLE',
+        quantityRemaining: { gt: 0 },
+      },
+      data: {
+        status: 'BLOCKED',
+        blockedAt: new Date(),
+        blockedReason: 'DLC_EXPIRED_AUTO',
+      },
+    });
+
+    return { mpBlocked: mpResult.count, pfBlocked: pfResult.count };
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -593,11 +680,22 @@ export class LotsService {
    * Ajuste la quantité d'un lot MP (inventaire)
    */
   async adjustLotMp(lotId: number, newQuantity: number): Promise<LotInfo> {
+    if (newQuantity < 0) {
+      throw new BadRequestException('La quantité ajustée ne peut pas être négative');
+    }
+    // Fetch current lot to preserve existing status for non-zero adjustments
+    const currentLot = await this.prisma.lotMp.findUnique({
+      where: { id: lotId },
+      select: { status: true },
+    });
+
     const lot = await this.prisma.lotMp.update({
       where: { id: lotId },
       data: {
         quantityRemaining: newQuantity,
         isActive: newQuantity > 0,
+        status: newQuantity === 0 ? 'CONSUMED' : (currentLot?.status ?? 'AVAILABLE'),
+        consumedAt: newQuantity === 0 ? new Date() : undefined,
       },
       include: {
         product: { select: { code: true, name: true } },
@@ -625,11 +723,22 @@ export class LotsService {
    * Ajuste la quantité d'un lot PF (inventaire)
    */
   async adjustLotPf(lotId: number, newQuantity: number): Promise<LotInfo> {
+    if (newQuantity < 0) {
+      throw new BadRequestException('La quantité ajustée ne peut pas être négative');
+    }
+    // Fetch current lot to preserve existing status for non-zero adjustments
+    const currentLot = await this.prisma.lotPf.findUnique({
+      where: { id: lotId },
+      select: { status: true },
+    });
+
     const lot = await this.prisma.lotPf.update({
       where: { id: lotId },
       data: {
         quantityRemaining: newQuantity,
         isActive: newQuantity > 0,
+        status: newQuantity === 0 ? 'CONSUMED' : (currentLot?.status ?? 'AVAILABLE'),
+        consumedAt: newQuantity === 0 ? new Date() : undefined,
       },
       include: {
         product: { select: { code: true, name: true } },

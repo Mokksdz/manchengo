@@ -28,7 +28,7 @@ export interface ReportResult<T> {
 export class ReportsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly logger: LoggerService,
+    _logger: LoggerService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════════════════════

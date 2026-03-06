@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -295,6 +296,7 @@ export class ProductsService {
 
   /**
    * Désactive un produit MP
+   * @throws BadRequestException si stock restant > 0
    */
   async deactivateMp(id: number): Promise<ProductMpResponseDto> {
     const existing = await this.prisma.productMp.findUnique({
@@ -303,6 +305,26 @@ export class ProductsService {
 
     if (!existing) {
       throw new NotFoundException(`Produit MP #${id} introuvable`);
+    }
+
+    // Check current stock before deactivation
+    const stockMovements = await this.prisma.stockMovement.groupBy({
+      by: ['movementType'],
+      where: {
+        productMpId: id,
+        isDeleted: false,
+      },
+      _sum: { quantity: true },
+    });
+
+    const inQty = stockMovements.find(m => m.movementType === 'IN')?._sum?.quantity || 0;
+    const outQty = stockMovements.find(m => m.movementType === 'OUT')?._sum?.quantity || 0;
+    const currentStock = Number(inQty) - Number(outQty);
+
+    if (currentStock > 0) {
+      throw new BadRequestException(
+        `Impossible de désactiver: ${currentStock} unités en stock. Épuisez le stock avant de désactiver.`,
+      );
     }
 
     const product = await this.prisma.productMp.update({
@@ -506,6 +528,7 @@ export class ProductsService {
 
   /**
    * Désactive un produit PF
+   * @throws BadRequestException si stock restant > 0
    */
   async deactivatePf(id: number): Promise<ProductPfResponseDto> {
     const existing = await this.prisma.productPf.findUnique({
@@ -514,6 +537,26 @@ export class ProductsService {
 
     if (!existing) {
       throw new NotFoundException(`Produit PF #${id} introuvable`);
+    }
+
+    // Check current stock before deactivation
+    const stockMovements = await this.prisma.stockMovement.groupBy({
+      by: ['movementType'],
+      where: {
+        productPfId: id,
+        isDeleted: false,
+      },
+      _sum: { quantity: true },
+    });
+
+    const inQty = stockMovements.find(m => m.movementType === 'IN')?._sum?.quantity || 0;
+    const outQty = stockMovements.find(m => m.movementType === 'OUT')?._sum?.quantity || 0;
+    const currentStock = Number(inQty) - Number(outQty);
+
+    if (currentStock > 0) {
+      throw new BadRequestException(
+        `Impossible de désactiver: ${currentStock} unités en stock. Épuisez le stock avant de désactiver.`,
+      );
     }
 
     const product = await this.prisma.productPf.update({

@@ -23,6 +23,7 @@ import {
   ConflictException,
   NotFoundException,
   BadRequestException,
+  NotImplementedException,
 } from '@nestjs/common';
 import { SuppliersService } from './suppliers.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -50,12 +51,19 @@ describe('SuppliersService', () => {
       },
       productMp: {
         findMany: jest.fn(),
+        groupBy: jest.fn().mockResolvedValue([]),
+      },
+      purchaseOrder: {
+        count: jest.fn().mockResolvedValue(0),
       },
       stockMovement: {
         aggregate: jest.fn(),
         groupBy: jest.fn(),
       },
     };
+
+    // $transaction executes the callback with the prisma mock itself as tx
+    prisma.$transaction = jest.fn().mockImplementation((cb) => cb(prisma));
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -105,9 +113,9 @@ describe('SuppliersService', () => {
       expect(result.ai).toBe('');
       expect(prisma.supplier.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          rc: '',
-          nif: '',
-          ai: '',
+          rc: undefined,
+          nif: undefined,
+          ai: undefined,
         }),
       });
     });
@@ -246,7 +254,7 @@ describe('SuppliersService', () => {
     it('should exclude current supplier ID in update scenario', async () => {
       prisma.supplier.findFirst.mockResolvedValue(null);
 
-      await (service as any).checkFiscalUniqueness('16A1234567', '123456789012345', 5);
+      await (service as any).checkFiscalUniqueness('16A1234567', '123456789012345', undefined, 5);
 
       expect(prisma.supplier.findFirst).toHaveBeenCalledWith({
         where: expect.objectContaining({
@@ -852,7 +860,7 @@ describe('SuppliersService', () => {
   // ─── blockSupplier() tests ──────────────────────────────────────────────
 
   describe('blockSupplier()', () => {
-    it('should block supplier successfully with valid reason', async () => {
+    it('should throw NotImplementedException for valid block (feature pending migration)', async () => {
       prisma.supplier.findUnique.mockResolvedValue({
         id: 1,
         code: 'FOUR-001',
@@ -869,14 +877,13 @@ describe('SuppliersService', () => {
         _count: { receptions: 2 },
       });
 
-      const result = await service.blockSupplier(
-        1,
-        { reason: 'Retards repetes sur les livraisons MP' },
-        1,
-      );
-
-      expect(result.id).toBe(1);
-      expect(result.code).toBe('FOUR-001');
+      await expect(
+        service.blockSupplier(
+          1,
+          { reason: 'Retards repetes sur les livraisons MP' },
+          1,
+        ),
+      ).rejects.toThrow(NotImplementedException);
     });
 
     it('should throw BadRequestException when reason is too short', async () => {

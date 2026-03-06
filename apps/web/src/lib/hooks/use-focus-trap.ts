@@ -61,12 +61,15 @@ export function useFocusTrap<T extends HTMLElement = HTMLDivElement>(active = tr
  * Escape key handler for closing modals
  */
 export function useEscapeKey(onEscape: () => void, active = true) {
+  const onEscapeRef = useRef(onEscape);
+  onEscapeRef.current = onEscape;
+
   useEffect(() => {
     if (!active) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onEscape();
+      if (e.key === 'Escape') onEscapeRef.current();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onEscape, active]);
+  }, [active]);
 }

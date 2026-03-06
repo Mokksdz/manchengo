@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   ConflictException,
+  NotImplementedException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -91,14 +92,16 @@ export interface SupplierScoreBreakdown {
 
 @Injectable()
 export class SuppliersService {
-  private readonly logger = new Logger(SuppliersService.name);
+  // @ts-expect-error TS6133 — kept for future use
+  private readonly _logger = new Logger(SuppliersService.name);
 
   constructor(private prisma: PrismaService) {}
 
   /**
    * Génère le prochain code fournisseur (FOUR-001, FOUR-002, etc.)
    */
-  private async generateCode(): Promise<string> {
+  // @ts-expect-error TS6133 — kept for future use
+  private async _generateCode(): Promise<string> {
     const lastSupplier = await this.prisma.supplier.findFirst({
       orderBy: { id: 'desc' },
       select: { code: true },
@@ -122,6 +125,7 @@ export class SuppliersService {
   private async checkFiscalUniqueness(
     rc: string,
     nif: string,
+    ai?: string,
     excludeId?: number,
   ): Promise<void> {
     // Ne vérifier l'unicité que si le champ est réellement renseigné
@@ -151,6 +155,21 @@ export class SuppliersService {
       if (existingNif) {
         throw new ConflictException(
           `Un fournisseur avec ce NIF existe déjà: ${existingNif.name} (${existingNif.code})`,
+        );
+      }
+    }
+
+    if (ai && ai.trim() !== '') {
+      const existingAi = await this.prisma.supplier.findFirst({
+        where: {
+          ai,
+          ...(excludeId ? { id: { not: excludeId } } : {}),
+        },
+      });
+
+      if (existingAi) {
+        throw new ConflictException(
+          `Un fournisseur avec cet AI existe déjà: ${existingAi.name} (${existingAi.code})`,
         );
       }
     }
@@ -226,38 +245,74 @@ export class SuppliersService {
    */
   async create(dto: CreateSupplierDto): Promise<SupplierResponseDto> {
     // Vérifier l'unicité des identifiants fiscaux (skip si vides)
-    await this.checkFiscalUniqueness(dto.rc || '', dto.nif || '');
+    await this.checkFiscalUniqueness(dto.rc || '', dto.nif || '', dto.ai || '');
 
-    const code = await this.generateCode();
+    // Retry loop for code generation with unique constraint handling
+    const MAX_RETRIES = 3;
 
-    const supplier = await this.prisma.supplier.create({
-      data: {
-        code,
-        name: dto.name.trim(),
-        rc: dto.rc?.trim().toUpperCase() || '',
-        nif: dto.nif?.trim() || '',
-        ai: dto.ai?.trim().toUpperCase() || '',
-        nis: dto.nis?.trim() || null,
-        phone: dto.phone.trim(),
-        address: dto.address.trim(),
-      },
-    });
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        const supplier = await this.prisma.$transaction(async (tx) => {
+          // Generate code inside transaction
+          const lastSupplier = await tx.supplier.findFirst({
+            where: { code: { startsWith: 'FOUR-' } },
+            orderBy: { code: 'desc' },
+            select: { code: true },
+          });
 
-    return {
-      id: supplier.id,
-      code: supplier.code,
-      name: supplier.name,
-      rc: supplier.rc,
-      nif: supplier.nif,
-      ai: supplier.ai,
-      nis: supplier.nis ?? undefined,
-      phone: supplier.phone,
-      address: supplier.address,
-      isActive: supplier.isActive,
-      createdAt: supplier.createdAt,
-      updatedAt: supplier.updatedAt,
-      receptionCount: 0,
-    };
+          let nextNumber = 1;
+          if (lastSupplier?.code) {
+            const match = lastSupplier.code.match(/FOUR-(\d+)/);
+            if (match) nextNumber = parseInt(match[1], 10) + 1;
+          }
+          const code = `FOUR-${nextNumber.toString().padStart(3, '0')}`;
+
+          return tx.supplier.create({
+            data: {
+              code,
+              name: dto.name.trim(),
+              rc: dto.rc?.trim().toUpperCase() || undefined,
+              nif: dto.nif?.trim() || undefined,
+              ai: dto.ai?.trim().toUpperCase() || undefined,
+              nis: dto.nis?.trim() || null,
+              phone: dto.phone.trim(),
+              address: dto.address.trim(),
+            },
+          });
+        }, {
+          isolationLevel: 'Serializable',
+          timeout: 10000,
+        });
+
+        return {
+          id: supplier.id,
+          code: supplier.code,
+          name: supplier.name,
+          rc: supplier.rc,
+          nif: supplier.nif,
+          ai: supplier.ai,
+          nis: supplier.nis ?? undefined,
+          phone: supplier.phone,
+          address: supplier.address,
+          isActive: supplier.isActive,
+          createdAt: supplier.createdAt,
+          updatedAt: supplier.updatedAt,
+          receptionCount: 0,
+        };
+      } catch (error: any) {
+        const isRetryable = error?.code === 'P2002' || error?.code === 'P2034' ||
+          error?.message?.includes('could not serialize');
+        if (isRetryable && attempt < MAX_RETRIES - 1) {
+          continue;
+        }
+        if (error?.code === 'P2002') {
+          throw new ConflictException('Un fournisseur avec ce code existe déjà');
+        }
+        throw error;
+      }
+    }
+
+    throw new ConflictException('Impossible de générer un code fournisseur unique après plusieurs tentatives');
   }
 
   /**
@@ -273,11 +328,12 @@ export class SuppliersService {
       throw new NotFoundException(`Fournisseur #${id} introuvable`);
     }
 
-    // Si RC ou NIF modifié, vérifier l'unicité
-    if (dto.rc || dto.nif) {
+    // Si RC, NIF ou AI modifié, vérifier l'unicité
+    if (dto.rc !== undefined || dto.nif !== undefined || dto.ai !== undefined) {
       await this.checkFiscalUniqueness(
-        dto.rc || existing.rc,
-        dto.nif || existing.nif,
+        dto.rc !== undefined ? dto.rc : (existing.rc || ''),
+        dto.nif !== undefined ? dto.nif : (existing.nif || ''),
+        dto.ai !== undefined ? dto.ai : (existing.ai || ''),
         id,
       );
     }
@@ -285,13 +341,13 @@ export class SuppliersService {
     const supplier = await this.prisma.supplier.update({
       where: { id },
       data: {
-        ...(dto.name && { name: dto.name.trim() }),
-        ...(dto.rc && { rc: dto.rc.trim().toUpperCase() }),
-        ...(dto.nif && { nif: dto.nif.trim() }),
-        ...(dto.ai && { ai: dto.ai.trim().toUpperCase() }),
+        ...(dto.name !== undefined && { name: dto.name.trim() }),
+        ...(dto.rc !== undefined && { rc: dto.rc?.trim().toUpperCase() || '' }),
+        ...(dto.nif !== undefined && { nif: dto.nif?.trim() || '' }),
+        ...(dto.ai !== undefined && { ai: dto.ai?.trim().toUpperCase() || '' }),
         ...(dto.nis !== undefined && { nis: dto.nis?.trim() || null }),
-        ...(dto.phone && { phone: dto.phone.trim() }),
-        ...(dto.address && { address: dto.address.trim() }),
+        ...(dto.phone !== undefined && { phone: dto.phone?.trim() || '' }),
+        ...(dto.address !== undefined && { address: dto.address?.trim() || '' }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
       include: {
@@ -334,6 +390,19 @@ export class SuppliersService {
 
     if (!supplier) {
       throw new NotFoundException(`Fournisseur #${id} introuvable`);
+    }
+
+    // Vérifier les BC actifs avant désactivation
+    const activeBCs = await this.prisma.purchaseOrder.count({
+      where: {
+        supplierId: id,
+        status: { in: ['DRAFT', 'SENT', 'CONFIRMED', 'PARTIAL'] },
+      },
+    });
+    if (activeBCs > 0) {
+      throw new ConflictException(
+        `Impossible de supprimer: ${activeBCs} bon(s) de commande actif(s) en cours`
+      );
     }
 
     // Désactiver le fournisseur
@@ -380,6 +449,20 @@ export class SuppliersService {
 
     if (!supplier) {
       throw new NotFoundException(`Fournisseur #${id} introuvable`);
+    }
+
+    // Vérifier les BC actifs
+    const activeBCs = await this.prisma.purchaseOrder.count({
+      where: {
+        supplierId: id,
+        status: { in: ['DRAFT', 'SENT', 'CONFIRMED', 'PARTIAL'] },
+      },
+    });
+    if (activeBCs > 0) {
+      return {
+        canDelete: false,
+        reason: `Impossible de supprimer: ${activeBCs} bon(s) de commande actif(s) en cours`,
+      };
     }
 
     if (supplier._count.receptions > 0) {
@@ -581,6 +664,42 @@ export class SuppliersService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Batch load all stock movements for all product IDs across all suppliers
+    const allProductIds = suppliers.flatMap(s => s.productsMpPrincipaux.map(mp => mp.id));
+    const allMovements = allProductIds.length > 0
+      ? await this.prisma.stockMovement.groupBy({
+          by: ['productMpId', 'movementType'],
+          where: { productMpId: { in: allProductIds }, isDeleted: false },
+          _sum: { quantity: true },
+        })
+      : [];
+
+    // Build stock map: productMpId -> currentStock
+    const stockMap = new Map<number, number>();
+    for (const m of allMovements) {
+      if (!m.productMpId) continue;
+      const prev = stockMap.get(m.productMpId) || 0;
+      const qty = m._sum.quantity ?? 0;
+      stockMap.set(m.productMpId, prev + (m.movementType === 'IN' ? qty : -qty));
+    }
+
+    // Batch-load mono-source counts for ALL suppliers (eliminates N+1 query)
+    const allSupplierIds = suppliers.map(s => s.id);
+    const monoSourceCounts = await this.prisma.productMp.groupBy({
+      by: ['fournisseurPrincipalId'],
+      where: {
+        fournisseurPrincipalId: { in: allSupplierIds },
+        isActive: true,
+      },
+      _count: true,
+    });
+    const monoSourceMap = new Map<number, number>();
+    for (const entry of monoSourceCounts) {
+      if (entry.fournisseurPrincipalId != null) {
+        monoSourceMap.set(entry.fournisseurPrincipalId, entry._count);
+      }
+    }
+
     for (const supplier of suppliers) {
       // Calculer BC bloquants (non reçus avec MP en rupture)
       const bcBlocking = supplier.purchaseOrders.filter(bc => {
@@ -599,27 +718,9 @@ export class SuppliersService {
       // MP fournies par ce fournisseur en rupture/critique
       const blockedMpIds = new Set<number>();
       const impactedRecipeIds = new Set<number>();
-      
+
       for (const mp of supplier.productsMpPrincipaux) {
-        // Vérifier stock réel via mouvements
-        const _stockResult = await this.prisma.stockMovement.aggregate({
-          where: { productMpId: mp.id, isDeleted: false },
-          _sum: { quantity: true },
-        });
-        
-        // Calculer IN - OUT
-        const movements = await this.prisma.stockMovement.groupBy({
-          by: ['movementType'],
-          where: { productMpId: mp.id, isDeleted: false },
-          _sum: { quantity: true },
-        });
-        
-        let currentStock = 0;
-        for (const m of movements) {
-          const qty = m._sum.quantity ?? 0;
-          if (m.movementType === 'IN') currentStock += qty;
-          else currentStock -= qty;
-        }
+        const currentStock = stockMap.get(mp.id) || 0;
 
         if (currentStock <= 0 || currentStock < mp.minStock) {
           blockedMpIds.add(mp.id);
@@ -633,16 +734,16 @@ export class SuppliersService {
       }
 
       // Dernier incident (réception avec problème ou retard)
-      const lastIncident = delayedBcs.length > 0 
-        ? delayedBcs[0].expectedDelivery 
+      const lastIncident = delayedBcs.length > 0
+        ? delayedBcs[0].expectedDelivery
         : null;
 
-      // Détection mono-sourcing
-      const monoSourceMps = await this.getMonoSourceMpCount(supplier.id);
+      // Détection mono-sourcing (batch-loaded above, no per-supplier query)
+      const monoSourceMps = monoSourceMap.get(supplier.id) ?? 0;
 
       // Calcul score réel
       const scoreData = this.calculateSupplierScore(
-        supplier.tauxRetard ?? 0,
+        Number(supplier.tauxRetard ?? 0),
         delayedBcs.length,
         blockedMpIds.size,
       );
@@ -745,26 +846,32 @@ export class SuppliersService {
       });
     }
 
+    // Batch load all stock movements for this supplier's products
+    const supplierProductIds = supplier.productsMpPrincipaux.map(mp => mp.id);
+    const batchedMovements = supplierProductIds.length > 0
+      ? await this.prisma.stockMovement.groupBy({
+          by: ['productMpId', 'movementType'],
+          where: { productMpId: { in: supplierProductIds }, isDeleted: false },
+          _sum: { quantity: true },
+        })
+      : [];
+
+    const supplierStockMap = new Map<number, number>();
+    for (const m of batchedMovements) {
+      if (!m.productMpId) continue;
+      const prev = supplierStockMap.get(m.productMpId) || 0;
+      const qty = m._sum.quantity ?? 0;
+      supplierStockMap.set(m.productMpId, prev + (m.movementType === 'IN' ? qty : -qty));
+    }
+
     // MP bloquées
     const blockedMaterials: BlockedMaterial[] = [];
     for (const mp of supplier.productsMpPrincipaux) {
-      // Calculer stock réel
-      const movements = await this.prisma.stockMovement.groupBy({
-        by: ['movementType'],
-        where: { productMpId: mp.id, isDeleted: false },
-        _sum: { quantity: true },
-      });
-      
-      let currentStock = 0;
-      for (const m of movements) {
-        const qty = m._sum.quantity ?? 0;
-        if (m.movementType === 'IN') currentStock += qty;
-        else currentStock -= qty;
-      }
+      const currentStock = supplierStockMap.get(mp.id) || 0;
 
       // Jours restants basé sur consommation
-      const daysRemaining = mp.consommationMoyJour && mp.consommationMoyJour > 0
-        ? Math.floor(currentStock / mp.consommationMoyJour)
+      const daysRemaining = mp.consommationMoyJour && Number(mp.consommationMoyJour) > 0
+        ? Math.floor(currentStock / Number(mp.consommationMoyJour))
         : null;
 
       // Déterminer statut
@@ -816,7 +923,7 @@ export class SuppliersService {
 
     // Calcul score
     const scoreData = this.calculateSupplierScore(
-      supplier.tauxRetard ?? 0,
+      Number(supplier.tauxRetard ?? 0),
       incidentsLast30Days,
       blockedMaterials.length,
     );
@@ -887,7 +994,8 @@ export class SuppliersService {
   /**
    * Compte les MP dont ce fournisseur est la source unique
    */
-  private async getMonoSourceMpCount(supplierId: number): Promise<number> {
+  // @ts-expect-error TS6133 — kept for future use
+  private async _getMonoSourceMpCount(supplierId: number): Promise<number> {
     // Trouver les MP où ce fournisseur est principal
     const mpsWithThisSupplier = await this.prisma.productMp.findMany({
       where: { fournisseurPrincipalId: supplierId, isActive: true },
@@ -926,28 +1034,7 @@ export class SuppliersService {
       throw new BadRequestException('Motif obligatoire (min 10 caractères)');
     }
 
-    // TODO: Activate after running prisma migrate dev
-    // const updated = await this.prisma.supplier.update({
-    //   where: { id },
-    //   data: { isBlocked: true, blockedReason: dto.reason, blockedAt: new Date(), blockedBy: _userId },
-    // });
-    this.logger.warn(`[Block] Fournisseur ${id} - Run 'npx prisma migrate dev' to activate`);
-
-    return {
-      id: supplier.id,
-      code: supplier.code,
-      name: supplier.name,
-      rc: supplier.rc,
-      nif: supplier.nif,
-      ai: supplier.ai,
-      nis: supplier.nis ?? undefined,
-      phone: supplier.phone,
-      address: supplier.address,
-      isActive: supplier.isActive,
-      createdAt: supplier.createdAt,
-      updatedAt: supplier.updatedAt,
-      receptionCount: supplier._count.receptions,
-    };
+    throw new NotImplementedException('Feature pending migration');
   }
 
   /**
@@ -972,24 +1059,6 @@ export class SuppliersService {
       throw new BadRequestException('Motif obligatoire (min 10 caractères)');
     }
 
-    // NOTE: Les champs surveillance ne sont pas encore dans le schema Prisma
-    // Cette fonctionnalité sera activée après migration
-    this.logger.warn(`[Surveillance] Fournisseur ${id} - Feature en attente de migration schema`);
-
-    return {
-      id: supplier.id,
-      code: supplier.code,
-      name: supplier.name,
-      rc: supplier.rc,
-      nif: supplier.nif,
-      ai: supplier.ai,
-      nis: supplier.nis ?? undefined,
-      phone: supplier.phone,
-      address: supplier.address,
-      isActive: supplier.isActive,
-      createdAt: supplier.createdAt,
-      updatedAt: supplier.updatedAt,
-      receptionCount: supplier._count.receptions,
-    };
+    throw new NotImplementedException('Feature pending migration');
   }
 }

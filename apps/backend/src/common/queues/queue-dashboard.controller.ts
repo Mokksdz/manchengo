@@ -49,7 +49,7 @@ export class QueueDashboardController {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   @Get('stats')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Get statistics for all queues' })
   @ApiResponse({
     status: 200,
@@ -108,7 +108,7 @@ export class QueueDashboardController {
   }
 
   @Get(':name/stats')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Get statistics for a specific queue' })
   @ApiParam({ name: 'name', enum: QueueName, description: 'Queue name' })
   @ApiResponse({ status: 200, description: 'Queue statistics retrieved' })
@@ -123,7 +123,7 @@ export class QueueDashboardController {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   @Get(':name/jobs/:id')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Get details of a specific job' })
   @ApiParam({ name: 'name', enum: QueueName, description: 'Queue name' })
   @ApiParam({ name: 'id', description: 'Job ID' })
@@ -168,7 +168,7 @@ export class QueueDashboardController {
   }
 
   @Get(':name/jobs/:id/state')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Get state of a specific job' })
   @ApiParam({ name: 'name', enum: QueueName, description: 'Queue name' })
   @ApiParam({ name: 'id', description: 'Job ID' })
@@ -204,7 +204,7 @@ export class QueueDashboardController {
   }
 
   @Post(':name/jobs/:id/retry')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Retry a failed job' })
   @ApiParam({ name: 'name', enum: QueueName, description: 'Queue name' })

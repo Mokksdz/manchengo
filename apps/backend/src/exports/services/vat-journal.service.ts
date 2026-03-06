@@ -36,10 +36,12 @@ export class VatJournalService {
   async getEntries(startDate: Date, endDate: Date): Promise<VatJournalEntry[]> {
     const invoices = await this.prisma.invoice.findMany({
       where: {
-        createdAt: {
+        date: {
           gte: startDate,
           lte: endDate,
         },
+        // Only VALIDATED/PAID invoices for G50 declaration (exclude DRAFT/CANCELLED)
+        status: { in: ['VALIDATED', 'PARTIALLY_PAID', 'PAID'] },
       },
       include: {
         client: {
@@ -49,11 +51,11 @@ export class VatJournalService {
           },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { date: 'asc' },
     });
 
     return invoices.map((inv) => ({
-      date: inv.createdAt,
+      date: inv.date,
       invoiceRef: inv.reference,
       clientName: inv.client.name,
       clientNif: inv.client.nif,

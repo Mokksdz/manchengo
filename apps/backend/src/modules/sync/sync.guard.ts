@@ -32,9 +32,9 @@ export class SyncDeviceGuard implements CanActivate {
       request.body?.deviceId ||
       request.query?.deviceId;
 
-    if (!deviceId) {
-      this.logger.warn(`Sync attempt without device ID - User: ${user.id}`);
-      throw new UnauthorizedException('Device ID required for sync operations');
+    if (!deviceId || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(deviceId)) {
+      this.logger.warn(`Sync attempt with invalid or missing device ID - User: ${user.id}`);
+      throw new UnauthorizedException('Invalid or missing device ID');
     }
 
     // Validate device exists and belongs to user

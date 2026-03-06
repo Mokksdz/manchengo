@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsInt, IsString, IsOptional, IsNotEmpty, MinLength, Min, Max, IsDateString, IsNumber } from 'class-validator';
+import { IsInt, IsString, IsOptional, IsNotEmpty, MinLength, Min, Max, IsDateString, IsNumber, IsIn } from 'class-validator';
 
 /**
  * DTO pour créer un ordre de production
@@ -62,14 +62,15 @@ export class CompleteProductionDto {
   @IsNumber()
   batchWeightReal?: number;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Statut qualité (PASSED, FAILED, PENDING)',
     example: 'PASSED',
     enum: ['PASSED', 'FAILED', 'PENDING'],
   })
-  @IsOptional()
+  @IsNotEmpty({ message: 'Le statut qualité est obligatoire' })
   @IsString()
-  qualityStatus?: string;
+  @IsIn(['PASSED', 'FAILED', 'PENDING'], { message: 'Statut qualité invalide. Valeurs acceptées: PASSED, FAILED, PENDING' })
+  qualityStatus: string;
 
   @ApiPropertyOptional({
     description: 'Notes de contrôle qualité',

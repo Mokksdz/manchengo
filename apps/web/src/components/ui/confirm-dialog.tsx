@@ -80,6 +80,19 @@ export function useConfirmDialog() {
     isLoading: false,
   })
 
+  const resolveRef = React.useRef<((value: boolean) => void) | null>(null)
+  const versionRef = React.useRef(0)
+
+  // Cleanup: resolve pending promise on unmount to prevent memory leak
+  React.useEffect(() => {
+    return () => {
+      if (resolveRef.current) {
+        resolveRef.current(false)
+        resolveRef.current = null
+      }
+    }
+  }, [])
+
   const confirm = React.useCallback(
     (options: {
       title: string
@@ -87,14 +100,27 @@ export function useConfirmDialog() {
       confirmLabel?: string
       variant?: "default" | "destructive"
     }): Promise<boolean> => {
+      // Reject any previous pending dialog
+      if (resolveRef.current) {
+        resolveRef.current(false)
+        resolveRef.current = null
+      }
+
+      const currentVersion = ++versionRef.current
+
       return new Promise((resolve) => {
+        resolveRef.current = resolve
         setState({
           open: true,
           title: options.title,
           description: options.description,
           confirmLabel: options.confirmLabel,
           variant: options.variant,
-          onConfirm: () => resolve(true),
+          onConfirm: () => {
+            if (versionRef.current !== currentVersion) return
+            resolve(true)
+            resolveRef.current = null
+          },
           isLoading: false,
         })
       })
@@ -103,6 +129,11 @@ export function useConfirmDialog() {
   )
 
   const close = React.useCallback(() => {
+    // Resolve pending promise as false (cancel) to prevent memory leaks
+    if (resolveRef.current) {
+      resolveRef.current(false)
+      resolveRef.current = null
+    }
     setState((prev) => ({ ...prev, open: false }))
   }, [])
 

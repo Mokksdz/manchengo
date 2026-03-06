@@ -501,7 +501,7 @@ export class SecurityHardeningService implements OnModuleInit, OnModuleDestroy {
   }
 
   async checkStockChangeAnomaly(
-    productId: number,
+    _productId: number,
     currentStock: number,
     proposedChange: number,
   ): Promise<{ isAnomaly: boolean; reason?: string }> {

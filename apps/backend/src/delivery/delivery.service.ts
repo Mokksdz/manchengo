@@ -45,7 +45,7 @@ export class DeliveryService {
 
   constructor(
     private prisma: PrismaService,
-    private securityLog: SecurityLogService,
+    _securityLog: SecurityLogService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -82,7 +82,7 @@ export class DeliveryService {
     }
 
     // 2. Verify it's a DELIVERY type QR
-    if (qrData.entityType !== 'DLV') {
+    if (qrData?.entityType !== 'DLV') {
       await this.logValidationAttempt({
         qrScanned: dto.qrCode,
         userId,
@@ -196,27 +196,44 @@ export class DeliveryService {
           });
 
           if (!delivery) {
-            throw new NotFoundException({
-              code: DeliveryValidationError.DELIVERY_NOT_FOUND,
-              message: 'Livraison non trouvée',
-            });
+            throw new NotFoundException('Livraison non trouvée');
           }
 
           // ANTI-DOUBLE VALIDATION: Check status
           if (delivery.status === DeliveryStatus.VALIDATED) {
-            throw new ConflictException({
-              code: DeliveryValidationError.DELIVERY_ALREADY_VALIDATED,
-              message: `Livraison déjà validée le ${delivery.validatedAt?.toISOString()}`,
-              validatedAt: delivery.validatedAt,
-              validatedBy: delivery.validatedByUserId,
-            });
+            throw new ConflictException(
+              `Livraison déjà validée le ${delivery.validatedAt?.toISOString()}`,
+            );
           }
 
           if (delivery.status === DeliveryStatus.CANCELLED) {
-            throw new BadRequestException({
-              code: DeliveryValidationError.DELIVERY_CANCELLED,
-              message: 'Cette livraison a été annulée',
-            });
+            throw new BadRequestException('Cette livraison a été annulée');
+          }
+
+          // ── Stock availability check (Fix 1) ──────────────────────────
+          const invoice = await tx.invoice.findUnique({
+            where: { id: delivery.invoiceId },
+            include: { lines: true },
+          });
+
+          if (invoice) {
+            for (const line of invoice.lines) {
+              const stockIn = await tx.stockMovement.aggregate({
+                where: { productPfId: line.productPfId, movementType: 'IN', isDeleted: false },
+                _sum: { quantity: true },
+              });
+              const stockOut = await tx.stockMovement.aggregate({
+                where: { productPfId: line.productPfId, movementType: 'OUT', isDeleted: false },
+                _sum: { quantity: true },
+              });
+              const currentStock = (stockIn._sum.quantity || 0) - (stockOut._sum.quantity || 0);
+
+              if (currentStock < line.quantity) {
+                throw new BadRequestException(
+                  `Stock PF insuffisant pour produit #${line.productPfId}: disponible ${currentStock}, nécessaire ${line.quantity}`,
+                );
+              }
+            }
           }
 
           // Update delivery status atomically
@@ -236,6 +253,61 @@ export class DeliveryService {
               invoice: { select: { id: true, reference: true } },
             },
           });
+
+          // ── Create OUT stock movements with FIFO lot consumption (Fix 2 & 3) ─
+          if (invoice) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            for (const line of invoice.lines) {
+              let remainingQty = line.quantity;
+
+              // Find available lots, filtering expired ones (Fix 3)
+              const availableLots = await tx.lotPf.findMany({
+                where: {
+                  productId: line.productPfId,
+                  status: 'AVAILABLE',
+                  quantityRemaining: { gt: 0 },
+                  OR: [
+                    { expiryDate: null },
+                    { expiryDate: { gte: today } },
+                  ],
+                },
+                orderBy: [{ expiryDate: 'asc' }, { createdAt: 'asc' }],
+              });
+
+              for (const lot of availableLots) {
+                if (remainingQty <= 0) break;
+                const toConsume = Math.min(Number(lot.quantityRemaining), remainingQty);
+
+                await tx.lotPf.update({
+                  where: { id: lot.id },
+                  data: {
+                    quantityRemaining: { decrement: toConsume },
+                    status: Number(lot.quantityRemaining) - toConsume === 0 ? 'CONSUMED' : 'AVAILABLE',
+                    isActive: Number(lot.quantityRemaining) - toConsume > 0,
+                  },
+                });
+
+                await tx.stockMovement.create({
+                  data: {
+                    movementType: 'OUT',
+                    productType: 'PF',
+                    origin: 'VENTE',
+                    productPfId: line.productPfId,
+                    lotPfId: lot.id,
+                    quantity: toConsume,
+                    referenceType: 'DELIVERY',
+                    reference: `BL-${delivery.id}`,
+                    userId: userId,
+                    note: `Livraison BL-${delivery.id} - Lot ${lot.lotNumber}`,
+                  },
+                });
+
+                remainingQty -= toConsume;
+              }
+            }
+          }
 
           // Log successful validation
           await tx.deliveryValidationLog.create({
@@ -304,8 +376,9 @@ export class DeliveryService {
       }
 
       if (error instanceof ConflictException) {
-        const errorData = error.getResponse() as any;
-        
+        const errorResponse = error.getResponse() as any;
+        const errorMsg = typeof errorResponse === 'string' ? errorResponse : errorResponse?.message || error.message;
+
         await this.logValidationAttempt({
           deliveryId: qrData.entityId,
           qrScanned: dto.qrCode,
@@ -315,21 +388,21 @@ export class DeliveryService {
           userAgent,
           success: false,
           errorCode: DeliveryValidationError.DELIVERY_ALREADY_VALIDATED,
-          errorMessage: errorData.message,
-          metadata: {
-            previousValidatedAt: errorData.validatedAt,
-            previousValidatedBy: errorData.validatedBy,
-          },
+          errorMessage: errorMsg,
         });
 
         return {
           success: false,
-          message: errorData.message,
+          message: errorMsg,
           error: DeliveryValidationError.DELIVERY_ALREADY_VALIDATED,
         };
       }
 
       if (error instanceof BadRequestException) {
+        const errorResponse = error.getResponse() as any;
+        const errorMsg = typeof errorResponse === 'string' ? errorResponse : errorResponse?.message || error.message;
+        const isStockError = errorMsg?.includes('Stock PF insuffisant');
+
         await this.logValidationAttempt({
           deliveryId: qrData.entityId,
           qrScanned: dto.qrCode,
@@ -338,19 +411,22 @@ export class DeliveryService {
           ipAddress,
           userAgent,
           success: false,
-          errorCode: DeliveryValidationError.DELIVERY_CANCELLED,
-          errorMessage: 'Delivery is cancelled',
+          errorCode: isStockError ? 'STOCK_INSUFFICIENT' : DeliveryValidationError.DELIVERY_CANCELLED,
+          errorMessage: errorMsg,
         });
 
         return {
           success: false,
-          message: 'Cette livraison a été annulée',
-          error: DeliveryValidationError.DELIVERY_CANCELLED,
+          message: errorMsg,
+          error: isStockError ? 'STOCK_INSUFFICIENT' as any : DeliveryValidationError.DELIVERY_CANCELLED,
         };
       }
 
       // Log unexpected error
-      this.logger.error(`Delivery validation error: ${error.message}`, error.stack);
+      this.logger.error(
+        `Delivery validation error: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw error;
     }
   }
@@ -505,6 +581,27 @@ export class DeliveryService {
       throw new NotFoundException('Facture non trouvée');
     }
 
+    // Only allow deliveries for VALIDATED/PAID invoices
+    if (!['VALIDATED', 'PARTIALLY_PAID', 'PAID'].includes(invoice.status as string)) {
+      throw new BadRequestException(
+        `Impossible de créer une livraison pour une facture en statut ${invoice.status}. La facture doit être validée.`,
+      );
+    }
+
+    // Check if deliveries already exist for this invoice (quantity reconciliation)
+    const existingDeliveries = await this.prisma.delivery.findMany({
+      where: {
+        invoiceId: dto.invoiceId,
+        status: { not: DeliveryStatus.CANCELLED },
+      },
+    });
+
+    if (existingDeliveries.length > 0) {
+      this.logger.warn(
+        `Attention: ${existingDeliveries.length} livraison(s) déjà créée(s) pour la facture #${dto.invoiceId}`,
+      );
+    }
+
     // Generate unique reference: LIV-YYMMDD-XXX
     const reference = await this.generateReference();
 
@@ -614,6 +711,41 @@ export class DeliveryService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // MARK DELIVERY AS DELIVERED
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async markDelivered(id: string, userId: string) {
+    const delivery = await this.prisma.delivery.findUnique({ where: { id } });
+
+    if (!delivery) {
+      throw new NotFoundException('Livraison introuvable');
+    }
+
+    if (delivery.status !== DeliveryStatus.VALIDATED) {
+      throw new BadRequestException(
+        `Transition invalide: seules les livraisons VALIDATED peuvent être marquées DELIVERED (statut actuel: ${delivery.status})`,
+      );
+    }
+
+    const updatedDelivery = await this.prisma.delivery.update({
+      where: { id },
+      data: {
+        status: DeliveryStatus.DELIVERED,
+        deliveredAt: new Date(),
+        deliveredByUserId: userId,
+      },
+      include: {
+        client: { select: { id: true, name: true } },
+        invoice: { select: { id: true, reference: true } },
+      },
+    });
+
+    this.logger.log(`Delivery ${delivery.reference} marked as DELIVERED by user ${userId}`);
+
+    return updatedDelivery;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // PRIVATE HELPERS
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -688,9 +820,9 @@ export class DeliveryService {
     const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '');
     const prefix = `LIV-${dateStr}`;
 
-    // Get count of deliveries today
-    const startOfDay = new Date(now.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(now.setHours(23, 59, 59, 999));
+    // Get count of deliveries today (use prefix match, avoid mutating now)
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
     const count = await this.prisma.delivery.count({
       where: {

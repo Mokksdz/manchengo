@@ -44,6 +44,7 @@ export const t = {
     active: 'نشط',
     inactive: 'غير نشط',
     paid: 'مدفوع',
+    partiallyPaid: 'مدفوع جزئياً',
     pending: 'قيد الانتظار',
     sent: 'مُرسَل',
     confirmed: 'مؤكد',
@@ -51,6 +52,7 @@ export const t = {
     partial: 'جزئي',
     ordered: 'مطلوب',
     bcGenerated: 'تم إنشاء أمر الشراء',
+    delivered: 'تم التوصيل',
   },
 
   // ── Chargement & Messages vides ──────────────────────────────────────
@@ -229,6 +231,12 @@ export const t = {
     nis: 'رقم NIS',
     tva: 'ضريبة القيمة المضافة',
     timbreFiscal: 'الطابع الجبائي',
+  },
+
+  // ── الشبكة / غير متصل ───────────────────────────────────────────────
+  network: {
+    connectionLost: 'انقطع الاتصال',
+    offlineWarning: 'لن يتم حفظ تعديلاتك. تحقق من اتصالك بالإنترنت.',
   },
 
   // ── Pagination ───────────────────────────────────────────────────────

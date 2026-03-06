@@ -167,6 +167,23 @@ export class RecipeService {
    * Créer une nouvelle recette
    */
   async create(dto: CreateRecipeDto, userId: string) {
+    // Validate weights and quantities are positive
+    if (dto.batchWeight <= 0) {
+      throw new BadRequestException('Le poids du batch doit être supérieur à 0');
+    }
+    if (dto.outputQuantity <= 0) {
+      throw new BadRequestException('La quantité de sortie doit être supérieure à 0');
+    }
+    if (dto.lossTolerance !== undefined && (dto.lossTolerance < 0 || dto.lossTolerance > 1)) {
+      throw new BadRequestException('La tolérance de perte doit être entre 0 et 1');
+    }
+    // Validate all item quantities are positive
+    for (const item of dto.items) {
+      if (item.quantity <= 0) {
+        throw new BadRequestException('La quantité de chaque ingrédient doit être supérieure à 0');
+      }
+    }
+
     // Vérifier que le produit PF existe
     const productPf = await this.prisma.productPf.findUnique({
       where: { id: dto.productPfId },
@@ -183,6 +200,37 @@ export class RecipeService {
 
     if (existingRecipe) {
       throw new BadRequestException(`Une recette existe déjà pour ce produit (ID: ${existingRecipe.id})`);
+    }
+
+    // ── Détection de référence circulaire ──
+    // 1. Auto-référence: le produit fini ne peut pas être un ingrédient de sa propre recette
+    if (dto.items.some(item => item.productMpId && item.productMpId === dto.productPfId)) {
+      throw new BadRequestException(
+        'Référence circulaire détectée: le produit fini ne peut pas être un ingrédient de sa propre recette'
+      );
+    }
+
+    // 2. Référence circulaire indirecte: un PF utilisé comme MP pourrait avoir
+    //    sa propre recette qui référence notre PF (cycle A→B→A)
+    for (const item of dto.items) {
+      if (!item.productMpId) continue;
+
+      // Vérifier si ce MP est en fait un PF avec une recette qui référence notre PF
+      const dependentRecipe = await this.prisma.recipe.findFirst({
+        where: { productPfId: item.productMpId },
+        include: { items: true },
+      });
+
+      if (dependentRecipe) {
+        const hasCircular = dependentRecipe.items.some(
+          (ri: any) => ri.productMpId === dto.productPfId
+        );
+        if (hasCircular) {
+          throw new BadRequestException(
+            `Référence circulaire détectée: le produit ${item.productMpId} dépend déjà de ce produit fini dans sa recette`
+          );
+        }
+      }
     }
 
     // Vérifier que les produits MP/Packaging existent (sauf FLUID)
@@ -312,6 +360,11 @@ export class RecipeService {
    * Ajouter un item à une recette (MP, FLUID ou PACKAGING)
    */
   async addItem(recipeId: number, dto: CreateRecipeItemDto) {
+    // Validate item quantity is positive
+    if (dto.quantity <= 0) {
+      throw new BadRequestException('La quantité de l\'ingrédient doit être supérieure à 0');
+    }
+
     // Bug #47b: Validate productMpId for MP items
     if ((!dto.type || dto.type === 'MP') && !dto.productMpId) {
       throw new BadRequestException('productMpId est obligatoire pour les items de type MP');
@@ -404,6 +457,11 @@ export class RecipeService {
     itemId: number,
     dto: Partial<CreateRecipeItemDto>,
   ) {
+    // Validate item quantity is positive if provided
+    if (dto.quantity !== undefined && dto.quantity <= 0) {
+      throw new BadRequestException('La quantité de l\'ingrédient doit être supérieure à 0');
+    }
+
     const item = await this.prisma.recipeItem.findFirst({
       where: { id: itemId, recipeId },
     });
@@ -476,6 +534,9 @@ export class RecipeService {
    * Calculer les besoins en MP pour une quantité donnée
    */
   async calculateRequirements(recipeId: number, batchCount: number) {
+    if (!Number.isInteger(batchCount) || batchCount <= 0) {
+      throw new BadRequestException('Le nombre de batchs doit être un entier positif');
+    }
     const recipe = await this.findById(recipeId);
 
     const requirements = recipe.items.map((item) => ({
@@ -500,6 +561,9 @@ export class RecipeService {
    * Vérifier la disponibilité des stocks pour une production
    */
   async checkStockAvailability(recipeId: number, batchCount: number) {
+    if (!Number.isInteger(batchCount) || batchCount <= 0) {
+      throw new BadRequestException('Le nombre de batchs doit être un entier positif');
+    }
     const recipe = await this.findById(recipeId);
 
     // Filtrer uniquement les items qui affectent le stock (pas FLUID)

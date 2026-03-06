@@ -69,42 +69,58 @@ export class ClientsService {
    * Create a new client with auto-generated code
    */
   async create(dto: CreateClientDto) {
-    // Generate unique code: CLI-001, CLI-002, etc.
-    const lastClient = await this.prisma.client.findFirst({
-      orderBy: { id: 'desc' },
-      select: { code: true },
-    });
+    // Retry loop for code generation with unique constraint handling
+    const MAX_RETRIES = 3;
 
-    let nextNum = 1;
-    if (lastClient?.code) {
-      const match = lastClient.code.match(/CLI-(\d+)/);
-      if (match) nextNum = parseInt(match[1], 10) + 1;
-    }
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        const client = await this.prisma.$transaction(async (tx) => {
+          // Generate unique code inside transaction: CLI-001, CLI-002, etc.
+          const lastClient = await tx.client.findFirst({
+            where: { code: { startsWith: 'CLI-' } },
+            orderBy: { code: 'desc' },
+            select: { code: true },
+          });
 
-    const code = `CLI-${String(nextNum).padStart(3, '0')}`;
+          let nextNum = 1;
+          if (lastClient?.code) {
+            const match = lastClient.code.match(/CLI-(\d+)/);
+            if (match) nextNum = parseInt(match[1], 10) + 1;
+          }
 
-    try {
-      const client = await this.prisma.client.create({
-        data: {
-          code,
-          name: dto.name,
-          type: dto.type as any || 'DISTRIBUTEUR',
-          nif: dto.nif || '',
-          rc: dto.rc || '',
-          ai: dto.ai || '',
-          nis: dto.nis || null,
-          phone: dto.phone || null,
-          address: dto.address || null,
-        },
-      });
+          const code = `CLI-${String(nextNum).padStart(3, '0')}`;
 
-      logger.info(`Client created: ${code} - ${dto.name}`, 'ClientsService');
-      return client;
-    } catch (error) {
-      if (error.code === 'P2002') {
-        throw new ConflictException('Un client avec ce code existe deja');
+          return tx.client.create({
+            data: {
+              code,
+              name: dto.name,
+              type: dto.type as any || 'DISTRIBUTEUR',
+              nif: dto.nif || '',
+              rc: dto.rc || '',
+              ai: dto.ai || '',
+              nis: dto.nis || null,
+              phone: dto.phone || null,
+              address: dto.address || null,
+            },
+          });
+        }, {
+          isolationLevel: 'Serializable',
+          timeout: 10000,
+        });
+
+        logger.info(`Client created: ${client.code} - ${dto.name}`, 'ClientsService');
+        return client;
+      } catch (error: any) {
+        const isRetryable = error?.code === 'P2002' || error?.code === 'P2034' ||
+          error?.message?.includes('could not serialize');
+        if (isRetryable && attempt < MAX_RETRIES - 1) {
+          continue;
+        }
+        if (error?.code === 'P2002') {
+          throw new ConflictException('Un client avec ce code existe deja');
+        }
+        throw error;
       }
-      throw error;
     }
   }
 
@@ -130,6 +146,69 @@ export class ClientsService {
 
     logger.info(`Client updated: ${client.code}`, 'ClientsService');
     return client;
+  }
+
+  /**
+   * Check if a new amount would exceed the client's credit limit
+   */
+  async checkCreditLimit(clientId: number, newAmount: number): Promise<{ allowed: boolean; reason?: string }> {
+    const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) throw new NotFoundException(`Client #${clientId} introuvable`);
+    if (!client.creditLimit) return { allowed: true }; // No limit set
+
+    // Calculate current outstanding balance (exclude DRAFT — only confirmed invoices)
+    const unpaidTotal = await this.prisma.invoice.aggregate({
+      where: {
+        clientId,
+        status: { in: ['VALIDATED', 'PARTIALLY_PAID'] },
+      },
+      _sum: { netToPay: true },
+    });
+
+    const currentBalance = unpaidTotal._sum.netToPay || 0;
+    const projectedBalance = currentBalance + newAmount;
+
+    if (projectedBalance > client.creditLimit) {
+      return {
+        allowed: false,
+        reason: `Limite de crédit dépassée: solde actuel ${currentBalance}, nouveau montant ${newAmount}, limite ${client.creditLimit}`,
+      };
+    }
+
+    return { allowed: true };
+  }
+
+  /**
+   * Calculate total invoiced, paid, and outstanding balance for a client
+   */
+  async getClientBalance(clientId: number): Promise<{
+    totalInvoiced: number;
+    totalPaid: number;
+    outstanding: number;
+  }> {
+    // Ensure client exists
+    const client = await this.prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) throw new NotFoundException(`Client #${clientId} introuvable`);
+
+    const invoiced = await this.prisma.invoice.aggregate({
+      where: { clientId, status: { in: ['VALIDATED', 'PARTIALLY_PAID', 'PAID'] } },
+      _sum: { netToPay: true },
+    });
+
+    // Use actual Payment records for accurate paid total (includes partial payments)
+    const payments = await this.prisma.payment.aggregate({
+      where: { invoice: { clientId } },
+      _sum: { amount: true },
+    });
+
+    const totalInvoiced = invoiced._sum.netToPay || 0;
+    const totalPaid = payments._sum.amount || 0;
+
+    return {
+      totalInvoiced,
+      totalPaid,
+      outstanding: totalInvoiced - totalPaid,
+    };
   }
 
   /**

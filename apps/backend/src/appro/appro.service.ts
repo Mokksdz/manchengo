@@ -226,7 +226,7 @@ export class ApproService {
    * - C'est un outil de pilotage, pas un indicateur marketing
    */
   private calculateIRS(
-    stockMp: StockMpWithState[],
+    _stockMp: StockMpWithState[],
     stats: { rupture: number; sousSeuil: number; bloquantProduction: number; total: number }
   ): { value: number; status: IrsStatus; details: { mpRupture: number; mpSousSeuil: number; mpCritiquesProduction: number } } {
     if (stats.total === 0) {
@@ -310,8 +310,11 @@ export class ApproService {
       );
 
       // Jours de couverture: null si consommation = 0 (représente Infinity côté UI)
-      const joursCouverture = product.consommationMoyJour && product.consommationMoyJour > 0
-        ? currentStock / product.consommationMoyJour
+      // Use null coalescing instead of Number() to safely handle Decimal/null fields
+      const consommation = product.consommationMoyJour ?? 0;
+      const consommationNum = typeof consommation === 'number' ? consommation : Number(consommation);
+      const joursCouverture = consommationNum > 0
+        ? currentStock / consommationNum
         : null; // null = Infinity (pas de consommation)
 
       return {
@@ -325,7 +328,7 @@ export class ApproService {
         seuilSecurite: product.seuilSecurite,
         seuilCommande: product.seuilCommande,
         leadTimeFournisseur: product.leadTimeFournisseur,
-        consommationMoyJour: product.consommationMoyJour,
+        consommationMoyJour: product.consommationMoyJour != null ? Number(product.consommationMoyJour) : null,
         joursCouverture, // Calculé dynamiquement
         criticiteParam: product.criticite,
         criticiteEffective,
@@ -670,13 +673,13 @@ export class ApproService {
       code: supplier.code,
       name: supplier.name,
       grade: supplier.grade,
-      scorePerformance: supplier.scorePerformance ?? 0,
+      scorePerformance: Number(supplier.scorePerformance ?? 0),
       metrics: {
-        delaiReelMoyen: supplier.delaiReelMoyen,
+        delaiReelMoyen: supplier.delaiReelMoyen !== null ? Number(supplier.delaiReelMoyen) : null,
         leadTimeAnnonce: supplier.leadTimeJours,
-        tauxRetard: supplier.tauxRetard ?? 0,
-        tauxEcartQuantite: supplier.tauxEcartQuantite ?? 0,
-        tauxRupturesCausees: supplier.tauxRupturesCausees ?? 0,
+        tauxRetard: Number(supplier.tauxRetard ?? 0),
+        tauxEcartQuantite: Number(supplier.tauxEcartQuantite ?? 0),
+        tauxRupturesCausees: Number(supplier.tauxRupturesCausees ?? 0),
       },
       stats: {
         totalLivraisons: supplier.totalLivraisons,
@@ -834,8 +837,19 @@ export class ApproService {
    */
   async canStartProduction(recipeId: number, batchCount: number): Promise<{
     canStart: boolean;
+    reason?: string;
     blockers: { productMpId: number; name: string; required: number; available: number; shortage: number }[];
   }> {
+    // Vérifier les alertes critiques non accusées avant tout
+    const hasCriticalAlerts = await this.approAlertService.hasCriticalUnacknowledgedAlerts();
+    if (hasCriticalAlerts) {
+      return {
+        canStart: false,
+        reason: 'Des alertes critiques non traitées bloquent le démarrage de la production',
+        blockers: [],
+      };
+    }
+
     const recipe = await this.prisma.recipe.findUnique({
       where: { id: recipeId },
       include: {

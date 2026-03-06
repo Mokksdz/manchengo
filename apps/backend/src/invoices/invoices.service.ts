@@ -8,16 +8,32 @@ import { logger } from '../common/logger/logger.service';
 // ═══════════════════════════════════════════════════════════════════════════════
 // - Montants en centimes (precision sans float)
 // - TVA 19% standard
-// - Timbre fiscal 50 DA (5000 centimes) si paiement especes
-// - Reference auto: F-YYMMDD-NNN
+// - Timbre fiscal bareme progressif (1%, 1.5%, 2%) si paiement especes
+// - Reference auto: F-YYYY-NNNNN (numerotation annuelle sequentielle)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const TVA_RATE = 0.19; // 19% TVA Algerie
-const TIMBRE_FISCAL = 5000; // 50 DA en centimes
 
 @Injectable()
 export class InvoicesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Calculate timbre fiscal based on Algerian fiscal schedule (percentage-based)
+   * Amounts in centimes
+   */
+  private calculateTimbreFiscal(totalTtc: number, paymentMethod: string): { amount: number; rate: number } {
+    if (paymentMethod !== 'ESPECES' || totalTtc <= 0) return { amount: 0, rate: 0 };
+
+    // Barème fiscal algérien (montants en centimes)
+    const totalTtcDA = totalTtc / 100; // Convert centimes to DA
+    let rate: number;
+    if (totalTtcDA <= 30000) rate = 0.01;
+    else if (totalTtcDA <= 100000) rate = 0.015;
+    else rate = 0.02;
+
+    return { amount: Math.round(totalTtc * rate), rate };
+  }
 
   /**
    * List all invoices with filters
@@ -76,36 +92,37 @@ export class InvoicesService {
       throw new BadRequestException('Une facture doit contenir au moins une ligne');
     }
 
-    // Generate reference: F-YYMMDD-NNN
-    const today = new Date(dto.date);
-    const datePrefix = today.toISOString().slice(2, 10).replace(/-/g, '');
-    const lastInvoice = await this.prisma.invoice.findFirst({
-      where: {
-        reference: { startsWith: `F-${datePrefix}` },
-      },
-      orderBy: { reference: 'desc' },
-    });
-
-    let nextNum = 1;
-    if (lastInvoice?.reference) {
-      const match = lastInvoice.reference.match(/-(\d+)$/);
-      if (match) nextNum = parseInt(match[1], 10) + 1;
+    // Validate line items before processing
+    for (const line of dto.lines) {
+      if (line.quantity <= 0) {
+        throw new BadRequestException(
+          `Quantité invalide (${line.quantity}) pour le produit #${line.productPfId}: doit être > 0`,
+        );
+      }
+      if (line.unitPriceHt < 0) {
+        throw new BadRequestException(
+          `Prix unitaire HT invalide (${line.unitPriceHt}) pour le produit #${line.productPfId}: doit être >= 0`,
+        );
+      }
     }
 
-    const reference = `F-${datePrefix}-${String(nextNum).padStart(3, '0')}`;
-
-    // Calculate totals
-    const linesData = dto.lines.map((line) => ({
-      productPfId: line.productPfId,
-      quantity: line.quantity,
-      unitPriceHt: line.unitPriceHt,
-      lineHt: line.quantity * line.unitPriceHt,
-    }));
+    // Calculate totals (with line-level remise support, capped to prevent negative)
+    const linesData = dto.lines.map((line) => {
+      const grossAmount = line.quantity * line.unitPriceHt;
+      const remise = Math.min(line.remise || 0, grossAmount); // Cap remise to line total
+      return {
+        productPfId: line.productPfId,
+        quantity: line.quantity,
+        unitPriceHt: line.unitPriceHt,
+        remise,
+        lineHt: grossAmount - remise,
+      };
+    });
 
     const totalHt = linesData.reduce((sum, l) => sum + l.lineHt, 0);
     const totalTva = Math.round(totalHt * TVA_RATE);
     const totalTtc = totalHt + totalTva;
-    const timbreFiscal = dto.paymentMethod === 'ESPECES' ? TIMBRE_FISCAL : 0;
+    const { amount: timbreFiscal, rate: timbreRate } = this.calculateTimbreFiscal(totalTtc, dto.paymentMethod);
     const netToPay = totalTtc + timbreFiscal;
 
     // Verify client exists
@@ -116,40 +133,114 @@ export class InvoicesService {
       throw new NotFoundException(`Client #${dto.clientId} introuvable`);
     }
 
-    // Create invoice with lines in transaction
-    const invoice = await this.prisma.$transaction(async (tx) => {
-      const inv = await tx.invoice.create({
-        data: {
-          reference,
+    // Credit limit check: prevent creating invoices beyond client limit
+    if (client.creditLimit && client.creditLimit > 0) {
+      const outstandingResult = await this.prisma.invoice.aggregate({
+        _sum: { netToPay: true },
+        where: {
           clientId: dto.clientId,
-          date: new Date(dto.date),
-          totalHt,
-          totalTva,
-          totalTtc,
-          timbreFiscal,
-          netToPay,
-          paymentMethod: dto.paymentMethod as any,
-          status: 'DRAFT',
-          userId,
-          lines: {
-            create: linesData.map((l) => ({
-              productPfId: l.productPfId,
-              quantity: l.quantity,
-              unitPriceHt: l.unitPriceHt,
-              lineHt: l.lineHt,
-            })),
-          },
-        },
-        include: {
-          client: { select: { code: true, name: true } },
-          lines: true,
+          status: { in: ['VALIDATED', 'PARTIALLY_PAID'] },
         },
       });
+      const outstanding = outstandingResult._sum.netToPay ?? 0;
+      if (outstanding + netToPay > client.creditLimit) {
+        throw new BadRequestException(
+          `Plafond de crédit dépassé pour ${client.name}: encours ${outstanding} + nouveau ${netToPay} > limite ${client.creditLimit}`,
+        );
+      }
+    }
 
-      return inv;
-    });
+    // Compute fiscal year BEFORE the transaction to avoid race condition
+    // in reference generation — yearPrefix is deterministic from dto.date
+    const currentYear = new Date(dto.date).getFullYear();
+    const yearPrefix = `F-${currentYear}`;
 
-    logger.info(`Invoice created: ${reference} for ${client.code} — ${netToPay} centimes`, 'InvoicesService');
+    // Retry loop for reference generation with unique constraint handling
+    const MAX_RETRIES = 3;
+    let invoice: any;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        invoice = await this.prisma.$transaction(async (tx) => {
+          // Validate all products exist
+          const productIds = dto.lines.map(l => l.productPfId);
+          const existingProducts = await tx.productPf.findMany({
+            where: { id: { in: productIds } },
+            select: { id: true },
+          });
+          const existingIds = new Set(existingProducts.map(p => p.id));
+          const missingIds = productIds.filter(id => !existingIds.has(id));
+          if (missingIds.length > 0) {
+            throw new BadRequestException(`Produits introuvables: ${missingIds.join(', ')}`);
+          }
+
+          // Generate reference inside transaction: F-YYYY-NNNNN (annual sequential)
+          // yearPrefix computed outside transaction to avoid recalculation on retry
+          const lastInvoice = await tx.invoice.findFirst({
+            where: { reference: { startsWith: yearPrefix } },
+            orderBy: { reference: 'desc' },
+          });
+
+          let nextNum = 1;
+          if (lastInvoice?.reference) {
+            const match = lastInvoice.reference.match(/-(\d+)$/);
+            if (match) nextNum = parseInt(match[1], 10) + 1;
+          }
+
+          const reference = `${yearPrefix}-${String(nextNum).padStart(5, '0')}`;
+
+          const inv = await tx.invoice.create({
+            data: {
+              reference,
+              clientId: dto.clientId,
+              date: new Date(dto.date),
+              fiscalYear: currentYear,
+              totalHt,
+              totalTva,
+              totalTtc,
+              timbreFiscal,
+              timbreRate,
+              netToPay,
+              paymentMethod: dto.paymentMethod as any,
+              status: 'DRAFT',
+              userId,
+              lines: {
+                create: linesData.map((l) => ({
+                  productPfId: l.productPfId,
+                  quantity: l.quantity,
+                  unitPriceHt: l.unitPriceHt,
+                  remise: l.remise,
+                  lineHt: l.lineHt,
+                })),
+              },
+            },
+            include: {
+              client: { select: { code: true, name: true } },
+              lines: true,
+            },
+          });
+
+          return inv;
+        }, {
+          isolationLevel: 'Serializable',
+          timeout: 10000,
+        });
+
+        break; // Success, exit retry loop
+      } catch (error: any) {
+        // Prisma unique constraint violation (P2002) or serialization failure (P2034/40001)
+        const isRetryable = error?.code === 'P2002' ||
+          error?.code === 'P2034' ||
+          error?.message?.includes('Unique constraint') ||
+          error?.message?.includes('could not serialize');
+        if (isRetryable && attempt < MAX_RETRIES - 1) {
+          continue; // Retry with incremented number
+        }
+        throw error;
+      }
+    }
+
+    logger.info(`Invoice created: ${invoice.reference} for ${client.code} — ${netToPay} centimes`, 'InvoicesService');
     return invoice;
   }
 
@@ -189,20 +280,62 @@ export class InvoicesService {
 
     // If lines are provided, recalculate everything
     if (dto.lines && dto.lines.length > 0) {
-      const linesData = dto.lines.map((line) => ({
-        productPfId: line.productPfId,
-        quantity: line.quantity,
-        unitPriceHt: line.unitPriceHt,
-        lineHt: line.quantity * line.unitPriceHt,
-      }));
+      // Validate line items before processing
+      for (const line of dto.lines) {
+        if (line.quantity <= 0) {
+          throw new BadRequestException(
+            `Quantité invalide (${line.quantity}) pour le produit #${line.productPfId}: doit être > 0`,
+          );
+        }
+        if (line.unitPriceHt < 0) {
+          throw new BadRequestException(
+            `Prix unitaire HT invalide (${line.unitPriceHt}) pour le produit #${line.productPfId}: doit être >= 0`,
+          );
+        }
+      }
+
+      const linesData = dto.lines.map((line) => {
+        const grossAmount = line.quantity * line.unitPriceHt;
+        const remise = Math.min(line.remise || 0, grossAmount); // Cap remise to line total
+        return {
+          productPfId: line.productPfId,
+          quantity: line.quantity,
+          unitPriceHt: line.unitPriceHt,
+          remise,
+          lineHt: grossAmount - remise,
+        };
+      });
 
       const totalHt = linesData.reduce((sum, l) => sum + l.lineHt, 0);
       const totalTva = Math.round(totalHt * TVA_RATE);
       const totalTtc = totalHt + totalTva;
-      const timbreFiscal = effectivePaymentMethod === 'ESPECES' ? TIMBRE_FISCAL : 0;
+      const { amount: timbreFiscal, rate: timbreRate } = this.calculateTimbreFiscal(totalTtc, effectivePaymentMethod);
       const netToPay = totalTtc + timbreFiscal;
 
       const updated = await this.prisma.$transaction(async (tx) => {
+        // Validate all products exist
+        const productIds = dto.lines!.map(l => l.productPfId);
+        const existingProducts = await tx.productPf.findMany({
+          where: { id: { in: productIds } },
+          select: { id: true },
+        });
+        const existingIds = new Set(existingProducts.map(p => p.id));
+        const missingIds = productIds.filter(id => !existingIds.has(id));
+        if (missingIds.length > 0) {
+          throw new BadRequestException(`Produits introuvables: ${missingIds.join(', ')}`);
+        }
+
+        // Safety check: only allow line deletion if invoice is DRAFT
+        const currentInvoice = await tx.invoice.findUnique({
+          where: { id },
+          select: { status: true },
+        });
+        if (!currentInvoice || currentInvoice.status !== 'DRAFT') {
+          throw new BadRequestException(
+            'Suppression des lignes interdite: seules les factures en brouillon (DRAFT) peuvent être modifiées',
+          );
+        }
+
         // Delete old lines
         await tx.invoiceLine.deleteMany({ where: { invoiceId: id } });
 
@@ -215,12 +348,14 @@ export class InvoicesService {
             totalTva,
             totalTtc,
             timbreFiscal,
+            timbreRate,
             netToPay,
             lines: {
               create: linesData.map((l) => ({
                 productPfId: l.productPfId,
                 quantity: l.quantity,
                 unitPriceHt: l.unitPriceHt,
+                remise: l.remise,
                 lineHt: l.lineHt,
               })),
             },
@@ -238,9 +373,10 @@ export class InvoicesService {
 
     // If only paymentMethod changed (no new lines), recalculate timbre
     if (dto.paymentMethod && dto.paymentMethod !== invoice.paymentMethod) {
-      const timbreFiscal = dto.paymentMethod === 'ESPECES' ? TIMBRE_FISCAL : 0;
+      const { amount: timbreFiscal, rate: timbreRate } = this.calculateTimbreFiscal(invoice.totalTtc, dto.paymentMethod);
       const netToPay = invoice.totalTtc + timbreFiscal;
       updateData.timbreFiscal = timbreFiscal;
+      updateData.timbreRate = timbreRate;
       updateData.netToPay = netToPay;
     }
 
@@ -258,45 +394,70 @@ export class InvoicesService {
   }
 
   /**
-   * Update invoice status (DRAFT → PAID or CANCELLED)
-   * Validates client fiscal data before allowing DRAFT → PAID
+   * Update invoice status with proper state machine
+   * DRAFT → VALIDATED, CANCELLED
+   * VALIDATED → PAID, PARTIALLY_PAID, CANCELLED
+   * PARTIALLY_PAID → PAID, CANCELLED
+   * PAID → (terminal)
+   * CANCELLED → (terminal)
+   * Validates client fiscal data before allowing transition to VALIDATED
    */
-  async updateStatus(id: number, dto: UpdateInvoiceStatusDto) {
+  async updateStatus(id: number, dto: UpdateInvoiceStatusDto, userId?: string) {
     const invoice = await this.findOne(id);
 
-    if (invoice.status === 'CANCELLED') {
-      throw new BadRequestException('Impossible de modifier une facture annulee');
+    // Status machine — validate transition
+    const validTransitions: Record<string, string[]> = {
+      'DRAFT': ['VALIDATED', 'CANCELLED'],
+      'VALIDATED': ['PAID', 'PARTIALLY_PAID', 'CANCELLED'],
+      'PARTIALLY_PAID': ['PAID', 'CANCELLED'],
+      'PAID': [],      // terminal
+      'CANCELLED': [], // terminal
+    };
+
+    const allowed = validTransitions[invoice.status];
+    if (!allowed || !allowed.includes(dto.status)) {
+      throw new BadRequestException(
+        `Transition invalide: ${invoice.status} → ${dto.status}. Transitions autorisées: ${allowed?.join(', ') || 'aucune'}`
+      );
     }
 
-    if (invoice.status === 'PAID' && dto.status === 'DRAFT') {
-      throw new BadRequestException('Impossible de remettre en brouillon une facture payee');
-    }
-
-    // Validation fiscale obligatoire avant passage à PAID
-    if (dto.status === 'PAID' && invoice.status === 'DRAFT') {
+    // Validation fiscale obligatoire avant passage à VALIDATED
+    if (dto.status === 'VALIDATED') {
       const client = await this.prisma.client.findUnique({
         where: { id: invoice.clientId },
       });
 
-      if (client) {
-        const missingFields: string[] = [];
-        if (!client.nif || client.nif.trim() === '') missingFields.push('NIF');
-        if (!client.rc || client.rc.trim() === '') missingFields.push('RC');
-        if (!client.ai || client.ai.trim() === '') missingFields.push("AI (Article d'imposition)");
-
-        if (missingFields.length > 0) {
-          throw new BadRequestException(
-            `Impossible de valider la facture : le client ${client.name} n'a pas les coordonnées fiscales complètes. ` +
-            `Champs manquants : ${missingFields.join(', ')}. ` +
-            `Veuillez mettre à jour la fiche client avant de valider.`,
-          );
-        }
+      if (!client) {
+        throw new NotFoundException(`Client #${invoice.clientId} introuvable`);
       }
+
+      const missingFields: string[] = [];
+      if (!client.nif || (typeof client.nif === 'string' && client.nif.trim() === '')) missingFields.push('NIF');
+      if (!client.rc || (typeof client.rc === 'string' && client.rc.trim() === '')) missingFields.push('RC');
+      if (!client.ai || (typeof client.ai === 'string' && client.ai.trim() === '')) missingFields.push("AI (Article d'imposition)");
+
+      if (missingFields.length > 0) {
+        throw new BadRequestException(
+          `Impossible de valider la facture : le client ${client.name} n'a pas les coordonnées fiscales complètes. ` +
+          `Champs manquants : ${missingFields.join(', ')}. ` +
+          `Veuillez mettre à jour la fiche client avant de valider.`,
+        );
+      }
+    }
+
+    // Build update data
+    const updateData: any = { status: dto.status as any };
+
+    // Cancellation tracking
+    if (dto.status === 'CANCELLED') {
+      updateData.cancellationReason = dto.cancellationReason || null;
+      updateData.cancelledBy = userId;
+      updateData.cancelledAt = new Date();
     }
 
     const updated = await this.prisma.invoice.update({
       where: { id },
-      data: { status: dto.status as any },
+      data: updateData,
       include: {
         client: { select: { code: true, name: true } },
       },

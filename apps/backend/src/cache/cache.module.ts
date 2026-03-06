@@ -90,7 +90,8 @@ import { logger } from '../common/logger/logger.service';
               ttl: defaultTtl,
             };
           } catch (error) {
-            logger.warn(`Redis connection failed, using in-memory cache: ${error.message}`, 'Cache');
+            const message = error instanceof Error ? error.message : String(error);
+            logger.warn(`Redis connection failed, using in-memory cache: ${message}`, 'Cache');
             return {
               ttl: defaultTtl,
             };

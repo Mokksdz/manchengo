@@ -33,7 +33,7 @@ interface InventoryDeclaration {
   differencePercent: number;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   status: string;
-  countedBy: { firstName: string; lastName: string };
+  countedBy: { id?: string; firstName: string; lastName: string };
   countedAt: string;
   validatedBy?: { firstName: string; lastName: string };
   validatedAt?: string;
@@ -272,8 +272,7 @@ function DeclarationCard({
   const [reason, setReason] = useState('');
 
   const isPending = d.status.includes('PENDING') || d.status === 'FIRST_VALIDATION_DONE';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isOwnDeclaration = currentUserId === (d.countedBy as any)?.id;
+  const isOwnDeclaration = currentUserId === d.countedBy?.id;
 
   return (
     <div className="glass-card-hover rounded-[28px] overflow-hidden">

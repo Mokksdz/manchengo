@@ -555,20 +555,19 @@ export default function ProductionDetailPage() {
       {/* Tabs */}
       <div className="border-b border-black/[0.04]">
         <nav className="flex gap-8" role="tablist" aria-label="Sections production">
-          {[
-            { key: 'params', label: 'Paramètres', icon: Settings },
-            { key: 'recipe', label: 'Recette', icon: Beaker },
-            { key: 'batch', label: 'Batch & Emballage', icon: Layers },
-            { key: 'history', label: 'Historique', icon: History },
-          ].map((tab) => (
+          {([
+            { key: 'params' as const, label: 'Paramètres', icon: Settings },
+            { key: 'recipe' as const, label: 'Recette', icon: Beaker },
+            { key: 'batch' as const, label: 'Batch & Emballage', icon: Layers },
+            { key: 'history' as const, label: 'Historique', icon: History },
+          ] satisfies { key: typeof activeTab; label: string; icon: typeof Settings }[]).map((tab) => (
             <button
               key={tab.key}
               role="tab"
               aria-selected={activeTab === tab.key}
               aria-controls={`panel-${tab.key}`}
               id={`tab-${tab.key}`}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onClick={() => setActiveTab(tab.key as any)}
+              onClick={() => setActiveTab(tab.key)}
               className={cn(
                 'pb-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2',
                 activeTab === tab.key

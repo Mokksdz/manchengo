@@ -41,13 +41,32 @@ export function formatRelativeTime(date: string | Date): string {
 // Status badge color
 export function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
-    PAID: 'bg-[#34C759]/10 text-[#34C759]',
+    PAID: 'bg-[#34C759]/10 text-[#248A3D]',
     DRAFT: 'bg-[#F5F5F7] text-[#86868B]',
-    CANCELLED: 'bg-[#FF3B30]/10 text-[#FF3B30]',
-    PENDING: 'bg-[#FF9500]/10 text-[#FF9500]',
+    VALIDATED: 'bg-[#007AFF]/10 text-[#007AFF]',
+    PARTIALLY_PAID: 'bg-[#FF9500]/10 text-[#C93400]',
+    CANCELLED: 'bg-[#FF3B30]/10 text-[#D70015]',
+    PENDING: 'bg-[#FF9500]/10 text-[#C93400]',
     IN_PROGRESS: 'bg-[#007AFF]/10 text-[#007AFF]',
-    COMPLETED: 'bg-[#34C759]/10 text-[#34C759]',
+    COMPLETED: 'bg-[#34C759]/10 text-[#248A3D]',
+    DELIVERED: 'bg-[#34C759]/10 text-[#248A3D]',
   };
   return colors[status] || 'bg-[#F5F5F7] text-[#86868B]';
+}
+
+// Status label (French)
+export function getStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    DRAFT: 'Brouillon',
+    VALIDATED: 'Validée',
+    PARTIALLY_PAID: 'Part. payée',
+    PAID: 'Payée',
+    CANCELLED: 'Annulée',
+    PENDING: 'En attente',
+    IN_PROGRESS: 'En cours',
+    COMPLETED: 'Terminée',
+    DELIVERED: 'Livrée',
+  };
+  return labels[status] || status;
 }
 

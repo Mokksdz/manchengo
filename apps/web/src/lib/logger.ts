@@ -103,7 +103,8 @@ export function createLogger(module: string) {
       if (!shouldLog('error')) return;
       const m = normalizeMeta(meta);
       const entry = createLogEntry('error', module, message, m);
-      console.warn(formatLog(entry), m || '');
+      // eslint-disable-next-line no-console
+      console.error(formatLog(entry), m || '');
 
       // Send errors to Sentry in production
       if (!isDev && typeof window !== 'undefined') {

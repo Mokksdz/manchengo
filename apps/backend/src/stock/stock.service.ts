@@ -194,8 +194,15 @@ export class StockService {
     }
 
     // 4-6. Transaction: stock check + movement creation (atomic)
+    // IMPORTANT: The stock availability check for OUT movements MUST happen
+    // INSIDE the transaction to prevent check-then-act race conditions.
+    // Without serializable isolation, two concurrent OUT movements could both
+    // read the same stock level, both pass the check, and both create movements
+    // resulting in negative stock. The Serializable isolation level ensures that
+    // the stock read + movement write are atomic — concurrent transactions will
+    // be aborted with a serialization failure and must retry.
     const { movement, stockBefore } = await this.prisma.$transaction(async (tx) => {
-      // Vérification stock suffisant pour les sorties
+      // Stock check INSIDE transaction: prevents TOCTOU race condition
       if (data.movementType === 'OUT') {
         const currentStock = await this.calculateStockInTransaction(tx, data.productType, data.productId);
         if (currentStock < data.quantity) {
@@ -205,7 +212,7 @@ export class StockService {
         }
       }
 
-      // Capture before state for audit
+      // Capture before state for audit (also inside transaction for consistency)
       const txStockBefore = await this.calculateStockInTransaction(tx, data.productType, data.productId);
 
       // Création du mouvement
@@ -361,6 +368,30 @@ export class StockService {
         })),
       });
 
+      // Create LotMp records for each line (connects FIFO system to stock)
+      for (const line of reception.lines) {
+        const today = new Date();
+        const dateStr = today.toISOString().slice(2, 10).replace(/-/g, '');
+        const lotCount = await tx.lotMp.count({
+          where: { lotNumber: { startsWith: `LMP-${dateStr}` } },
+        });
+        const lotNumber = line.lotNumber || `LMP-${dateStr}-${String(lotCount + 1).padStart(3, '0')}`;
+
+        await tx.lotMp.create({
+          data: {
+            productId: line.productMpId,
+            lotNumber,
+            quantityInitial: line.quantity,
+            quantityRemaining: line.quantity,
+            expiryDate: line.expiryDate,
+            supplierId: data.supplierId,
+            receptionId: reception.id,
+            unitCost: line.unitCost ?? 0,
+            isActive: true,
+          },
+        });
+      }
+
       return reception;
     });
 
@@ -387,51 +418,59 @@ export class StockService {
     // ADMIN ONLY
     this.validateRoleForOrigin('INVENTAIRE', userRole);
 
-    // Calcul stock théorique actuel
-    const theoreticalStock = await this.calculateStock(data.productType, data.productId);
+    // Atomic: read stock + create adjustment in a single transaction
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Calcul stock théorique actuel (inside transaction to prevent TOCTOU)
+      const theoreticalStock = await this.calculateStockInTransaction(tx, data.productType, data.productId);
 
-    // Calcul différence
-    const difference = data.physicalQuantity - theoreticalStock;
+      // Calcul différence
+      const difference = data.physicalQuantity - theoreticalStock;
 
-    if (difference === 0) {
+      if (difference === 0) {
+        return {
+          message: 'Aucun ajustement nécessaire - stock conforme',
+          theoreticalStock,
+          physicalQuantity: data.physicalQuantity,
+          difference: 0,
+        };
+      }
+
+      // Générer référence inventaire
+      const today = new Date();
+      const reference = `INV-${today.toISOString().slice(0, 10).replace(/-/g, '')}-${Date.now().toString(36).toUpperCase()}`;
+
+      // Créer mouvement d'ajustement
+      const movement = await tx.stockMovement.create({
+        data: {
+          movementType: difference > 0 ? 'IN' : 'OUT',
+          productType: data.productType,
+          origin: 'INVENTAIRE',
+          productMpId: data.productType === 'MP' ? data.productId : null,
+          productPfId: data.productType === 'PF' ? data.productId : null,
+          quantity: Math.abs(difference),
+          reference,
+          userId,
+          note: `Inventaire: ${data.reason} | Théorique: ${theoreticalStock}, Physique: ${data.physicalQuantity}, Écart: ${difference > 0 ? '+' : ''}${difference}`,
+        },
+      });
+
       return {
-        message: 'Aucun ajustement nécessaire - stock conforme',
+        message: difference > 0 ? 'Stock ajusté à la hausse' : 'Stock ajusté à la baisse',
         theoreticalStock,
         physicalQuantity: data.physicalQuantity,
-        difference: 0,
-      };
-    }
-
-    // Générer référence inventaire
-    const today = new Date();
-    const reference = `INV-${today.toISOString().slice(0, 10).replace(/-/g, '')}-${Date.now().toString(36).toUpperCase()}`;
-
-    // Créer mouvement d'ajustement
-    const movement = await this.prisma.stockMovement.create({
-      data: {
-        movementType: difference > 0 ? 'IN' : 'OUT',
-        productType: data.productType,
-        origin: 'INVENTAIRE',
-        productMpId: data.productType === 'MP' ? data.productId : null,
-        productPfId: data.productType === 'PF' ? data.productId : null,
-        quantity: Math.abs(difference),
+        difference,
+        movementId: movement.id,
         reference,
-        userId,
-        note: `Inventaire: ${data.reason} | Théorique: ${theoreticalStock}, Physique: ${data.physicalQuantity}, Écart: ${difference > 0 ? '+' : ''}${difference}`,
-      },
+      };
+    }, {
+      isolationLevel: 'Serializable',
+      timeout: 10000,
     });
 
     // Invalidate stock cache after inventory adjustment
     await this.cacheService.invalidateStockCache();
 
-    return {
-      message: difference > 0 ? 'Stock ajusté à la hausse' : 'Stock ajusté à la baisse',
-      theoreticalStock,
-      physicalQuantity: data.physicalQuantity,
-      difference,
-      movementId: movement.id,
-      reference,
-    };
+    return result;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -554,6 +593,27 @@ export class StockService {
           },
         });
 
+        // 5b. Create LotPf record (connects FIFO system to stock)
+        const todayLot = new Date();
+        const dateStrLot = todayLot.toISOString().slice(2, 10).replace(/-/g, '');
+        const lotCount = await tx.lotPf.count({
+          where: { lotNumber: { startsWith: `LPF-${dateStrLot}` } },
+        });
+        const lotNumber = `LPF-${dateStrLot}-${String(lotCount + 1).padStart(3, '0')}`;
+
+        await tx.lotPf.create({
+          data: {
+            productId: order.productPfId,
+            lotNumber,
+            quantityInitial: quantityProduced,
+            quantityRemaining: quantityProduced,
+            manufactureDate: new Date(),
+            productionOrderId: order.id,
+            unitCost: pfUnitCost,
+            isActive: true,
+          },
+        });
+
         // 6. Mettre à jour ordre de production
         return tx.productionOrder.update({
           where: { id: orderId },
@@ -668,21 +728,67 @@ export class StockService {
         throw new BadRequestException(`Stock PF insuffisant — ${errors.join('; ')}`);
       }
 
-      // Batch create movements via createMany (1 query instead of N)
-      await tx.stockMovement.createMany({
-        data: lines.map((line) => ({
-          movementType: 'OUT' as MovementType,
-          productType: 'PF' as ProductType,
-          origin: 'VENTE' as MovementOrigin,
-          productPfId: line.productPfId,
-          quantity: line.quantity,
-          referenceType: 'INVOICE',
-          referenceId: invoiceId,
-          reference: invoiceReference,
-          userId,
-          note: `Vente facture ${invoiceReference}`,
-        })),
-      });
+      // Consume PF lots in FIFO order and create movements with lot references
+      for (const line of lines) {
+        let remainingQty = line.quantity;
+
+        // Get available PF lots sorted by FIFO (oldest first, expiry first)
+        const availableLots = await tx.lotPf.findMany({
+          where: {
+            productId: line.productPfId,
+            status: 'AVAILABLE',
+            quantityRemaining: { gt: 0 },
+          },
+          orderBy: [
+            { expiryDate: 'asc' },
+            { createdAt: 'asc' },
+          ],
+        });
+
+        for (const lot of availableLots) {
+          if (remainingQty <= 0) break;
+
+          const lotQty = Number(lot.quantityRemaining);
+          const toConsume = Math.min(lotQty, remainingQty);
+          const newQty = lotQty - toConsume;
+
+          // Update lot quantity
+          await tx.lotPf.update({
+            where: { id: lot.id },
+            data: {
+              quantityRemaining: newQty,
+              isActive: newQty > 0,
+              status: newQty === 0 ? 'CONSUMED' : 'AVAILABLE',
+              consumedAt: newQty === 0 ? new Date() : undefined,
+            },
+          });
+
+          // Create stock movement WITH lot reference
+          await tx.stockMovement.create({
+            data: {
+              movementType: 'OUT' as MovementType,
+              productType: 'PF' as ProductType,
+              origin: 'VENTE' as MovementOrigin,
+              productPfId: line.productPfId,
+              lotPfId: lot.id,
+              quantity: toConsume,
+              referenceType: 'INVOICE',
+              referenceId: invoiceId,
+              reference: invoiceReference,
+              userId,
+              note: `Vente facture ${invoiceReference} - Lot ${lot.lotNumber}`,
+            },
+          });
+
+          remainingQty -= toConsume;
+        }
+
+        if (remainingQty > 0) {
+          throw new BadRequestException(
+            `Stock PF insuffisant pour ${line.productPfId}: manque ${remainingQty} unités`,
+          );
+        }
+      }
 
       return { success: true, linesProcessed: lines.length };
     };

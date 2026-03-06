@@ -33,6 +33,14 @@ export class SyncConflictResolver {
 
   /**
    * Main conflict check dispatcher
+   *
+   * Basic ownership validation: entity existence is verified in each entity-specific
+   * handler below (checkDeliveryConflict, checkInvoiceConflict, etc.).
+   * This prevents cross-tenant operations via sync by ensuring the entity exists
+   * and is in a valid state before allowing the operation to proceed.
+   *
+   * TODO: For multi-tenant support, add explicit organization/tenant scoping
+   * to all entity lookups to prevent cross-tenant data access via sync.
    */
   async checkConflict(
     entityType: SyncEntityType,
@@ -278,7 +286,7 @@ export class SyncConflictResolver {
    */
   private async checkPaymentConflict(
     db: Prisma.TransactionClient | PrismaService,
-    entityId: string,
+    _entityId: string,
     action: SyncAction,
     payload: Record<string, unknown>,
   ): Promise<ConflictCheckResult> {

@@ -137,6 +137,9 @@ export function createFocusTrap(container: HTMLElement): {
       container.removeEventListener('keydown', handleKeyDown);
       if (previousFocusElement && document.body.contains(previousFocusElement)) {
         previousFocusElement.focus();
+      } else {
+        // Fallback: restore focus to body if original element is no longer in the DOM
+        document.body.focus();
       }
     },
   };

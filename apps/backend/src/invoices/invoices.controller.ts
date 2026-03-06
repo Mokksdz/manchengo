@@ -11,6 +11,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -56,7 +57,8 @@ export class InvoicesController {
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateInvoiceDto, @Req() req: any) {
-    const userId = req.user?.id || req.user?.sub;
+    const userId = req.user?.id ?? req.user?.sub;
+    if (!userId) throw new UnauthorizedException('User ID not found in token');
     return this.invoicesService.create(dto, userId);
   }
 
@@ -67,7 +69,8 @@ export class InvoicesController {
     @Body() dto: UpdateInvoiceDto,
     @Req() req: any,
   ) {
-    const userId = req.user?.id || req.user?.sub;
+    const userId = req.user?.id ?? req.user?.sub;
+    if (!userId) throw new UnauthorizedException('User ID not found in token');
     return this.invoicesService.update(id, dto, userId);
   }
 
@@ -76,7 +79,9 @@ export class InvoicesController {
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateInvoiceStatusDto,
+    @Req() req: any,
   ) {
-    return this.invoicesService.updateStatus(id, dto);
+    const userId = req.user?.id ?? req.user?.sub;
+    return this.invoicesService.updateStatus(id, dto, userId);
   }
 }

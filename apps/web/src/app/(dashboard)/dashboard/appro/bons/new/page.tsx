@@ -331,8 +331,10 @@ export default function NewBonCommandePage() {
         const mp = allProducts.find((p) => p.id === value);
         if (mp?.lastPrice) updated[idx].unitPrice = mp.lastPrice;
       }
-    } else {
-      (updated[idx] as unknown as Record<string, number | null>)[field] = value;
+    } else if (field === 'quantity') {
+      updated[idx].quantity = value ?? 0;
+    } else if (field === 'unitPrice') {
+      updated[idx].unitPrice = value ?? 0;
     }
     setLines(updated);
   };

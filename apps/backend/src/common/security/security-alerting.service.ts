@@ -60,8 +60,8 @@ export class SecurityAlertingService implements OnModuleInit {
   private readonly BRUTE_FORCE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
   constructor(
-    private configService: ConfigService,
-    private prisma: PrismaService,
+    configService: ConfigService,
+    _prisma: PrismaService,
   ) {
     const isProduction = configService.get('NODE_ENV') === 'production';
     this.enabled = configService.get('SECURITY_ALERT_ENABLED', isProduction ? 'true' : 'false') === 'true';

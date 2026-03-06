@@ -7,6 +7,7 @@ import {
   SubscribeMessage,
 } from '@nestjs/websockets';
 import { Logger, OnModuleDestroy } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 
 /**
@@ -63,6 +64,8 @@ export class DashboardGateway
 {
   private readonly logger = new Logger(DashboardGateway.name);
 
+  constructor(private readonly jwtService: JwtService) {}
+
   @WebSocketServer()
   server: Server;
 
@@ -96,9 +99,32 @@ export class DashboardGateway
 
   handleConnection(client: Socket) {
     // Verify auth token from handshake
-    const token = client.handshake.auth?.token || client.handshake.headers?.authorization;
+    // SECURITY NOTE: The header fallback (handshake.headers.authorization) is kept for
+    // mobile/desktop clients that cannot use socket.io auth object. However, header-based
+    // auth is less secure as tokens may be logged in proxies/load balancers. Prefer
+    // handshake.auth.token when possible.
+    const tokenFromAuth = client.handshake.auth?.token;
+    const tokenFromHeader = client.handshake.headers?.authorization;
+    if (tokenFromHeader && !tokenFromAuth) {
+      this.logger.warn(
+        `Client ${client.id} using header-based auth fallback — consider migrating to handshake.auth.token`,
+      );
+    }
+    const token = tokenFromAuth || tokenFromHeader;
     if (!token) {
       this.logger.warn(`Client ${client.id} rejected: no auth token`);
+      client.disconnect(true);
+      return;
+    }
+
+    // Verify JWT token
+    try {
+      const payload = this.jwtService.verify(token.replace('Bearer ', ''), {
+        secret: process.env.JWT_SECRET,
+      });
+      client.data.userId = payload.sub || payload.id;
+    } catch (err) {
+      this.logger.warn(`Client ${client.id} rejected: invalid token`);
       client.disconnect(true);
       return;
     }

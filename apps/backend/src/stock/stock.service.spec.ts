@@ -47,7 +47,7 @@ describe('StockService - Invariants metier', () => {
   };
 
   const mockCacheService = {
-    getOrSet: jest.fn((key: string, fn: () => any) => fn()),
+    getOrSet: jest.fn((_key: string, fn: () => any) => fn()),
     buildStockKey: jest.fn((type: string) => `stock:${type}`),
     invalidateStockCache: jest.fn().mockResolvedValue(undefined),
     invalidateProductionCache: jest.fn().mockResolvedValue(undefined),

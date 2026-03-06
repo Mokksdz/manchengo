@@ -78,7 +78,7 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
         });
       }
     } catch (err) {
-      logger.warn(`Redis throttler init failed, using in-memory: ${err.message}`, 'Throttler');
+      logger.warn(`Redis throttler init failed, using in-memory: ${err instanceof Error ? err.message : String(err)}`, 'Throttler');
       this.redis = null;
     }
   }
@@ -155,7 +155,7 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
         timeToBlockExpire: 0,
       };
     } catch (err) {
-      logger.warn(`Redis throttler error, falling back: ${err.message}`, 'Throttler');
+      logger.warn(`Redis throttler error, falling back: ${err instanceof Error ? err.message : String(err)}`, 'Throttler');
       return this.incrementMemory(storageKey, '', ttlSeconds, limit, blockSeconds);
     }
   }

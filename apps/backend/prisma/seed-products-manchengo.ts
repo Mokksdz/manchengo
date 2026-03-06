@@ -300,7 +300,8 @@ const EMBALLAGES_MP = [
  * Génère un code produit séquentiel si pas fourni
  */
 let pfCounter = 100;
-function getNextPfCode(): string {
+// @ts-expect-error TS6133 — kept for future use
+function _getNextPfCode(): string {
   return `PF-${String(++pfCounter).padStart(3, '0')}`;
 }
 

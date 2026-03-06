@@ -45,7 +45,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly previousSecret: string | undefined;
 
   constructor(
-    private configService: ConfigService,
+    configService: ConfigService,
     private authService: AuthService,
   ) {
     super({
@@ -69,7 +69,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * If the primary secret fails AND JWT_SECRET_PREVIOUS is set,
    * we attempt verification with the old secret (N-1 acceptance).
    */
-  async validate(req: Request, payload: TokenPayload) {
+  async validate(_req: Request, payload: TokenPayload) {
     const user = await this.authService.validateUser(payload);
     if (!user) {
       throw new UnauthorizedException('Token invalide ou expiré');
@@ -82,7 +82,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * If primary verification fails and a previous secret exists,
    * manually verify with the old key before rejecting.
    */
-  handleRequest(err: any, user: any, info: any, context: any) {
+  handleRequest(err: any, user: any, _info: any, context: any) {
     if ((err || !user) && this.previousSecret) {
       // Try N-1 verification with previous secret
       try {

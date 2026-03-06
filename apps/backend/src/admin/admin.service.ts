@@ -72,7 +72,8 @@ export class AdminService {
   // STOCK OVERVIEW - Calculé depuis les mouvements (jamais de stock en dur)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  private async calculateStockFromMovements(
+  // @ts-expect-error TS6133 — kept for future use
+  private async _calculateStockFromMovements(
     productType: 'MP' | 'PF',
     productId: number,
   ): Promise<number> {

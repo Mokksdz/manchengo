@@ -83,7 +83,7 @@ export class LicensingController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Activate license key' })
   async activateLicense(
-    @Request() req: any,
+    @Request() _req: any,
     @Body() body: { licenseKey: string; companyId: string },
   ) {
     return this.licensingService.activateLicense(body.licenseKey, body.companyId);

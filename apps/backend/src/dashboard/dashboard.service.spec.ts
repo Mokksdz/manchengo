@@ -57,7 +57,7 @@ describe('DashboardService', () => {
   };
 
   const mockCacheService = {
-    getOrSet: jest.fn((key: string, fn: () => any) => fn()),
+    getOrSet: jest.fn((_key: string, fn: () => any) => fn()),
     buildKpiKey: jest.fn((role?: string) => `dashboard:kpi${role ? ':' + role : ''}`),
     buildChartKey: jest.fn((chartType: string, days: number) => `chart:${chartType}:${days}d`),
     buildSyncKey: jest.fn((type: string) => `sync:${type}`),
@@ -76,7 +76,7 @@ describe('DashboardService', () => {
     jest.clearAllMocks();
 
     // Re-apply the default mock since clearAllMocks resets implementations
-    mockCacheService.getOrSet.mockImplementation((key: string, fn: () => any) => fn());
+    mockCacheService.getOrSet.mockImplementation((_key: string, fn: () => any) => fn());
     mockCacheService.buildKpiKey.mockImplementation((role?: string) => `dashboard:kpi${role ? ':' + role : ''}`);
     mockCacheService.buildChartKey.mockImplementation((chartType: string, days: number) => `chart:${chartType}:${days}d`);
     mockCacheService.buildSyncKey.mockImplementation((type: string) => `sync:${type}`);

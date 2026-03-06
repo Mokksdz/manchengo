@@ -6,6 +6,7 @@ import {
   IsArray,
   IsDateString,
   ValidateNested,
+  ValidateIf,
   ArrayMinSize,
   Min,
   Max,
@@ -44,11 +45,13 @@ export class ReceptionLineDto {
 
   @ApiPropertyOptional({ description: 'Date d\'expiration (DLC)', example: '2024-06-30' })
   @IsOptional()
+  @ValidateIf((o) => o.expiryDate !== undefined)
   @IsDateString({}, { message: 'expiryDate doit être une date valide ISO' })
   expiryDate?: string;
 
   @ApiPropertyOptional({ description: 'Date de fabrication', example: '2024-01-15' })
   @IsOptional()
+  @ValidateIf((o) => o.manufactureDate !== undefined)
   @IsDateString({}, { message: 'manufactureDate doit être une date valide ISO' })
   manufactureDate?: string;
 

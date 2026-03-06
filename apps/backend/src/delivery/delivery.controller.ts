@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import {
@@ -86,7 +87,8 @@ export class DeliveryController {
     @Body() dto: ValidateDeliveryDto,
     @Req() req: Request,
   ) {
-    const user = req.user as { id: string; role: string };
+    const user = req.user as { id?: string; role?: string };
+    if (!user?.id) throw new UnauthorizedException('User ID not found');
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
@@ -161,7 +163,8 @@ export class DeliveryController {
     @Body() dto: CreateDeliveryDto,
     @Req() req: Request,
   ) {
-    const user = req.user as { id: string; role: string };
+    const user = req.user as { id?: string; role?: string };
+    if (!user?.id) throw new UnauthorizedException('User ID not found');
     return this.deliveryService.createDelivery(dto, user.id);
   }
 
@@ -185,7 +188,8 @@ export class DeliveryController {
     @Body() dto: CancelDeliveryDto,
     @Req() req: Request,
   ) {
-    const user = req.user as { id: string; role: string };
+    const user = req.user as { id?: string; role?: string };
+    if (!user?.id) throw new UnauthorizedException('User ID not found');
     const ipAddress = req.ip || req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
 

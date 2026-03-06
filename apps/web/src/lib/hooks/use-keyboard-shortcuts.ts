@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 
 export interface ShortcutConfig {
   key: string;
@@ -20,8 +20,11 @@ export interface ShortcutConfig {
  * useEscapeKey usage (Escape is intentionally not handled here).
  */
 export function useKeyboardShortcuts(shortcuts: ShortcutConfig[]) {
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+  const shortcutsRef = useRef(shortcuts);
+  shortcutsRef.current = shortcuts;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore when typing in form fields
       const target = e.target as HTMLElement;
       const tagName = target.tagName.toLowerCase();
@@ -46,7 +49,7 @@ export function useKeyboardShortcuts(shortcuts: ShortcutConfig[]) {
 
       const pressedKey = e.key.toLowerCase();
 
-      for (const shortcut of shortcuts) {
+      for (const shortcut of shortcutsRef.current) {
         if (shortcut.disabled) continue;
         if (shortcut.key.toLowerCase() === pressedKey) {
           e.preventDefault();
@@ -54,12 +57,9 @@ export function useKeyboardShortcuts(shortcuts: ShortcutConfig[]) {
           return;
         }
       }
-    },
-    [shortcuts]
-  );
+    };
 
-  useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  }, []);
 }

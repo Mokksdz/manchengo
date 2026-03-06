@@ -63,31 +63,34 @@ export class ApproAlertService {
    * Une alerte est considérée identique si: même type + même entityId + non accusée
    */
   async createAlert(input: CreateApproAlertInput): Promise<ApproAlert | null> {
-    // Vérifier si une alerte identique non accusée existe déjà
-    const existingAlert = await this.prisma.approAlert.findFirst({
-      where: {
-        type: input.type,
-        entityType: input.entityType,
-        entityId: input.entityId,
-        acknowledgedAt: null, // Non accusée
-      },
-    });
+    // Atomic check-then-create inside a transaction to prevent duplicate alerts
+    return this.prisma.$transaction(async (tx) => {
+      // Vérifier si une alerte identique non accusée existe déjà
+      const existingAlert = await tx.approAlert.findFirst({
+        where: {
+          type: input.type,
+          entityType: input.entityType,
+          entityId: input.entityId,
+          acknowledgedAt: null, // Non accusée
+        },
+      });
 
-    if (existingAlert) {
-      // RÈGLE: Pas de duplication - retourner l'alerte existante
-      return existingAlert;
-    }
+      if (existingAlert) {
+        // RÈGLE: Pas de duplication - retourner l'alerte existante
+        return existingAlert;
+      }
 
-    // Créer la nouvelle alerte
-    return this.prisma.approAlert.create({
-      data: {
-        type: input.type,
-        niveau: input.niveau,
-        entityType: input.entityType,
-        entityId: input.entityId,
-        message: input.message,
-        metadata: input.metadata ? JSON.parse(JSON.stringify(input.metadata)) : undefined,
-      },
+      // Créer la nouvelle alerte
+      return tx.approAlert.create({
+        data: {
+          type: input.type,
+          niveau: input.niveau,
+          entityType: input.entityType,
+          entityId: input.entityId,
+          message: input.message,
+          metadata: input.metadata ? JSON.parse(JSON.stringify(input.metadata)) : undefined,
+        },
+      });
     });
   }
 
@@ -216,29 +219,32 @@ export class ApproAlertService {
    * L'accusé de réception est la preuve que l'utilisateur a vu l'alerte
    */
   async acknowledgeAlert(alertId: number, userId: string): Promise<ApproAlert> {
-    const alert = await this.prisma.approAlert.findUnique({
-      where: { id: alertId },
-    });
+    // Atomic check-and-update to prevent double acknowledgement
+    return this.prisma.$transaction(async (tx) => {
+      const alert = await tx.approAlert.findUnique({
+        where: { id: alertId },
+      });
 
-    if (!alert) {
-      throw new BadRequestException(`Alerte ${alertId} introuvable`);
-    }
+      if (!alert) {
+        throw new BadRequestException(`Alerte ${alertId} introuvable`);
+      }
 
-    if (alert.acknowledgedAt) {
-      throw new BadRequestException(`Alerte ${alertId} déjà accusée`);
-    }
+      if (alert.acknowledgedAt) {
+        throw new BadRequestException(`Alerte ${alertId} déjà accusée`);
+      }
 
-    return this.prisma.approAlert.update({
-      where: { id: alertId },
-      data: {
-        acknowledgedAt: new Date(),
-        acknowledgedBy: userId,
-      },
-      include: {
-        acknowledgedByUser: {
-          select: { id: true, firstName: true, lastName: true },
+      return tx.approAlert.update({
+        where: { id: alertId },
+        data: {
+          acknowledgedAt: new Date(),
+          acknowledgedBy: userId,
         },
-      },
+        include: {
+          acknowledgedByUser: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      });
     });
   }
 
@@ -448,8 +454,8 @@ export class ApproAlertService {
 
     for (const mp of mpWithMetrics) {
       const stock = await this.calculateMpStock(mp.id);
-      const joursCouverture = mp.consommationMoyJour && mp.consommationMoyJour > 0
-        ? stock / mp.consommationMoyJour
+      const joursCouverture = mp.consommationMoyJour && Number(mp.consommationMoyJour) > 0
+        ? stock / Number(mp.consommationMoyJour)
         : null;
 
       if (joursCouverture !== null && joursCouverture < mp.leadTimeFournisseur) {
@@ -492,14 +498,14 @@ export class ApproAlertService {
     for (const supplier of suppliers) {
       if (supplier.tauxRetard) {
         // Calculer le nouveau grade
-        const newGrade = this.calculateGrade(supplier.tauxRetard);
+        const newGrade = this.calculateGrade(Number(supplier.tauxRetard));
         
         if (newGrade !== supplier.grade) {
           const alert = await this.createFournisseurRetardAlert(
             supplier.id,
             supplier.name,
             supplier.code,
-            supplier.tauxRetard,
+            Number(supplier.tauxRetard),
             supplier.grade,
             newGrade,
           );
@@ -511,6 +517,50 @@ export class ApproAlertService {
     }
 
     return created;
+  }
+
+  /**
+   * Vérifie et réactive les alertes dont le report a expiré
+   *
+   * RÈGLE MÉTIER: Après expiration du délai de report, l'alerte redevient active
+   * À appeler périodiquement (cron job) ou à chaque accès au dashboard APPRO
+   */
+  async checkExpiredPostponements(): Promise<void> {
+    // Récupérer les alertes non accusées qui ont des métadonnées de report
+    const postponedAlerts = await this.prisma.approAlert.findMany({
+      where: {
+        acknowledgedAt: null,
+        metadata: {
+          path: ['postponed'],
+          equals: true,
+        },
+      },
+    });
+
+    const now = new Date();
+
+    for (const alert of postponedAlerts) {
+      const metadata = (alert.metadata as Record<string, unknown>) || {};
+      const expiresAtStr = metadata.postponeExpiresAt as string | undefined;
+
+      if (expiresAtStr) {
+        const expiresAt = new Date(expiresAtStr);
+        if (expiresAt < now) {
+          // Report expiré: réactiver l'alerte en supprimant les métadonnées de report
+          await this.prisma.approAlert.update({
+            where: { id: alert.id },
+            data: {
+              metadata: {
+                ...metadata,
+                postponed: false,
+                postponeExpired: true,
+                postponeExpiredAt: now.toISOString(),
+              },
+            },
+          });
+        }
+      }
+    }
   }
 
   /**

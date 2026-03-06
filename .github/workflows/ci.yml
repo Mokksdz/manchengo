@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
   schedule:
     # Weekly dependency scan: Monday 06:00 UTC
     - cron: '0 6 * * 1'
@@ -71,8 +72,7 @@ jobs:
         run: npx prisma generate
 
       - name: Security Audit
-        run: npm audit --audit-level=high
-        continue-on-error: true
+        run: npm audit --audit-level=critical
 
       - name: Lint
         run: npm run lint
@@ -121,8 +121,7 @@ jobs:
         run: npm ci
 
       - name: Security Audit
-        run: npm audit --audit-level=high
-        continue-on-error: true
+        run: npm audit --audit-level=critical
 
       - name: Lint
         run: npm run lint
@@ -137,6 +136,12 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:3000/api
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # TODO: E2E TESTS
+  # Add Playwright or Cypress E2E tests here once test infrastructure is ready.
+  # Should run against backend+frontend containers with a test database.
+  # ═══════════════════════════════════════════════════════════════════════════
 
   # ═══════════════════════════════════════════════════════════════════════════
   # SECURITY SCANNING
@@ -154,24 +159,29 @@ jobs:
 
       - name: Backend - Check for known vulnerabilities
         working-directory: apps/backend
-        continue-on-error: true
         run: |
           npm ci
-          npx audit-ci --high
+          npx audit-ci --critical
 
       - name: Frontend - Check for known vulnerabilities
         working-directory: apps/web
-        continue-on-error: true
         run: |
           npm ci
-          npx audit-ci --high
+          npx audit-ci --critical
 
       - name: Check for hardcoded secrets
         run: |
           # Check for common secret patterns in source code
-          ! grep -rn --include="*.ts" --include="*.tsx" --include="*.js" \
-            -E '(password|secret|api_key|apikey|token)\s*[:=]\s*["\x27][A-Za-z0-9+/=]{20,}' \
-            apps/backend/src apps/web/src || true
+          FOUND=0
+          grep -rn --include="*.ts" --include="*.tsx" --include="*.js" \
+            -E '(password|secret|api_key|apikey|private_key|access_key|client_secret)\s*[:=]\s*["\x27][A-Za-z0-9+/=]{20,}' \
+            apps/backend/src apps/web/src && FOUND=1 || true
+          grep -rn --include="*.ts" --include="*.tsx" --include="*.js" \
+            -E '(Bearer\s+[A-Za-z0-9\-._~+/]+=*|ghp_[A-Za-z0-9]{36}|sk-[A-Za-z0-9]{32,}|AKIA[0-9A-Z]{16})' \
+            apps/backend/src apps/web/src && FOUND=1 || true
+          if [ "$FOUND" -eq 1 ]; then
+            echo "::warning::Potential hardcoded secrets detected — review the matches above"
+          fi
 
   # ═══════════════════════════════════════════════════════════════════════════
   # SCHEDULED DEPENDENCY SCAN — Weekly deep scan (HIGH only, no noise)
@@ -179,7 +189,7 @@ jobs:
   dependency-scan:
     name: Dependency Vulnerability Scan
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 

@@ -158,7 +158,7 @@ export function ClientFormModal({
             {editingClient ? 'Modifier le client' : 'Nouveau client'}
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => { setFieldErrors({}); setError(null); onClose(); }}
             className="p-1 text-[#AEAEB2] hover:text-[#1D1D1F] rounded-[8px]"
           >
             <X className="w-5 h-5" />
@@ -392,7 +392,7 @@ export function ClientFormModal({
           <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => { setFieldErrors({}); setError(null); onClose(); }}
               className="px-5 py-2.5 text-[#86868B] bg-black/5 rounded-full hover:bg-black/10 transition-all font-medium"
             >
               Annuler

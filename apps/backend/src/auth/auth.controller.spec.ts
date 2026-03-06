@@ -18,8 +18,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { RolesGuard } from './guards/roles.guard';
 import { COOKIE_NAMES } from './config/cookie.config';
 
 // Mock CsrfMiddleware at module level before any import resolves
@@ -31,7 +29,6 @@ jest.mock('../common/middleware/csrf.middleware', () => ({
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: any;
 
   const mockAuthService = {
     login: jest.fn(),
@@ -70,7 +67,6 @@ describe('AuthController', () => {
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
-    authService = module.get<AuthService>(AuthService);
 
     jest.clearAllMocks();
   });

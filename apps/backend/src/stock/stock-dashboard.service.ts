@@ -122,7 +122,8 @@ export class StockDashboardService {
         STOCK_DASHBOARD_CACHE_TTL,
       );
     } catch (error) {
-      this.logger.error(`Stock dashboard failed: ${error.message}`, error.stack);
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Stock dashboard failed: ${message}`, error instanceof Error ? error.stack : undefined);
       // Return empty dashboard instead of crashing
       // Return minimal fallback dashboard - use 'unknown' cast to bypass strict typing
       return {
@@ -130,7 +131,7 @@ export class StockDashboardService {
         aTraiter: { totalCount: 0, items: [] },
         sante: { fifoCompliance: 0, dlcCompliance: 0, rotationScore: 0 },
         summary: { criticalCount: 0, warningCount: 0, healthScore: 0, totalProducts: 0 },
-        _meta: { error: error.message },
+        _meta: { error: message },
       } as unknown as StockDashboard;
     }
   }
@@ -139,9 +140,9 @@ export class StockDashboardService {
     const startTime = Date.now();
 
     const [critique, aTraiter, sante, totalProducts] = await Promise.all([
-      this.getZoneCritique().catch((e) => { this.logger.warn(`getZoneCritique failed: ${e.message}`); return null; }),
-      this.getZoneATraiter().catch((e) => { this.logger.warn(`getZoneATraiter failed: ${e.message}`); return null; }),
-      this.getZoneSante().catch((e) => { this.logger.warn(`getZoneSante failed: ${e.message}`); return null; }),
+      this.getZoneCritique().catch((e) => { this.logger.warn(`getZoneCritique failed: ${e instanceof Error ? e.message : String(e)}`); return null; }),
+      this.getZoneATraiter().catch((e) => { this.logger.warn(`getZoneATraiter failed: ${e instanceof Error ? e.message : String(e)}`); return null; }),
+      this.getZoneSante().catch((e) => { this.logger.warn(`getZoneSante failed: ${e instanceof Error ? e.message : String(e)}`); return null; }),
       this.prisma.productMp.count({ where: { isStockTracked: true } }).catch(() => 0),
     ]);
 

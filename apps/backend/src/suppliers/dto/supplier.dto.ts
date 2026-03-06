@@ -27,6 +27,7 @@ export class CreateSupplierDto {
   @IsOptional()
   @IsString()
   @ValidateIf((o) => o.rc && o.rc.trim() !== '')
+  @MinLength(3, { message: 'RC doit contenir au moins 3 caractères' })
   @Matches(/^(?=.*[A-Za-z])[A-Za-z0-9]+$/, {
     message: 'RC invalide: doit être alphanumérique et contenir au moins une lettre',
   })
@@ -123,9 +124,9 @@ export class SupplierResponseDto {
   id: number;
   code: string;
   name: string;
-  rc: string;
-  nif: string;
-  ai: string;
+  rc: string | null;
+  nif: string | null;
+  ai: string | null;
   nis?: string;
   phone: string;
   address: string;

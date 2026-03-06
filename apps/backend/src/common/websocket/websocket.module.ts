@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { DashboardGateway } from './dashboard.gateway';
 
 /**
@@ -7,6 +8,7 @@ import { DashboardGateway } from './dashboard.gateway';
  */
 @Global()
 @Module({
+  imports: [JwtModule.register({})],
   providers: [DashboardGateway],
   exports: [DashboardGateway],
 })

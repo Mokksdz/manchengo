@@ -43,7 +43,7 @@ export class EventsController {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   @Get('stats')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Get event store statistics' })
   @ApiResponse({
     status: 200,
@@ -65,7 +65,7 @@ export class EventsController {
   }
 
   @Get('version')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Get current event store version' })
   async getCurrentVersion() {
     return {
@@ -79,7 +79,7 @@ export class EventsController {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   @Get()
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Search events with filters' })
   @ApiQuery({ name: 'aggregateType', required: false })
   @ApiQuery({ name: 'aggregateId', required: false })
@@ -132,7 +132,7 @@ export class EventsController {
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Get event by ID' })
   @ApiParam({ name: 'id', description: 'Event ID' })
   async getEventById(@Param('id') id: string) {
@@ -148,7 +148,7 @@ export class EventsController {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   @Get('aggregate/:type/:id')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Get all events for an aggregate' })
   @ApiParam({ name: 'type', description: 'Aggregate type (e.g., ProductMp, ProductionOrder)' })
   @ApiParam({ name: 'id', description: 'Aggregate ID' })
@@ -173,7 +173,7 @@ export class EventsController {
   }
 
   @Get('aggregate/:type/:id/timeline')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Get timeline for an aggregate' })
   @ApiParam({ name: 'type', description: 'Aggregate type' })
   @ApiParam({ name: 'id', description: 'Aggregate ID' })
@@ -189,7 +189,7 @@ export class EventsController {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   @Get('stock/mp/:id/history')
-  @Roles('ADMIN', 'MANAGER', 'APPRO')
+  @Roles('ADMIN', 'COMMERCIAL', 'APPRO')
   @ApiOperation({ summary: 'Get stock history for a MP' })
   @ApiParam({ name: 'id', description: 'MP ID' })
   @ApiQuery({ name: 'fromDate', required: false })
@@ -213,7 +213,7 @@ export class EventsController {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   @Get('production/history')
-  @Roles('ADMIN', 'MANAGER', 'PRODUCTION')
+  @Roles('ADMIN', 'COMMERCIAL', 'PRODUCTION')
   @ApiOperation({ summary: 'Get production history' })
   @ApiQuery({ name: 'fromDate', required: false })
   @ApiQuery({ name: 'toDate', required: false })
@@ -235,7 +235,7 @@ export class EventsController {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   @Get('correlation/:id')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Get all events for a correlation ID' })
   @ApiParam({ name: 'id', description: 'Correlation ID' })
   async getCorrelatedEvents(@Param('id') id: string) {
@@ -256,7 +256,7 @@ export class EventsController {
   // ═══════════════════════════════════════════════════════════════════════════════
 
   @Get('reference/types')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Get all available event types' })
   async getEventTypes() {
     return {

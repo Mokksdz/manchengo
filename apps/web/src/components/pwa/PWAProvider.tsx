@@ -26,8 +26,8 @@ export function PWAProvider({ children }: { children: ReactNode }) {
 
   // Show toast when offline sync completes
   useOfflineSync((_event) => {
-    toast.success('Synchronisation terminee', {
-      description: 'Vos modifications hors ligne ont ete enregistrees.',
+    toast.success('Synchronisation terminée', {
+      description: 'Vos modifications hors ligne ont été enregistrées.',
     });
   });
 
@@ -92,14 +92,14 @@ function UpdatePrompt({
           Nouvelle version disponible
         </p>
         <p className="text-xs text-gray-500">
-          Cliquez pour mettre a jour l&apos;application
+          Cliquez pour mettre à jour l&apos;application
         </p>
       </div>
       <button
         onClick={onUpdate}
         className="px-3 py-1.5 bg-[#F5A623] text-white text-sm font-medium rounded-md hover:bg-[#E09500] transition-colors"
       >
-        Mettre a jour
+        Mettre à jour
       </button>
     </div>
   );
@@ -123,27 +123,35 @@ function InstallPrompt({
 
   // Delay showing the prompt to not interrupt user immediately
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (canInstall && !dismissed) {
-      const timer = setTimeout(() => setShowPrompt(true), 30000); // 30 seconds
-      return () => clearTimeout(timer);
+      timer = setTimeout(() => setShowPrompt(true), 30000); // 30 seconds
+    } else {
+      setShowPrompt(false);
     }
-    return undefined;
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [canInstall, dismissed]);
 
   if (!showPrompt || dismissed) return null;
 
   const handleInstall = async () => {
-    const success = await onInstall();
-    if (success) {
-      setShowPrompt(false);
+    try {
+      const success = await onInstall();
+      if (success) {
+        setShowPrompt(false);
+      }
+    } catch (error) {
+      console.error('[PWA] Install failed:', error);
     }
   };
 
   const handleDismiss = () => {
     setDismissed(true);
     setShowPrompt(false);
-    // Remember dismissal for this session
-    sessionStorage.setItem('pwa-install-dismissed', 'true');
+    // Remember dismissal across sessions
+    localStorage.setItem('pwa-install-dismissed', 'true');
   };
 
   return (
@@ -166,7 +174,7 @@ function InstallPrompt({
               Installer Manchengo ERP
             </h3>
             <p className="mt-1 text-xs text-gray-500">
-              Installez l&apos;application pour un acces rapide et une utilisation hors ligne.
+              Installez l&apos;application pour un accès rapide et une utilisation hors ligne.
             </p>
           </div>
           <button

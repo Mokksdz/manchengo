@@ -20,7 +20,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { ApproService, StockState, IrsStatus } from './appro.service';
+import { ApproService, StockState } from './appro.service';
 import { ApproAlertService } from './appro-alert.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { MpCriticite } from '@prisma/client';

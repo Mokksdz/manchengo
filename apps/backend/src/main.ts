@@ -33,7 +33,6 @@ function validateEnv() {
     const insecureDefaults: Record<string, string> = {
       JWT_SECRET: 'your-super-secret-jwt-key-change-in-production-min-32-chars',
       JWT_REFRESH_SECRET: 'your-super-secret-refresh-key-change-in-production-min-32-chars',
-      QR_SECRET_KEY: 'MCG_QR_SECRET_2024_PROD',
     };
     for (const [key, defaultVal] of Object.entries(insecureDefaults)) {
       if (process.env[key] === defaultVal) {
@@ -50,6 +49,17 @@ function validateEnv() {
     }
     if (process.env.JWT_REFRESH_SECRET!.length < 32) {
       throw new Error('SECURITY: JWT_REFRESH_SECRET must be at least 32 characters in production.');
+    }
+    if (process.env.QR_SECRET_KEY!.length < 32) {
+      throw new Error('SECURITY: QR_SECRET_KEY must be at least 32 characters in production.');
+    }
+
+    // Reject localhost in CORS_ORIGINS for production
+    const corsOrigins = process.env.CORS_ORIGINS || '';
+    if (/localhost|127\.0\.0\.1/i.test(corsOrigins)) {
+      throw new Error(
+        'SECURITY: CORS_ORIGINS contains localhost — this is not allowed in production.',
+      );
     }
   }
 }
@@ -114,11 +124,9 @@ async function bootstrap() {
   // ═══════════════════════════════════════════════════════════════════════════
   const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',')
-    : [
-        'http://localhost:3001',
-        'http://localhost:3000',
-        /^http:\/\/127\.0\.0\.1:\d+$/, // Allow all 127.0.0.1 ports in dev
-      ];
+    : [];
+
+  const devOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'];
 
   app.enableCors({
     origin: (origin, callback) => {
@@ -126,12 +134,12 @@ async function bootstrap() {
       if (!origin) {
         return callback(null, true);
       }
-      // Check if origin is in whitelist (supports both strings and RegExp)
-      if (allowedOrigins.some(o => o instanceof RegExp ? o.test(origin) : o === origin)) {
+      // Check if origin is in explicit whitelist
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      // In development, allow localhost and 127.0.0.1 variants
-      if (!isProduction && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      // In development, allow specific localhost ports only
+      if (!isProduction && devOrigins.includes(origin)) {
         return callback(null, true);
       }
       // Block all other origins
@@ -158,9 +166,13 @@ async function bootstrap() {
 
   // ═══════════════════════════════════════════════════════════════════════════
   // R16: SWAGGER - Complete API Documentation
-  // SECURITY: Disabled in production unless SWAGGER_ENABLED=true
+  // SECURITY: Always disabled in production
   // ═══════════════════════════════════════════════════════════════════════════
-  const swaggerEnabled = !isProduction || process.env.SWAGGER_ENABLED === 'true';
+  const swaggerEnabled = !isProduction;
+  // SECURITY ASSERTION: Swagger must never be enabled in production
+  if (isProduction && swaggerEnabled) {
+    throw new Error('SECURITY: Swagger must be disabled in production.');
+  }
   const config = new DocumentBuilder()
     .setTitle('Manchengo Smart ERP API')
     .setDescription(
@@ -214,7 +226,7 @@ Les tokens sont aussi envoyés via cookies httpOnly.
     .build();
   const document = SwaggerModule.createDocument(app, config);
   if (!swaggerEnabled) {
-    logger.warn('Swagger docs DISABLED in production (set SWAGGER_ENABLED=true to override)', 'Bootstrap');
+    logger.warn('Swagger docs DISABLED in production', 'Bootstrap');
   }
   if (swaggerEnabled) SwaggerModule.setup('docs', app, document, {
     customSiteTitle: 'Manchengo ERP API Docs',

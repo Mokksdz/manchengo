@@ -62,8 +62,8 @@ const YEARS = Array.from({ length: 5 }, (_, i) => currentYear - i);
 const typeConfig: Record<string, { label: string; color: string }> = {
   DISTRIBUTEUR: { label: 'Distributeur', color: 'bg-[#007AFF]/10 text-[#007AFF]' },
   GROSSISTE: { label: 'Grossiste', color: 'bg-[#AF52DE]/10 text-[#AF52DE]' },
-  SUPERETTE: { label: 'Superette', color: 'bg-[#34C759]/10 text-[#34C759]' },
-  FAST_FOOD: { label: 'Fast Food', color: 'bg-[#FF9500]/10 text-[#FF9500]' },
+  SUPERETTE: { label: 'Superette', color: 'bg-[#34C759]/10 text-[#248A3D]' },
+  FAST_FOOD: { label: 'Fast Food', color: 'bg-[#FF9500]/10 text-[#C93400]' },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -326,12 +326,18 @@ export default function ClientHistoriquePage() {
                     <span className="text-sm text-[#6E6E73]">{formatDate(invoice.date)}</span>
                     <span className={cn(
                       'px-2.5 py-0.5 text-[11px] font-semibold rounded-full',
-                      invoice.status === 'PAID' ? 'bg-[#34C759]/10 text-[#34C759]' :
+                      invoice.status === 'PAID' ? 'bg-[#34C759]/10 text-[#248A3D]' :
                       invoice.status === 'DRAFT' ? 'bg-black/5 text-[#86868B]' :
-                      invoice.status === 'CANCELLED' ? 'bg-[#FF3B30]/10 text-[#FF3B30]' :
-                      'bg-[#FF9500]/10 text-[#FF9500]'
+                      invoice.status === 'VALIDATED' ? 'bg-[#007AFF]/10 text-[#007AFF]' :
+                      invoice.status === 'PARTIALLY_PAID' ? 'bg-[#FF9500]/10 text-[#C93400]' :
+                      invoice.status === 'CANCELLED' ? 'bg-[#FF3B30]/10 text-[#D70015]' :
+                      'bg-[#FF9500]/10 text-[#C93400]'
                     )}>
-                      {invoice.status === 'PAID' ? 'Payée' : invoice.status === 'DRAFT' ? 'Brouillon' : invoice.status === 'CANCELLED' ? 'Annulée' : invoice.status}
+                      {invoice.status === 'PAID' ? 'Payée' :
+                       invoice.status === 'DRAFT' ? 'Brouillon' :
+                       invoice.status === 'VALIDATED' ? 'Validée' :
+                       invoice.status === 'PARTIALLY_PAID' ? 'Part. payée' :
+                       invoice.status === 'CANCELLED' ? 'Annulée' : invoice.status}
                     </span>
                   </div>
                   <div className="text-right">

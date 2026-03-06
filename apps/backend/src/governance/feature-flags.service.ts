@@ -172,7 +172,7 @@ export class FeatureFlagsService {
   private flags: Map<string, FeatureFlag> = new Map();
 
   constructor(
-    private prisma: PrismaService,
+    _prisma: PrismaService,
     private auditService: AuditService,
     private logger: LoggerService,
   ) {

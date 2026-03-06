@@ -3,10 +3,13 @@ import {
   IsOptional,
   IsEnum,
   IsInt,
+  IsString,
   IsArray,
   ValidateNested,
   IsDateString,
   Min,
+  ArrayMinSize,
+  MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -15,7 +18,7 @@ import { Type } from 'class-transformer';
 // ═══════════════════════════════════════════════════════════════════════════════
 // Montants en centimes (entiers) pour precision monetaire
 // TVA 19% standard Algerie
-// Timbre fiscal optionnel (50 DA par defaut si especes)
+// Timbre fiscal bareme progressif (1%, 1.5%, 2%) si paiement especes
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export enum PaymentMethodDto {
@@ -26,7 +29,9 @@ export enum PaymentMethodDto {
 
 export enum InvoiceStatusDto {
   DRAFT = 'DRAFT',
+  VALIDATED = 'VALIDATED',
   PAID = 'PAID',
+  PARTIALLY_PAID = 'PARTIALLY_PAID',
   CANCELLED = 'CANCELLED',
 }
 
@@ -40,8 +45,13 @@ export class CreateInvoiceLineDto {
   quantity: number;
 
   @IsInt()
-  @Min(0)
+  @Min(1, { message: 'Le prix unitaire HT doit être au moins 1 centime' })
   unitPriceHt: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  remise?: number;
 }
 
 export class CreateInvoiceDto {
@@ -57,6 +67,7 @@ export class CreateInvoiceDto {
   paymentMethod: PaymentMethodDto;
 
   @IsArray()
+  @ArrayMinSize(1, { message: 'Une facture doit contenir au moins une ligne' })
   @ValidateNested({ each: true })
   @Type(() => CreateInvoiceLineDto)
   lines: CreateInvoiceLineDto[];
@@ -83,6 +94,11 @@ export class UpdateInvoiceDto {
 }
 
 export class UpdateInvoiceStatusDto {
-  @IsEnum(InvoiceStatusDto, { message: 'Statut: DRAFT, PAID ou CANCELLED' })
+  @IsEnum(InvoiceStatusDto, { message: 'Statut: DRAFT, VALIDATED, PAID, PARTIALLY_PAID ou CANCELLED' })
   status: InvoiceStatusDto;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500, { message: 'Le motif d\'annulation ne doit pas dépasser 500 caractères' })
+  cancellationReason?: string;
 }

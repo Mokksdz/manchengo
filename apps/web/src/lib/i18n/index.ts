@@ -8,12 +8,24 @@ import { t as fr } from './fr';
 import { t as ar } from './ar';
 
 export type Language = 'fr' | 'ar';
-export type Translations = typeof fr;
+
+// Deep-widen literal string types to string for translation compatibility
+type DeepStringify<T> = T extends readonly string[]
+  ? readonly string[]
+  : T extends Record<string, string>
+    ? Record<string, string>
+    : T extends object
+      ? { readonly [K in keyof T]: DeepStringify<T[K]> }
+      : T extends string
+        ? string
+        : T;
+
+export type Translations = DeepStringify<typeof fr>;
 
 // All translations - ar uses same structure as fr
 export const translations: Record<Language, Translations> = {
   fr,
-  ar: ar as unknown as Translations,
+  ar,
 };
 
 // Language metadata

@@ -93,7 +93,7 @@ export class AlertProcessor implements OnModuleInit {
 
       this.logger.info('Automatic alert scans scheduled', 'AlertProcessor');
     } catch (error) {
-      this.logger.warn(`Failed to schedule automatic scans: ${error}`, 'AlertProcessor');
+      this.logger.warn(`Failed to schedule automatic scans: ${error instanceof Error ? error.message : 'Unknown error'}`, 'AlertProcessor');
     }
   }
 
@@ -274,8 +274,8 @@ export class AlertProcessor implements OnModuleInit {
 
     for (const mp of mpWithMetrics) {
       const stock = await this.calculateMpStock(mp.id);
-      const joursCouverture = mp.consommationMoyJour && mp.consommationMoyJour > 0
-        ? stock / mp.consommationMoyJour
+      const joursCouverture = mp.consommationMoyJour && Number(mp.consommationMoyJour) > 0
+        ? stock / Number(mp.consommationMoyJour)
         : null;
 
       if (joursCouverture !== null && joursCouverture < mp.leadTimeFournisseur && stock > 0) {
@@ -341,7 +341,7 @@ export class AlertProcessor implements OnModuleInit {
 
     for (const supplier of suppliers) {
       if (supplier.tauxRetard) {
-        const newGrade = this.calculateGrade(supplier.tauxRetard);
+        const newGrade = this.calculateGrade(Number(supplier.tauxRetard));
 
         if (newGrade !== supplier.grade) {
           // Vérifier si alerte existe
@@ -355,7 +355,7 @@ export class AlertProcessor implements OnModuleInit {
           });
 
           if (!existing) {
-            const niveau = supplier.tauxRetard > 0.3 ? ApproAlertLevel.CRITICAL : ApproAlertLevel.WARNING;
+            const niveau = Number(supplier.tauxRetard) > 0.3 ? ApproAlertLevel.CRITICAL : ApproAlertLevel.WARNING;
 
             await this.prisma.approAlert.create({
               data: {
@@ -363,7 +363,7 @@ export class AlertProcessor implements OnModuleInit {
                 niveau,
                 entityType: ApproAlertEntity.SUPPLIER,
                 entityId: supplier.id,
-                message: `FOURNISSEUR DÉGRADÉ: ${supplier.name} (${supplier.code}) - Taux retard: ${(supplier.tauxRetard * 100).toFixed(1)}%. Grade: ${supplier.grade} → ${newGrade}`,
+                message: `FOURNISSEUR DÉGRADÉ: ${supplier.name} (${supplier.code}) - Taux retard: ${(Number(supplier.tauxRetard) * 100).toFixed(1)}%. Grade: ${supplier.grade} → ${newGrade}`,
                 metadata: {
                   supplierId: supplier.id,
                   supplierName: supplier.name,

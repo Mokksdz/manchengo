@@ -24,46 +24,46 @@ enum UserRole {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  code         String    @unique // USR-001
-  email        String    @unique
-  passwordHash String    @map("password_hash")
-  firstName    String    @map("first_name")
-  lastName     String    @map("last_name")
-  role         UserRole  @default(COMMERCIAL)
-  isActive     Boolean   @default(true) @map("is_active")
-  mustChangePassword Boolean @default(false) @map("must_change_password") // R3: Force password change for seed users
-  passwordChangedAt  DateTime? @map("password_changed_at") // R3: Track last password change
-  failedLoginAttempts Int @default(0) @map("failed_login_attempts")
+  id                  String    @id @default(uuid())
+  code                String    @unique // USR-001
+  email               String    @unique
+  passwordHash        String    @map("password_hash")
+  firstName           String    @map("first_name")
+  lastName            String    @map("last_name")
+  role                UserRole  @default(COMMERCIAL)
+  isActive            Boolean   @default(true) @map("is_active")
+  mustChangePassword  Boolean   @default(false) @map("must_change_password") // R3: Force password change for seed users
+  passwordChangedAt   DateTime? @map("password_changed_at") // R3: Track last password change
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
   lastFailedLoginAt   DateTime? @map("last_failed_login_at")
   // Soft delete
-  isDeleted    Boolean   @default(false) @map("is_deleted")
-  deletedAt    DateTime? @map("deleted_at")
-  deletedBy    String?   @map("deleted_by")
-  deleteReason String?   @map("delete_reason")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  isDeleted           Boolean   @default(false) @map("is_deleted")
+  deletedAt           DateTime? @map("deleted_at")
+  deletedBy           String?   @map("deleted_by")
+  deleteReason        String?   @map("delete_reason")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  devices         Device[]
-  refreshTokens   RefreshToken[]
-  stockMovements  StockMovement[]
-  invoices        Invoice[]
-  payments        Payment[]
+  devices          Device[]
+  refreshTokens    RefreshToken[]
+  stockMovements   StockMovement[]
+  invoices         Invoice[]
+  payments         Payment[]
   productionOrders ProductionOrder[]
-  syncEvents      SyncEvent[]
-  
+  syncEvents       SyncEvent[]
+
   // Alertes APPRO accusées
   approAlertsAcknowledged ApproAlert[] @relation("ApproAlertAcknowledgedBy")
-  
+
   // Bons de commande (Purchase Orders)
-  purchaseOrdersCreated     PurchaseOrder[] @relation("PurchaseOrderCreatedBy")
-  purchaseOrdersSent        PurchaseOrder[] @relation("PurchaseOrderSentBy")
-  purchaseOrdersConfirmed   PurchaseOrder[] @relation("PurchaseOrderConfirmedBy")
-  purchaseOrdersReceived    PurchaseOrder[] @relation("PurchaseOrderReceivedBy")
-  purchaseOrdersCancelled   PurchaseOrder[] @relation("PurchaseOrderCancelledBy")
-  purchaseOrdersLocked      PurchaseOrder[] @relation("PurchaseOrderLock")
-  
+  purchaseOrdersCreated   PurchaseOrder[] @relation("PurchaseOrderCreatedBy")
+  purchaseOrdersSent      PurchaseOrder[] @relation("PurchaseOrderSentBy")
+  purchaseOrdersConfirmed PurchaseOrder[] @relation("PurchaseOrderConfirmedBy")
+  purchaseOrdersReceived  PurchaseOrder[] @relation("PurchaseOrderReceivedBy")
+  purchaseOrdersCancelled PurchaseOrder[] @relation("PurchaseOrderCancelledBy")
+  purchaseOrdersLocked    PurchaseOrder[] @relation("PurchaseOrderLock")
+
   // Inventaire
   inventoriesCounted        InventoryDeclaration[] @relation("InventoryCountedBy")
   inventoriesFirstValidated InventoryDeclaration[] @relation("InventoryFirstValidator")
@@ -71,8 +71,12 @@ model User {
   inventoriesRejected       InventoryDeclaration[] @relation("InventoryRejectedBy")
 
   // Lots bloqués par cet utilisateur
-  blockedLotsMp             LotMp[] @relation("LotMpBlockedBy")
-  blockedLotsPf             LotPf[] @relation("LotPfBlockedBy")
+  blockedLotsMp LotMp[] @relation("LotMpBlockedBy")
+  blockedLotsPf LotPf[] @relation("LotPfBlockedBy")
+
+  // Fournisseurs bloqués/surveillés par cet utilisateur
+  suppliersBlocked    Supplier[] @relation("BlockedByUser")
+  suppliersSurveilled Supplier[] @relation("SurveillanceByUser")
 
   @@index([email])
   @@index([isActive])
@@ -102,9 +106,9 @@ model RefreshToken {
 
 model Device {
   id           String    @id // UUID from mobile
-  name         String    // Device name
+  name         String // Device name
   userId       String    @map("user_id")
-  platform     String    // android, ios
+  platform     String // android, ios
   appVersion   String?   @map("app_version")
   lastSyncAt   DateTime? @map("last_sync_at")
   isActive     Boolean   @default(true) @map("is_active")
@@ -123,13 +127,13 @@ model Device {
 }
 
 model SyncState {
-  id             String   @id @default(uuid())
-  deviceId       String   @unique @map("device_id")
-  lastPullAt     DateTime @map("last_pull_at")
-  lastPushAt     DateTime? @map("last_push_at")
-  serverTime     DateTime @map("server_time")
-  pendingEvents  Int      @default(0) @map("pending_events")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id            String    @id @default(uuid())
+  deviceId      String    @unique @map("device_id")
+  lastPullAt    DateTime  @map("last_pull_at")
+  lastPushAt    DateTime? @map("last_push_at")
+  serverTime    DateTime  @map("server_time")
+  pendingEvents Int       @default(0) @map("pending_events")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
@@ -138,34 +142,34 @@ model SyncState {
 
 // Sync event status for offline-first architecture
 enum SyncStatus {
-  PENDING   // Event received, not yet applied
-  APPLIED   // Event successfully applied to DB
-  ACKED     // Mobile acknowledged the server response
-  FAILED    // Event failed to apply (conflict, validation error)
+  PENDING // Event received, not yet applied
+  APPLIED // Event successfully applied to DB
+  ACKED // Mobile acknowledged the server response
+  FAILED // Event failed to apply (conflict, validation error)
 }
 
 model SyncEvent {
-  id              String     @id @default(uuid())        // Server-side UUID
-  clientEventId   String     @unique @map("client_event_id") // UUID from mobile (idempotency key)
-  deviceId        String     @map("device_id")
-  userId          String     @map("user_id")
-  entityType      String     @map("entity_type")         // DELIVERY, INVOICE, PAYMENT, CLIENT
-  entityId        String     @map("entity_id")
-  action          String                                  // DELIVERY_VALIDATED, INVOICE_CREATED, etc.
-  payload         Json                                    // Event data
-  payloadHash     String     @map("payload_hash")        // SHA256 checksum for integrity
-  occurredAt      DateTime   @map("occurred_at")         // Client timestamp
-  appliedAt       DateTime?  @map("applied_at")          // When applied to DB
-  status          SyncStatus @default(PENDING)
-  errorCode       String?    @map("error_code")          // Conflict code if FAILED
-  errorMessage    String?    @map("error_message")       // Human-readable error
-  resolution      Json?                                   // Conflict resolution data
-  batchId         String?    @map("batch_id")            // Batch identifier for grouped events
-  serverEventId   String?    @map("server_event_id")     // For linked server-side events
-  createdAt       DateTime   @default(now()) @map("created_at")
+  id            String     @id @default(uuid()) // Server-side UUID
+  clientEventId String     @unique @map("client_event_id") // UUID from mobile (idempotency key)
+  deviceId      String     @map("device_id")
+  userId        String?    @map("user_id")
+  entityType    String     @map("entity_type") // DELIVERY, INVOICE, PAYMENT, CLIENT
+  entityId      String     @map("entity_id")
+  action        String // DELIVERY_VALIDATED, INVOICE_CREATED, etc.
+  payload       Json // Event data
+  payloadHash   String     @map("payload_hash") // SHA256 checksum for integrity
+  occurredAt    DateTime   @map("occurred_at") // Client timestamp
+  appliedAt     DateTime?  @map("applied_at") // When applied to DB
+  status        SyncStatus @default(PENDING)
+  errorCode     String?    @map("error_code") // Conflict code if FAILED
+  errorMessage  String?    @map("error_message") // Human-readable error
+  resolution    Json? // Conflict resolution data
+  batchId       String?    @map("batch_id") // Batch identifier for grouped events
+  serverEventId String?    @map("server_event_id") // For linked server-side events
+  createdAt     DateTime   @default(now()) @map("created_at")
 
   device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, map: "sync_events_user_id_fkey")
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull, map: "sync_events_user_id_fkey")
 
   @@index([deviceId, createdAt])
   @@index([entityType, entityId])
@@ -184,13 +188,13 @@ model SyncEvent {
 model Brand {
   id          Int      @id @default(autoincrement())
   code        String   @unique // MONTESA, QUESA_NOVA
-  name        String   // Nom commercial: "MONTESA®"
+  name        String // Nom commercial: "MONTESA®"
   description String?
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  products    ProductPf[]
+  products ProductPf[]
 
   @@map("brands")
 }
@@ -199,102 +203,105 @@ model Brand {
 model ProductFamily {
   id          Int      @id @default(autoincrement())
   code        String   @unique // FROMAGE_NOBLE, FROMAGE_FONDU, PREPARATION
-  name        String   // "Fromages nobles (découpe)"
+  name        String // "Fromages nobles (découpe)"
   description String?
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  products    ProductPf[]
+  products ProductPf[]
 
   @@map("product_families")
 }
 
 // Type de conditionnement PF
 enum PackagingType {
-  SAC_THERMO       // Sac thermorétractable (découpe)
-  SEAU_IML         // Seau plastique IML
-  BARQUETTE_IML    // Barquette plastique IML
-  PORTION          // Portions individuelles
-  CARTON           // Carton
+  SAC_THERMO // Sac thermorétractable (découpe)
+  SEAU_IML // Seau plastique IML
+  BARQUETTE_IML // Barquette plastique IML
+  PORTION // Portions individuelles
+  CARTON // Carton
 }
 
 // Type de stockage
 enum StorageType {
-  REFRIGERE        // 2-8°C
-  FRAIS            // 0-4°C
-  SEC              // Température ambiante
-  CONGELE          // -18°C
+  REFRIGERE // 2-8°C
+  FRAIS // 0-4°C
+  SEC // Température ambiante
+  CONGELE // -18°C
 }
 
 // Catégorie de produit MP
 enum ProductMpCategory {
-  RAW_MATERIAL  // Matière première (fromage, sel, etc.)
-  PACKAGING     // Emballage (seau, carton, film, etc.)
-  ADDITIVE      // Additif (colorant, conservateur, etc.)
-  CONSUMABLE    // Consommable (gants, etc.)
+  RAW_MATERIAL // Matière première (fromage, sel, etc.)
+  PACKAGING // Emballage (seau, carton, film, etc.)
+  ADDITIVE // Additif (colorant, conservateur, etc.)
+  CONSUMABLE // Consommable (gants, etc.)
 }
 
 // Niveau de criticité MP pour la production
 enum MpCriticite {
-  FAIBLE        // Non bloquant, substituable
-  MOYENNE       // Important mais non critique
-  HAUTE         // Critique pour plusieurs recettes
-  BLOQUANTE     // Arrêt production si rupture
+  FAIBLE // Non bloquant, substituable
+  MOYENNE // Important mais non critique
+  HAUTE // Critique pour plusieurs recettes
+  BLOQUANTE // Arrêt production si rupture
 }
 
 model ProductMp {
   id             Int               @id @default(autoincrement())
   code           String            @unique // MP-001
   name           String
-  unit           String            // L, kg, unité
+  unit           String // L, kg, unité
   category       ProductMpCategory @default(RAW_MATERIAL)
   minStock       Int               @default(0) @map("min_stock")
   isActive       Boolean           @default(true) @map("is_active")
   isStockTracked Boolean           @default(true) @map("is_stock_tracked") // false pour Eau, électricité, etc.
   defaultTvaRate Int               @default(19) @map("default_tva_rate") // 0, 9, ou 19
-  
+
   // ═══════════════════════════════════════════════════════════════════════════
   // CHAMPS APPRO PRO - Niveau industriel
   // ═══════════════════════════════════════════════════════════════════════════
-  
-  // Seuils et approvisionnement
-  seuilSecurite       Int?          @map("seuil_securite")    // Stock de sécurité minimum
-  seuilCommande       Int?          @map("seuil_commande")    // Seuil déclenchant commande
-  quantiteCommande    Int?          @map("quantite_commande") // Quantité standard de commande
-  
-  // Lead time et planning
-  leadTimeFournisseur Int           @default(7) @map("lead_time_fournisseur") // Délai en jours
-  
-  // Métriques calculées (mises à jour par batch job)
-  consommationMoyJour Float?        @map("consommation_moy_jour") // Conso moyenne/jour (30j)
-  joursCouverture     Float?        @map("jours_couverture")      // Jours de stock restants
-  lastMetricsUpdate   DateTime?     @map("last_metrics_update")   // Dernière MAJ métriques
-  
-  // Criticité et priorité
-  criticite           MpCriticite   @default(MOYENNE)
-  
-  // Fournisseur principal (utilisé par appro, production-supply-risks)
-  fournisseurPrincipalId Int?       @map("fournisseur_principal_id")
-  
-  // Périssabilité (pour seuils inventaire)
-  isPerishable        Boolean       @default(true) @map("is_perishable")
-  
-  // Stock physique (dernier inventaire — mis à jour par inventory.service)
-  lastPhysicalStock     Float?      @map("last_physical_stock")
-  lastPhysicalStockDate DateTime?   @map("last_physical_stock_date")
 
-  createdAt      DateTime          @default(now()) @map("created_at")
-  updatedAt      DateTime          @updatedAt @map("updated_at")
+  // Seuils et approvisionnement
+  // @check: seuilSecurite >= 0
+  seuilSecurite    Int? @map("seuil_securite") // Stock de sécurité minimum
+  // @check: seuilCommande >= 0
+  seuilCommande    Int? @map("seuil_commande") // Seuil déclenchant commande
+  // @check: quantiteCommande >= 0
+  quantiteCommande Int? @map("quantite_commande") // Quantité standard de commande
+
+  // Lead time et planning
+  leadTimeFournisseur Int @default(7) @map("lead_time_fournisseur") // Délai en jours
+
+  // Métriques calculées (mises à jour par batch job)
+  consommationMoyJour Decimal?  @map("consommation_moy_jour") // Conso moyenne/jour (30j)
+  joursCouverture     Decimal?  @map("jours_couverture") // Jours de stock restants
+  lastMetricsUpdate   DateTime? @map("last_metrics_update") // Dernière MAJ métriques
+
+  // Criticité et priorité
+  criticite MpCriticite @default(MOYENNE)
+
+  // Fournisseur principal (utilisé par appro, production-supply-risks)
+  fournisseurPrincipalId Int? @map("fournisseur_principal_id")
+
+  // Périssabilité (pour seuils inventaire)
+  isPerishable Boolean @default(true) @map("is_perishable")
+
+  // Stock physique (dernier inventaire — mis à jour par inventory.service)
+  lastPhysicalStock     Decimal   @default(0) @map("last_physical_stock") @db.Decimal(15, 4)
+  lastPhysicalStockDate DateTime? @map("last_physical_stock_date")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  fournisseurPrincipal Supplier?   @relation("FournisseurPrincipal", fields: [fournisseurPrincipalId], references: [id])
-  lots            LotMp[]
-  stockMovements  StockMovement[]
+  fournisseurPrincipal   Supplier?               @relation("FournisseurPrincipal", fields: [fournisseurPrincipalId], references: [id])
+  lots                   LotMp[]
+  stockMovements         StockMovement[]
   productionConsumptions ProductionConsumption[]
-  receptionLines  ReceptionMpLine[]
-  recipeItems     RecipeItem[]
-  purchaseOrderItems PurchaseOrderItem[]
+  receptionLines         ReceptionMpLine[]
+  recipeItems            RecipeItem[]
+  purchaseOrderItems     PurchaseOrderItem[]
 
   @@index([criticite])
   @@index([fournisseurPrincipalId])
@@ -302,40 +309,40 @@ model ProductMp {
 }
 
 model ProductPf {
-  id            Int            @id @default(autoincrement())
-  code          String         @unique // PF-001
-  name          String         // Nom complet: "Gouda MONTESA® 400g"
-  shortName     String?        @map("short_name") // Nom court: "Gouda 400g"
-  unit          String         // unité, kg
-  priceHt       Int            @map("price_ht") // Centimes
-  minStock      Int            @default(0) @map("min_stock")
-  isActive      Boolean        @default(true) @map("is_active")
-  
+  id        Int     @id @default(autoincrement())
+  code      String  @unique // PF-001
+  name      String // Nom complet: "Gouda MONTESA® 400g"
+  shortName String? @map("short_name") // Nom court: "Gouda 400g"
+  unit      String // unité, kg
+  priceHt   Int     @map("price_ht") // Centimes
+  minStock  Int     @default(0) @map("min_stock")
+  isActive  Boolean @default(true) @map("is_active")
+
   // Caractéristiques produit
   weightGrams   Int?           @map("weight_grams") // Poids en grammes (400, 800, 1600, 2000)
   packagingType PackagingType? @map("packaging_type") // Type d'emballage
   storageType   StorageType    @default(REFRIGERE) @map("storage_type")
   shelfLifeDays Int?           @map("shelf_life_days") // DLC en jours
-  
-  // Relations métier
-  brandId       Int?           @map("brand_id")
-  familyId      Int?           @map("family_id")
-  
-  // Stock physique (dernier inventaire — mis à jour par inventory.service)
-  lastPhysicalStock     Float?      @map("last_physical_stock")
-  lastPhysicalStockDate DateTime?   @map("last_physical_stock_date")
 
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  // Relations métier
+  brandId  Int? @map("brand_id")
+  familyId Int? @map("family_id")
+
+  // Stock physique (dernier inventaire — mis à jour par inventory.service)
+  lastPhysicalStock     Decimal   @default(0) @map("last_physical_stock") @db.Decimal(15, 4)
+  lastPhysicalStockDate DateTime? @map("last_physical_stock_date")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  brand          Brand?         @relation(fields: [brandId], references: [id])
-  family         ProductFamily? @relation(fields: [familyId], references: [id])
-  lots           LotPf[]
-  stockMovements StockMovement[]
-  invoiceLines   InvoiceLine[]
+  brand            Brand?            @relation(fields: [brandId], references: [id])
+  family           ProductFamily?    @relation(fields: [familyId], references: [id])
+  lots             LotPf[]
+  stockMovements   StockMovement[]
+  invoiceLines     InvoiceLine[]
   productionOrders ProductionOrder[]
-  recipe         Recipe?
+  recipe           Recipe?
 
   @@index([brandId])
   @@index([familyId])
@@ -348,75 +355,81 @@ model ProductPf {
 
 // Score de performance fournisseur
 enum SupplierGrade {
-  A     // Fiable (>90%)
-  B     // Acceptable (70-90%)
-  C     // À risque (<70%)
+  A // Fiable (>90%)
+  B // Acceptable (70-90%)
+  C // À risque (<70%)
 }
 
 model Supplier {
-  id        Int      @id @default(autoincrement())
-  code      String   @unique // FOUR-001
-  name      String
-  
+  id   Int    @id @default(autoincrement())
+  code String @unique // FOUR-001
+  name String
+
   // Champs fiscaux algériens (optionnels à la création, requis pour facturation)
-  rc        String   @default("") // Registre de Commerce - alphanum, min 1 lettre
-  nif       String   @default("") // Numéro Identification Fiscale - 15 chiffres
-  ai        String   @default("") // Article d'Imposition - alphanum 3-20 chars
-  nis       String?  // Numéro Identification Statistique - optionnel, 15 chiffres si présent
-  
-  phone     String   @default("0000000000") // Téléphone Algérie (05/06/07 + 8 chiffres)
-  email     String?  // Email fournisseur pour envoi BC
-  address   String   @default("")
-  isActive  Boolean  @default(true) @map("is_active")
-  
+  // @validate: RC must be alphanumeric
+  rc  String? // Registre de Commerce - alphanum, min 1 lettre
+  // @validate: NIF must be 15 digits
+  nif String? // Numéro Identification Fiscale - 15 chiffres
+  // @validate: AI must be alphanumeric 3-20 chars
+  ai  String? // Article d'Imposition - alphanum 3-20 chars
+  // @validate: NIS must be 15 digits if present
+  nis String? // Numéro Identification Statistique - optionnel, 15 chiffres si présent
+
+  phone    String  @default("0000000000") // Téléphone Algérie (05/06/07 + 8 chiffres)
+  email    String? // Email fournisseur pour envoi BC
+  address  String  @default("")
+  isActive Boolean @default(true) @map("is_active")
+
   // ═══════════════════════════════════════════════════════════════════════════
   // PERFORMANCE FOURNISSEUR - Niveau industriel
   // ═══════════════════════════════════════════════════════════════════════════
-  
+
   // Délai de livraison
-  leadTimeJours       Int           @default(7) @map("lead_time_jours") // Délai standard annoncé
-  delaiReelMoyen      Float?        @map("delai_reel_moyen")            // Délai réel moyen constaté
-  
+  leadTimeJours  Int      @default(7) @map("lead_time_jours") // Délai standard annoncé
+  delaiReelMoyen Decimal? @map("delai_reel_moyen") // Délai réel moyen constaté
+
   // Métriques de performance (calculées)
-  tauxRetard          Float?        @map("taux_retard")           // % livraisons en retard
-  tauxEcartQuantite   Float?        @map("taux_ecart_quantite")   // % écart quantité livrée
-  tauxRupturesCausees Float?        @map("taux_ruptures_causees") // % ruptures causées
-  
+  tauxRetard          Decimal? @map("taux_retard") // % livraisons en retard
+  tauxEcartQuantite   Decimal? @map("taux_ecart_quantite") // % écart quantité livrée
+  tauxRupturesCausees Decimal? @map("taux_ruptures_causees") // % ruptures causées
+
   // Score global et grade
-  scorePerformance    Float?        @map("score_performance")     // Score 0-100
-  grade               SupplierGrade @default(B)                   // A, B, C
-  
+  scorePerformance Decimal?      @map("score_performance") // Score 0-100
+  grade            SupplierGrade @default(B) // A, B, C
+
   // Stats livraisons
-  totalLivraisons     Int           @default(0) @map("total_livraisons")
-  livraisonsRetard    Int           @default(0) @map("livraisons_retard")
-  
+  totalLivraisons  Int @default(0) @map("total_livraisons")
+  livraisonsRetard Int @default(0) @map("livraisons_retard")
+
   // Dernière mise à jour des métriques
-  lastPerformanceUpdate DateTime?   @map("last_performance_update")
-  
+  lastPerformanceUpdate DateTime? @map("last_performance_update")
+
   // ═══════════════════════════════════════════════════════════════════════════
   // BLOCAGE & SURVEILLANCE (ERP Premium)
   // ═══════════════════════════════════════════════════════════════════════════
-  
-  isBlocked         Boolean   @default(false) @map("is_blocked")
-  blockedReason     String?   @map("blocked_reason")
-  blockedAt         DateTime? @map("blocked_at")
-  blockedUntil      DateTime? @map("blocked_until")
-  blockedBy         Int?      @map("blocked_by")
-  
-  isUnderSurveillance   Boolean   @default(false) @map("is_under_surveillance")
-  surveillanceReason    String?   @map("surveillance_reason")
-  surveillanceAt        DateTime? @map("surveillance_at")
-  surveillanceUntil     DateTime? @map("surveillance_until")
-  surveillanceBy        Int?      @map("surveillance_by")
-  
+
+  isBlocked     Boolean   @default(false) @map("is_blocked")
+  blockedReason String?   @map("blocked_reason")
+  blockedAt     DateTime? @map("blocked_at")
+  blockedUntil  DateTime? @map("blocked_until")
+  blockedBy     String?   @map("blocked_by")
+
+  isUnderSurveillance Boolean   @default(false) @map("is_under_surveillance")
+  surveillanceReason  String?   @map("surveillance_reason")
+  surveillanceAt      DateTime? @map("surveillance_at")
+  surveillanceUntil   DateTime? @map("surveillance_until")
+  surveillanceBy      String?   @map("surveillance_by")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  lots       LotMp[]
-  receptions ReceptionMp[]
-  productsMpPrincipaux ProductMp[] @relation("FournisseurPrincipal")
-  purchaseOrders PurchaseOrder[]
+  lots                 LotMp[]
+  receptions           ReceptionMp[]
+  productsMpPrincipaux ProductMp[]     @relation("FournisseurPrincipal")
+  purchaseOrders       PurchaseOrder[]
+  blockedByUser        User?           @relation("BlockedByUser", fields: [blockedBy], references: [id], onDelete: SetNull)
+  surveillanceByUser   User?           @relation("SurveillanceByUser", fields: [surveillanceBy], references: [id], onDelete: SetNull)
 
   @@index([grade])
   @@index([scorePerformance])
@@ -433,21 +446,27 @@ enum ClientType {
 }
 
 model Client {
-  id        Int        @id @default(autoincrement())
-  code      String     @unique // CLI-001
-  name      String
-  type      ClientType @default(DISTRIBUTEUR)
-  
-  // Champs fiscaux algériens (obligatoires pour facturation)
-  nif       String     @default("")  // Numéro d'Identification Fiscale
-  rc        String     @default("")  // Registre de Commerce
-  ai        String     @default("")  // Article d'Imposition
-  nis       String?                  // Numéro d'Identification Statistique (optionnel)
-  
-  phone     String?
-  address   String?
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @updatedAt @map("updated_at")
+  id   Int        @id @default(autoincrement())
+  code String     @unique // CLI-001
+  name String
+  type ClientType @default(DISTRIBUTEUR)
+
+  // Champs fiscaux algériens (optionnels à la création, requis pour facturation)
+  // @validate: NIF must be 15 digits
+  nif String? // Numéro d'Identification Fiscale
+  // @validate: RC must be alphanumeric
+  rc  String? // Registre de Commerce
+  // @validate: AI must be alphanumeric 3-20 chars
+  ai  String? // Article d'Imposition
+  // @validate: NIS must be 15 digits if present
+  nis String? // Numéro d'Identification Statistique (optionnel)
+
+  phone            String?
+  address          String?
+  creditLimit      Int?
+  paymentTermsDays Int?     @default(30)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   invoices   Invoice[]
   deliveries Delivery[]
@@ -460,43 +479,43 @@ model Client {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 enum LotStatus {
-  AVAILABLE   // Lot disponible pour consommation
-  BLOCKED     // Lot bloqué (DLC dépassée, qualité, etc.)
-  CONSUMED    // Lot entièrement consommé
+  AVAILABLE // Lot disponible pour consommation
+  BLOCKED // Lot bloqué (DLC dépassée, qualité, etc.)
+  CONSUMED // Lot entièrement consommé
 }
 
 model LotMp {
-  id               Int       @id @default(autoincrement())
-  productId        Int       @map("product_id")
-  lotNumber        String    @unique @map("lot_number") // L240101-001
-  quantityInitial  Int       @default(0) @map("quantity_initial") // Quantité initiale
-  quantityRemaining Int      @default(0) @map("quantity_remaining") // Quantité restante (FIFO)
-  manufactureDate  DateTime? @map("manufacture_date") // Date de fabrication fournisseur
-  expiryDate       DateTime? @map("expiry_date") // DLC / DDM
-  supplierId       Int?      @map("supplier_id")
-  receptionId      Int?      @map("reception_id") // Lien vers réception
-  unitCost         Int?      @map("unit_cost") // Coût unitaire en centimes
-  isActive         Boolean   @default(true) @map("is_active") // Lot actif (non épuisé)
-  
-  // Statut lot (FIFO + blocage)
-  status           LotStatus @default(AVAILABLE)
-  blockedAt        DateTime? @map("blocked_at")
-  blockedReason    String?   @map("blocked_reason") // DLC_EXPIRED_AUTO, QUALITY, MANUAL
-  blockedById      String?   @map("blocked_by_id")
-  consumedAt       DateTime? @map("consumed_at")
-  
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  id                Int       @id @default(autoincrement())
+  productId         Int       @map("product_id")
+  lotNumber         String    @unique @map("lot_number") // L240101-001
+  quantityInitial   Int       @default(0) @map("quantity_initial") // Quantité initiale
+  quantityRemaining Int       @default(0) @map("quantity_remaining") // Quantité restante (FIFO)
+  manufactureDate   DateTime? @map("manufacture_date") // Date de fabrication fournisseur
+  expiryDate        DateTime? @map("expiry_date") // DLC / DDM
+  supplierId        Int?      @map("supplier_id")
+  receptionId       Int?      @map("reception_id") // Lien vers réception
+  unitCost          Int?      @map("unit_cost") // Coût unitaire en centimes
+  isActive          Boolean   @default(true) @map("is_active") // Lot actif (non épuisé)
 
-  product        ProductMp       @relation(fields: [productId], references: [id])
-  supplier       Supplier?       @relation(fields: [supplierId], references: [id])
-  blockedBy      User?           @relation("LotMpBlockedBy", fields: [blockedById], references: [id], onDelete: SetNull)
-  stockMovements StockMovement[]
+  // Statut lot (FIFO + blocage)
+  status        LotStatus @default(AVAILABLE)
+  blockedAt     DateTime? @map("blocked_at")
+  blockedReason String?   @map("blocked_reason") // DLC_EXPIRED_AUTO, QUALITY, MANUAL
+  blockedById   String?   @map("blocked_by_id")
+  consumedAt    DateTime? @map("consumed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product                ProductMp               @relation(fields: [productId], references: [id])
+  supplier               Supplier?               @relation(fields: [supplierId], references: [id])
+  blockedBy              User?                   @relation("LotMpBlockedBy", fields: [blockedById], references: [id], onDelete: SetNull)
+  stockMovements         StockMovement[]
   productionConsumptions ProductionConsumption[]
 
-  @@index([productId, expiryDate])
   @@index([productId, isActive])
   // Index FIFO optimisé: lots disponibles triés par date réception puis DLC
+  // Also covers (productId, expiryDate) queries via leftmost prefix
   @@index([productId, status, createdAt, expiryDate], map: "idx_lots_mp_fifo")
   // R10: Dashboard DLC queries - expiry + status + remaining
   @@index([status, expiryDate, quantityRemaining], map: "idx_lots_mp_dashboard_expiry")
@@ -514,16 +533,16 @@ model LotPf {
   productionOrderId Int?      @map("production_order_id")
   unitCost          Int?      @map("unit_cost") // Coût de revient en centimes
   isActive          Boolean   @default(true) @map("is_active") // Lot actif (non épuisé)
-  
+
   // Statut lot (FIFO + blocage)
-  status            LotStatus @default(AVAILABLE)
-  blockedAt         DateTime? @map("blocked_at")
-  blockedReason     String?   @map("blocked_reason")
-  blockedById       String?   @map("blocked_by_id")
-  consumedAt        DateTime? @map("consumed_at")
-  
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  status        LotStatus @default(AVAILABLE)
+  blockedAt     DateTime? @map("blocked_at")
+  blockedReason String?   @map("blocked_reason")
+  blockedById   String?   @map("blocked_by_id")
+  consumedAt    DateTime? @map("consumed_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   product         ProductPf        @relation(fields: [productId], references: [id])
   productionOrder ProductionOrder? @relation(fields: [productionOrderId], references: [id])
@@ -555,58 +574,58 @@ enum ProductType {
 
 // Origine du mouvement - traçabilité complète
 enum MovementOrigin {
-  RECEPTION         // Réception fournisseur (MP IN)
-  PRODUCTION_IN     // Entrée production (PF IN)
-  PRODUCTION_OUT    // Consommation production (MP OUT)
+  RECEPTION // Réception fournisseur (MP IN)
+  PRODUCTION_IN // Entrée production (PF IN)
+  PRODUCTION_OUT // Consommation production (MP OUT)
   PRODUCTION_CANCEL // Annulation production (MP IN - reversal)
-  VENTE             // Vente client (PF OUT)
-  INVENTAIRE        // Ajustement inventaire (ADMIN only)
-  RETOUR_CLIENT     // Retour client (PF IN - cas exceptionnel)
-  PERTE             // Perte/casse (MP/PF OUT - ADMIN only)
+  VENTE // Vente client (PF OUT)
+  INVENTAIRE // Ajustement inventaire (ADMIN only)
+  RETOUR_CLIENT // Retour client (PF IN - cas exceptionnel)
+  PERTE // Perte/casse (MP/PF OUT - ADMIN only)
 }
 
 model StockMovement {
-  id            Int             @id @default(autoincrement())
-  movementType  MovementType    @map("movement_type")
-  productType   ProductType     @map("product_type")
-  origin        MovementOrigin  // Origine métier du mouvement
-  productMpId   Int?            @map("product_mp_id")
-  productPfId   Int?            @map("product_pf_id")
-  lotMpId       Int?            @map("lot_mp_id")
-  lotPfId       Int?            @map("lot_pf_id")
-  quantity      Int             // Toujours positif
-  unitCost      Int?            @map("unit_cost") // Coût unitaire en centimes (pour valorisation)
-  
-  // Traçabilité document source
-  referenceType String?         @map("reference_type") // RECEPTION, PRODUCTION, INVOICE
-  referenceId   Int?            @map("reference_id")
-  reference     String?         // Numéro document (BL, facture, OP...)
-  
-  // Audit complet
-  userId        String          @map("user_id")
-  note          String?         // Note optionnelle
-  createdAt     DateTime        @default(now()) @map("created_at")
-  
-  // Idempotence (protection double-clic)
-  idempotencyKey String?        @unique @map("idempotency_key")
-  
-  // Snapshot lot au moment du mouvement (traçabilité FIFO)
-  lotSnapshot   Json?           @map("lot_snapshot") // {quantityBefore, quantityAfter, expiryDate}
-  
-  // Lien inventaire (si origine = INVENTAIRE)
-  inventoryDeclarationId Int?   @map("inventory_declaration_id")
-  
-  // Soft delete - jamais de suppression réelle
-  isDeleted     Boolean         @default(false) @map("is_deleted")
-  deletedAt     DateTime?       @map("deleted_at")
-  deletedBy     String?         @map("deleted_by")
-  deleteReason  String?         @map("delete_reason")
+  id           Int            @id @default(autoincrement())
+  movementType MovementType   @map("movement_type")
+  productType  ProductType    @map("product_type")
+  origin       MovementOrigin // Origine métier du mouvement
+  productMpId  Int?           @map("product_mp_id")
+  productPfId  Int?           @map("product_pf_id")
+  lotMpId      Int?           @map("lot_mp_id")
+  lotPfId      Int?           @map("lot_pf_id")
+  quantity     Int // Toujours positif
+  unitCost     Int?           @map("unit_cost") // Coût unitaire en centimes (pour valorisation)
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  productMp ProductMp? @relation(fields: [productMpId], references: [id])
-  productPf ProductPf? @relation(fields: [productPfId], references: [id])
-  lotMp     LotMp?     @relation(fields: [lotMpId], references: [id])
-  lotPf     LotPf?     @relation(fields: [lotPfId], references: [id])
+  // Traçabilité document source
+  referenceType String? @map("reference_type") // RECEPTION, PRODUCTION, INVOICE
+  referenceId   Int?    @map("reference_id")
+  reference     String? // Numéro document (BL, facture, OP...)
+
+  // Audit complet
+  userId    String   @map("user_id")
+  note      String? // Note optionnelle
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Idempotence (protection double-clic)
+  idempotencyKey String? @unique @map("idempotency_key")
+
+  // Snapshot lot au moment du mouvement (traçabilité FIFO)
+  lotSnapshot Json? @map("lot_snapshot") // {quantityBefore, quantityAfter, expiryDate}
+
+  // Lien inventaire (si origine = INVENTAIRE)
+  inventoryDeclarationId Int? @map("inventory_declaration_id")
+
+  // Soft delete - jamais de suppression réelle
+  isDeleted    Boolean   @default(false) @map("is_deleted")
+  deletedAt    DateTime? @map("deleted_at")
+  deletedBy    String?   @map("deleted_by")
+  deleteReason String?   @map("delete_reason")
+
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productMp            ProductMp?            @relation(fields: [productMpId], references: [id])
+  productPf            ProductPf?            @relation(fields: [productPfId], references: [id])
+  lotMp                LotMp?                @relation(fields: [lotMpId], references: [id])
+  lotPf                LotPf?                @relation(fields: [lotPfId], references: [id])
   inventoryDeclaration InventoryDeclaration? @relation(fields: [inventoryDeclarationId], references: [id])
 
   @@index([productType, createdAt])
@@ -614,6 +633,8 @@ model StockMovement {
   @@index([referenceType, referenceId])
   @@index([productMpId, isDeleted])
   @@index([productPfId, isDeleted])
+  @@index([productMpId, productType, isDeleted])
+  @@index([productPfId, productType, isDeleted])
   @@index([idempotencyKey])
   @@index([productType, productMpId, isDeleted, movementType])
   @@index([productType, productPfId, isDeleted, movementType])
@@ -630,76 +651,76 @@ model StockMovement {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 enum InventoryStatus {
-  PENDING_ANALYSIS        // Déclaré, en attente d'analyse
-  AUTO_APPROVED           // Écart faible, auto-approuvé
-  PENDING_VALIDATION      // Écart moyen, attente validation ADMIN
+  PENDING_ANALYSIS // Déclaré, en attente d'analyse
+  AUTO_APPROVED // Écart faible, auto-approuvé
+  PENDING_VALIDATION // Écart moyen, attente validation ADMIN
   PENDING_DOUBLE_VALIDATION // Écart critique, attente double validation
-  APPROVED                // Validé, mouvement créé
-  REJECTED                // Rejeté, nouveau comptage requis
-  EXPIRED                 // Déclaration expirée (>24h sans validation)
+  APPROVED // Validé, mouvement créé
+  REJECTED // Rejeté, nouveau comptage requis
+  EXPIRED // Déclaration expirée (>24h sans validation)
 }
 
 enum InventoryRiskLevel {
-  LOW       // Écart acceptable
-  MEDIUM    // Écart modéré
-  HIGH      // Écart élevé
-  CRITICAL  // Écart critique
+  LOW // Écart acceptable
+  MEDIUM // Écart modéré
+  HIGH // Écart élevé
+  CRITICAL // Écart critique
 }
 
 model InventoryDeclaration {
-  id                Int               @id @default(autoincrement())
-  
+  id Int @id @default(autoincrement())
+
   // Produit concerné
-  productType       ProductType       @map("product_type")
-  productMpId       Int?              @map("product_mp_id")
-  productPfId       Int?              @map("product_pf_id")
-  
+  productType ProductType @map("product_type")
+  productMpId Int?        @map("product_mp_id")
+  productPfId Int?        @map("product_pf_id")
+
   // Valeurs de stock
-  theoreticalStock  Decimal           @map("theoretical_stock") @db.Decimal(18, 4)
-  declaredStock     Decimal           @map("declared_stock") @db.Decimal(18, 4)
-  difference        Decimal           @db.Decimal(18, 4) // declaredStock - theoreticalStock
-  differencePercent Decimal           @map("difference_percent") @db.Decimal(18, 4)
-  differenceValue   Decimal           @map("difference_value") @db.Decimal(18, 4) // En centimes
-  
+  theoreticalStock  Decimal @map("theoretical_stock") @db.Decimal(18, 4)
+  declaredStock     Decimal @map("declared_stock") @db.Decimal(18, 4)
+  difference        Decimal @db.Decimal(18, 4) // declaredStock - theoreticalStock
+  differencePercent Decimal @map("difference_percent") @db.Decimal(18, 4)
+  differenceValue   Decimal @map("difference_value") @db.Decimal(18, 4) // En centimes
+
   // Analyse et statut
-  riskLevel         InventoryRiskLevel @map("risk_level")
-  status            InventoryStatus   @default(PENDING_ANALYSIS)
-  
+  riskLevel InventoryRiskLevel @map("risk_level")
+  status    InventoryStatus    @default(PENDING_ANALYSIS)
+
   // Comptage (qui a compté physiquement)
-  countedById       String            @map("counted_by_id")
-  countedAt         DateTime          @default(now()) @map("counted_at")
-  notes             String?
-  evidencePhotos    String[]          @default([]) @map("evidence_photos")
-  
+  countedById    String   @map("counted_by_id")
+  countedAt      DateTime @default(now()) @map("counted_at")
+  notes          String?
+  evidencePhotos String[] @default([]) @map("evidence_photos")
+
   // Première validation (si double validation requise)
-  firstValidatorId      String?       @map("first_validator_id")
-  firstValidatedAt      DateTime?     @map("first_validated_at")
-  firstValidationReason String?       @map("first_validation_reason")
-  
+  firstValidatorId      String?   @map("first_validator_id")
+  firstValidatedAt      DateTime? @map("first_validated_at")
+  firstValidationReason String?   @map("first_validation_reason")
+
   // Validation finale
-  validatedById     String?           @map("validated_by_id")
-  validatedAt       DateTime?         @map("validated_at")
-  validationReason  String?           @map("validation_reason")
-  
+  validatedById    String?   @map("validated_by_id")
+  validatedAt      DateTime? @map("validated_at")
+  validationReason String?   @map("validation_reason")
+
   // Rejet
-  rejectedById      String?           @map("rejected_by_id")
-  rejectedAt        DateTime?         @map("rejected_at")
-  rejectionReason   String?           @map("rejection_reason")
-  
+  rejectedById    String?   @map("rejected_by_id")
+  rejectedAt      DateTime? @map("rejected_at")
+  rejectionReason String?   @map("rejection_reason")
+
   // Expiration
-  expiredAt         DateTime?         @map("expired_at")
-  
+  expiredAt DateTime? @map("expired_at")
+
   // Audit
-  createdAt         DateTime          @default(now()) @map("created_at")
-  updatedAt         DateTime          @updatedAt @map("updated_at")
-  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   // Relations
-  countedBy         User              @relation("InventoryCountedBy", fields: [countedById], references: [id])
-  firstValidator    User?             @relation("InventoryFirstValidator", fields: [firstValidatorId], references: [id])
-  validatedBy       User?             @relation("InventoryValidatedBy", fields: [validatedById], references: [id])
-  rejectedBy        User?             @relation("InventoryRejectedBy", fields: [rejectedById], references: [id])
-  stockMovements    StockMovement[]
-  
+  countedBy      User            @relation("InventoryCountedBy", fields: [countedById], references: [id])
+  firstValidator User?           @relation("InventoryFirstValidator", fields: [firstValidatorId], references: [id])
+  validatedBy    User?           @relation("InventoryValidatedBy", fields: [validatedById], references: [id])
+  rejectedBy     User?           @relation("InventoryRejectedBy", fields: [rejectedById], references: [id])
+  stockMovements StockMovement[]
+
   @@index([productType, productMpId])
   @@index([productType, productPfId])
   @@index([status])
@@ -721,26 +742,26 @@ enum ReceptionStatus {
 }
 
 model ReceptionMp {
-  id            Int             @id @default(autoincrement())
-  reference     String          @unique // REC-240101-001
-  supplierId    Int?            @map("supplier_id") // Optionnel pour transformations internes
-  date          DateTime
-  blNumber      String?         @map("bl_number") // Numéro bon de livraison fournisseur
-  status        ReceptionStatus @default(DRAFT)
-  note          String?
-  
-  // Source de la réception
-  source        String          @default("EXTERNE") // EXTERNE | DEMANDE_MP
-  
-  // Audit
-  userId        String          @map("user_id")
-  validatedAt   DateTime?       @map("validated_at")
-  validatedBy   String?         @map("validated_by")
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
+  id         Int             @id @default(autoincrement())
+  reference  String          @unique // REC-240101-001
+  supplierId Int?            @map("supplier_id") // Optionnel pour transformations internes
+  date       DateTime
+  blNumber   String?         @map("bl_number") // Numéro bon de livraison fournisseur
+  status     ReceptionStatus @default(DRAFT)
+  note       String?
 
-  supplier      Supplier?       @relation(fields: [supplierId], references: [id])
-  lines         ReceptionMpLine[]
+  // Source de la réception
+  source String @default("EXTERNE") // EXTERNE | DEMANDE_MP
+
+  // Audit
+  userId      String    @map("user_id")
+  validatedAt DateTime? @map("validated_at")
+  validatedBy String?   @map("validated_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  supplier Supplier?         @relation(fields: [supplierId], references: [id])
+  lines    ReceptionMpLine[]
 
   @@index([supplierId, date])
   @@index([status])
@@ -748,24 +769,24 @@ model ReceptionMp {
 }
 
 model ReceptionMpLine {
-  id            Int         @id @default(autoincrement())
-  receptionId   Int         @map("reception_id")
-  productMpId   Int         @map("product_mp_id")
-  quantity      Int
-  unitCost      Int?        @map("unit_cost") // Prix unitaire HT en centimes
-  lotNumber     String?     @map("lot_number") // Numéro lot fournisseur
-  expiryDate    DateTime?   @map("expiry_date")
-  
-  // TVA - Conformité fiscale algérienne
-  tvaRate       Int         @default(19) @map("tva_rate") // Taux TVA: 0, 9, ou 19
-  totalHT       Int?        @map("total_ht") // Montant HT en centimes (quantity * unitCost)
-  tvaAmount     Int?        @map("tva_amount") // Montant TVA en centimes
-  totalTTC      Int?        @map("total_ttc") // Montant TTC en centimes
-  
-  createdAt     DateTime    @default(now()) @map("created_at")
+  id          Int       @id @default(autoincrement())
+  receptionId Int       @map("reception_id")
+  productMpId Int       @map("product_mp_id")
+  quantity    Int
+  unitCost    Int?      @map("unit_cost") // Prix unitaire HT en centimes
+  lotNumber   String?   @map("lot_number") // Numéro lot fournisseur
+  expiryDate  DateTime? @map("expiry_date")
 
-  reception     ReceptionMp @relation(fields: [receptionId], references: [id], onDelete: Cascade)
-  productMp     ProductMp   @relation(fields: [productMpId], references: [id])
+  // TVA - Conformité fiscale algérienne
+  tvaRate   Int  @default(19) @map("tva_rate") // Taux TVA: 0, 9, ou 19
+  totalHT   Int? @map("total_ht") // Montant HT en centimes (quantity * unitCost)
+  tvaAmount Int? @map("tva_amount") // Montant TVA en centimes
+  totalTTC  Int? @map("total_ttc") // Montant TTC en centimes
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  reception ReceptionMp @relation(fields: [receptionId], references: [id], onDelete: Restrict)
+  productMp ProductMp   @relation(fields: [productMpId], references: [id])
 
   @@index([receptionId])
   @@index([productMpId])
@@ -778,31 +799,33 @@ model ReceptionMpLine {
 
 // Recette de production - définit les ingrédients nécessaires pour un produit fini
 model Recipe {
-  id              Int       @id @default(autoincrement())
-  productPfId     Int       @unique @map("product_pf_id") // Une recette par produit
-  name            String    // Nom de la recette (ex: "Fromage fondu 400g")
-  description     String?   // Description/notes
-  
-  // Paramètres de batch
-  batchWeight     Int       @map("batch_weight") // Poids du batch en grammes (ex: 50000 = 50kg)
-  outputQuantity  Int       @default(1) @map("output_quantity") // Quantité produite par batch (ex: 100 unités)
-  lossTolerance   Decimal   @default(0.02) @map("loss_tolerance") @db.Decimal(18, 4) // Tolérance de perte (2% par défaut)
-  
-  // Durée et DLC
-  productionTime  Int?      @map("production_time") // Durée de production en minutes
-  shelfLifeDays   Int       @default(90) @map("shelf_life_days") // DLC en jours après production
-  
-  // Statut
-  isActive        Boolean   @default(true) @map("is_active")
-  version         Int       @default(1) // Version de la recette
-  
-  // Audit
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  createdBy       String?   @map("created_by")
+  id          Int     @id @default(autoincrement())
+  productPfId Int     @unique @map("product_pf_id") // Une recette par produit
+  name        String // Nom de la recette (ex: "Fromage fondu 400g")
+  description String? // Description/notes
 
-  productPf       ProductPf      @relation(fields: [productPfId], references: [id])
-  items           RecipeItem[]
+  // Paramètres de batch
+  // @check: batchWeight > 0
+  batchWeight    Int     @map("batch_weight") // Poids du batch en grammes (ex: 50000 = 50kg)
+  // @check: outputQuantity > 0
+  outputQuantity Int     @default(1) @map("output_quantity") // Quantité produite par batch (ex: 100 unités)
+  lossTolerance  Decimal @default(0.02) @map("loss_tolerance") @db.Decimal(18, 4) // Tolérance de perte (2% par défaut)
+
+  // Durée et DLC
+  productionTime Int? @map("production_time") // Durée de production en minutes
+  shelfLifeDays  Int  @default(90) @map("shelf_life_days") // DLC en jours après production
+
+  // Statut
+  isActive Boolean @default(true) @map("is_active")
+  version  Int     @default(1) // Version de la recette
+
+  // Audit
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdBy String?  @map("created_by")
+
+  productPf        ProductPf         @relation(fields: [productPfId], references: [id])
+  items            RecipeItem[]
   productionOrders ProductionOrder[]
 
   @@map("recipes")
@@ -810,49 +833,49 @@ model Recipe {
 
 // Type de composant dans une recette
 enum RecipeItemType {
-  MP        // Matière première (impact stock FIFO)
-  FLUID     // Eau/fluide technique (pas d'impact stock)
+  MP // Matière première (impact stock FIFO)
+  FLUID // Eau/fluide technique (pas d'impact stock)
   PACKAGING // Emballage (impact stock obligatoire)
 }
 
 // Composant d'une recette (MP, Fluide ou Emballage)
 model RecipeItem {
-  id              Int             @id @default(autoincrement())
-  recipeId        Int             @map("recipe_id")
-  
+  id       Int @id @default(autoincrement())
+  recipeId Int @map("recipe_id")
+
   // Type de composant
-  type            RecipeItemType  @default(MP)
-  
+  type RecipeItemType @default(MP)
+
   // Produit lié (MP ou Packaging) - nullable pour FLUID
-  productMpId     Int?            @map("product_mp_id")
-  
+  productMpId Int? @map("product_mp_id")
+
   // Nom (pour FLUID: "Eau", "Vapeur", etc.)
-  name            String?
-  
+  name String?
+
   // Quantité requise pour un batch
-  quantity        Decimal         @db.Decimal(18, 4) // Quantité (peut être décimal pour précision)
-  unit            String          // Unité (kg, L, unité)
+  quantity Decimal @db.Decimal(18, 4) // Quantité (peut être décimal pour précision)
+  unit     String // Unité (kg, L, unité)
 
   // Coût unitaire (optionnel, pour FLUID: DA/m³)
-  unitCost        Decimal?        @map("unit_cost") @db.Decimal(18, 4)
-  
-  // Impact stock
-  affectsStock    Boolean         @default(true) @map("affects_stock")
-  
-  // Options (substituteIds: IDs de ProductMp substituables — utilisé par recipe.service)
-  isMandatory     Boolean         @default(true) @map("is_mandatory")
-  isSubstitutable Boolean         @default(false) @map("is_substitutable")
-  substituteIds   Int[]           @default([]) @map("substitute_ids")
-  
-  // Ordre d'ajout dans le process
-  sortOrder       Int             @default(0) @map("sort_order")
-  notes           String?
-  
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
+  unitCost Decimal? @map("unit_cost") @db.Decimal(18, 4)
 
-  recipe          Recipe          @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  productMp       ProductMp?      @relation(fields: [productMpId], references: [id])
+  // Impact stock
+  affectsStock Boolean @default(true) @map("affects_stock")
+
+  // Options (substituteIds: IDs de ProductMp substituables — utilisé par recipe.service)
+  isMandatory     Boolean @default(true) @map("is_mandatory")
+  isSubstitutable Boolean @default(false) @map("is_substitutable")
+  substituteIds   Int[]   @default([]) @map("substitute_ids")
+
+  // Ordre d'ajout dans le process
+  sortOrder Int     @default(0) @map("sort_order")
+  notes     String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  recipe    Recipe     @relation(fields: [recipeId], references: [id], onDelete: Restrict)
+  productMp ProductMp? @relation(fields: [productMpId], references: [id])
 
   @@index([recipeId])
   @@index([productMpId])
@@ -860,53 +883,53 @@ model RecipeItem {
 }
 
 enum ProductionStatus {
-  PENDING       // En attente de démarrage
-  IN_PROGRESS   // Production en cours
-  COMPLETED     // Production terminée
-  CANCELLED     // Annulée
+  PENDING // En attente de démarrage
+  IN_PROGRESS // Production en cours
+  COMPLETED // Production terminée
+  CANCELLED // Annulée
 }
 
 model ProductionOrder {
-  id               Int              @id @default(autoincrement())
-  reference        String           @unique // OP-240101-001
-  productPfId      Int              @map("product_pf_id")
-  recipeId         Int?             @map("recipe_id") // Recette utilisée (snapshot)
-  
+  id          Int    @id @default(autoincrement())
+  reference   String @unique // OP-240101-001
+  productPfId Int    @map("product_pf_id")
+  recipeId    Int?   @map("recipe_id") // Recette utilisée (snapshot)
+
   // Quantités
-  batchCount       Int              @default(1) @map("batch_count") // Nombre de batchs
-  targetQuantity   Int              @map("target_quantity") // Quantité cible
-  quantityProduced Int              @default(0) @map("quantity_produced") // Quantité réelle produite
-  
+  batchCount       Int @default(1) @map("batch_count") // Nombre de batchs
+  targetQuantity   Int @map("target_quantity") // Quantité cible
+  quantityProduced Int @default(0) @map("quantity_produced") // Quantité réelle produite
+
   // Poids réel du batch (pour calcul rendement)
-  batchWeightReal  Int?             @map("batch_weight_real") // Poids réel en grammes
-  
+  batchWeightReal Int? @map("batch_weight_real") // Poids réel en grammes
+
   // Rendement calculé
-  yieldPercentage  Decimal?         @map("yield_percentage") @db.Decimal(18, 4) // Rendement (%)
-  
+  yieldPercentage Decimal? @map("yield_percentage") @db.Decimal(18, 4) // Rendement (%)
+
   // Planification
-  scheduledDate    DateTime?        @map("scheduled_date") // Date planifiée de production
+  scheduledDate DateTime? @map("scheduled_date") // Date planifiée de production
 
   // Workflow
-  status           ProductionStatus @default(PENDING)
-  startedAt        DateTime?        @map("started_at")
-  completedAt      DateTime?        @map("completed_at")
-  
-  // Contrôle qualité
-  qualityNotes     String?          @map("quality_notes")
-  qualityStatus    String?          @map("quality_status") // OK, DEFAUT_MINEUR, DEFAUT_MAJEUR
-  
-  // Audit complet
-  userId           String           @map("user_id")
-  startedBy        String?          @map("started_by")
-  completedBy      String?          @map("completed_by")
-  createdAt        DateTime         @default(now()) @map("created_at")
-  updatedAt        DateTime         @updatedAt @map("updated_at")
+  status      ProductionStatus @default(PENDING)
+  startedAt   DateTime?        @map("started_at")
+  completedAt DateTime?        @map("completed_at")
 
-  user             User             @relation(fields: [userId], references: [id])
-  productPf        ProductPf        @relation(fields: [productPfId], references: [id])
-  recipe           Recipe?          @relation(fields: [recipeId], references: [id])
-  consumptions     ProductionConsumption[]
-  lots             LotPf[]
+  // Contrôle qualité
+  qualityNotes  String? @map("quality_notes")
+  qualityStatus String? @map("quality_status") // OK, DEFAUT_MINEUR, DEFAUT_MAJEUR
+
+  // Audit complet
+  userId      String   @map("user_id")
+  startedBy   String?  @map("started_by")
+  completedBy String?  @map("completed_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user         User                    @relation(fields: [userId], references: [id])
+  productPf    ProductPf               @relation(fields: [productPfId], references: [id])
+  recipe       Recipe?                 @relation(fields: [recipeId], references: [id])
+  consumptions ProductionConsumption[]
+  lots         LotPf[]
 
   @@index([status])
   @@index([productPfId])
@@ -919,27 +942,27 @@ model ProductionOrder {
 
 // Consommation réelle de MP lors d'une production (traçabilité FIFO)
 model ProductionConsumption {
-  id                Int       @id @default(autoincrement())
-  productionOrderId Int       @map("production_order_id")
-  productMpId       Int       @map("product_mp_id")
-  lotMpId           Int?      @map("lot_mp_id") // Lot MP consommé (traçabilité)
-  
+  id                Int  @id @default(autoincrement())
+  productionOrderId Int  @map("production_order_id")
+  productMpId       Int  @map("product_mp_id")
+  lotMpId           Int? @map("lot_mp_id") // Lot MP consommé (traçabilité)
+
   // Quantités
-  quantityPlanned   Decimal   @map("quantity_planned") @db.Decimal(18, 4) // Quantité prévue par recette
-  quantityConsumed  Decimal   @map("quantity_consumed") @db.Decimal(18, 4) // Quantité réellement consommée
-  
+  quantityPlanned  Decimal @map("quantity_planned") @db.Decimal(18, 4) // Quantité prévue par recette
+  quantityConsumed Decimal @map("quantity_consumed") @db.Decimal(18, 4) // Quantité réellement consommée
+
   // Coût
-  unitCost          Int?      @map("unit_cost") // Coût unitaire du lot consommé
+  unitCost Int? @map("unit_cost") // Coût unitaire du lot consommé
 
   // Traçabilité annulation: marqué true au lieu de supprimer
-  isReversed        Boolean   @default(false) @map("is_reversed")
-  reversedAt        DateTime? @map("reversed_at")
+  isReversed Boolean   @default(false) @map("is_reversed")
+  reversedAt DateTime? @map("reversed_at")
 
-  createdAt         DateTime  @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  productionOrder   ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Cascade)
-  productMp         ProductMp       @relation(fields: [productMpId], references: [id])
-  lotMp             LotMp?          @relation(fields: [lotMpId], references: [id])
+  productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id], onDelete: Restrict)
+  productMp       ProductMp       @relation(fields: [productMpId], references: [id])
+  lotMp           LotMp?          @relation(fields: [lotMpId], references: [id])
 
   @@index([productionOrderId])
   @@index([productMpId])
@@ -953,6 +976,8 @@ model ProductionConsumption {
 
 enum InvoiceStatus {
   DRAFT
+  VALIDATED
+  PARTIALLY_PAID
   PAID
   CANCELLED
 }
@@ -965,9 +990,10 @@ enum PaymentMethod {
 
 model Invoice {
   id            Int           @id @default(autoincrement())
-  reference     String        @unique // F-240101-001
+  reference     String // F-240101-001
   clientId      Int           @map("client_id")
   date          DateTime
+  // NOTE: Int (centimes) - consider Decimal(18,4) for amounts > 20M DA
   totalHt       Int           @map("total_ht") // Centimes
   totalTva      Int           @map("total_tva")
   totalTtc      Int           @map("total_ttc")
@@ -979,13 +1005,21 @@ model Invoice {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
+  fiscalYear         Int?
+  timbreRate         Decimal?
+  cancellationReason String?
+  cancelledBy        String?
+  cancelledAt        DateTime?
+
   client     Client        @relation(fields: [clientId], references: [id])
   user       User          @relation(fields: [userId], references: [id])
   lines      InvoiceLine[]
   payments   Payment[]
   deliveries Delivery[]
 
+  @@unique([clientId, reference])
   @@index([clientId, date])
+  @@index([clientId, status, date])
   @@index([date])
   @@index([status, date])
   @@map("invoices")
@@ -998,6 +1032,7 @@ model InvoiceLine {
   quantity    Int
   unitPriceHt Int      @map("unit_price_ht")
   lineHt      Int      @map("line_ht")
+  remise      Int      @default(0)
   createdAt   DateTime @default(now()) @map("created_at")
 
   invoice   Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
@@ -1011,7 +1046,7 @@ model InvoiceLine {
 model Payment {
   id            Int           @id @default(autoincrement())
   invoiceId     Int           @map("invoice_id")
-  amount        Int           // Centimes
+  amount        Int // Centimes
   paymentMethod PaymentMethod @map("payment_method")
   userId        String        @map("user_id")
   createdAt     DateTime      @default(now()) @map("created_at")
@@ -1029,50 +1064,55 @@ model Payment {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 enum DeliveryStatus {
-  PENDING     // En attente de livraison
-  VALIDATED   // Livraison validée via QR
-  CANCELLED   // Livraison annulée
+  PENDING // En attente de livraison
+  VALIDATED // Livraison validée via QR
+  DELIVERED // Livraison effectuée
+  CANCELLED // Livraison annulée
 }
 
 model Delivery {
-  id                  String         @id @default(uuid())
-  reference           String         @unique // LIV-240101-001
-  invoiceId           Int            @map("invoice_id")
-  clientId            Int            @map("client_id")
-  
+  id        String @id @default(uuid())
+  reference String @unique // LIV-240101-001
+  invoiceId Int    @map("invoice_id")
+  clientId  Int    @map("client_id")
+
   // QR Code data
-  qrCode              String         @unique @map("qr_code") // Full QR string for validation
-  qrChecksum          String         @map("qr_checksum") // SHA256 checksum
-  
+  qrCode     String @unique @map("qr_code") // Full QR string for validation
+  qrChecksum String @map("qr_checksum") // SHA256 checksum
+
   // Status & validation
   status              DeliveryStatus @default(PENDING)
   validatedAt         DateTime?      @map("validated_at")
   validatedByUserId   String?        @map("validated_by_user_id")
   validatedByDeviceId String?        @map("validated_by_device_id")
-  
+
   // Delivery details
-  scheduledDate       DateTime?      @map("scheduled_date")
-  deliveryAddress     String?        @map("delivery_address")
-  deliveryNotes       String?        @map("delivery_notes")
-  
+  scheduledDate   DateTime? @map("scheduled_date")
+  deliveryAddress String?   @map("delivery_address")
+  deliveryNotes   String?   @map("delivery_notes")
+
   // Proof of delivery
-  proofPhoto          String?        @map("proof_photo") // Base64 or URL
-  recipientName       String?        @map("recipient_name")
-  recipientSignature  String?        @map("recipient_signature") // Base64
-  
+  proofPhoto         String? @map("proof_photo") // Base64 or URL
+  recipientName      String? @map("recipient_name")
+  recipientSignature String? @map("recipient_signature") // Base64
+
+  // Delivery completion
+  deliveredAt       DateTime? @map("delivered_at")
+  deliveredByUserId String?   @map("delivered_by_user_id")
+
   // Cancellation
-  cancelledAt         DateTime?      @map("cancelled_at")
-  cancelledByUserId   String?        @map("cancelled_by_user_id")
-  cancelReason        String?        @map("cancel_reason")
-  
+  cancelledAt       DateTime? @map("cancelled_at")
+  cancelledByUserId String?   @map("cancelled_by_user_id")
+  cancelReason      String?   @map("cancel_reason")
+
   // Audit
-  createdByUserId     String         @map("created_by_user_id")
-  createdAt           DateTime       @default(now()) @map("created_at")
-  updatedAt           DateTime       @updatedAt @map("updated_at")
+  createdByUserId String   @map("created_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
-  invoice             Invoice        @relation(fields: [invoiceId], references: [id])
-  client              Client         @relation(fields: [clientId], references: [id])
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  client  Client  @relation(fields: [clientId], references: [id])
 
   @@index([status])
   @@index([invoiceId])
@@ -1085,19 +1125,19 @@ model Delivery {
 
 // Delivery validation audit log (immutable)
 model DeliveryValidationLog {
-  id                String   @id @default(uuid())
-  deliveryId        String   @map("delivery_id")
-  action            String   // SCAN_ATTEMPT, VALIDATED, REJECTED, CANCELLED
-  qrScanned         String   @map("qr_scanned") // QR code that was scanned
-  userId            String   @map("user_id")
-  deviceId          String?  @map("device_id")
-  ipAddress         String?  @map("ip_address")
-  userAgent         String?  @map("user_agent")
-  success           Boolean  @default(false)
-  errorCode         String?  @map("error_code") // ALREADY_VALIDATED, INVALID_QR, etc.
-  errorMessage      String?  @map("error_message")
-  metadata          Json?    // Additional context
-  createdAt         DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  deliveryId   String   @map("delivery_id")
+  action       String // SCAN_ATTEMPT, VALIDATED, REJECTED, CANCELLED
+  qrScanned    String   @map("qr_scanned") // QR code that was scanned
+  userId       String   @map("user_id")
+  deviceId     String?  @map("device_id")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  success      Boolean  @default(false)
+  errorCode    String?  @map("error_code") // ALREADY_VALIDATED, INVALID_QR, etc.
+  errorMessage String?  @map("error_message")
+  metadata     Json? // Additional context
+  createdAt    DateTime @default(now()) @map("created_at")
 
   @@index([deliveryId, createdAt])
   @@index([userId, createdAt])
@@ -1124,16 +1164,16 @@ enum SecurityAction {
 }
 
 model SecurityLog {
-  id          String         @id @default(uuid())
-  action      SecurityAction
-  userId      String?        @map("user_id")
-  targetId    String?        @map("target_id") // Target user/device ID for admin actions
-  deviceId    String?        @map("device_id")
-  ipAddress   String?        @map("ip_address")
-  userAgent   String?        @map("user_agent")
-  details     Json?          // Additional context
-  success     Boolean        @default(true)
-  createdAt   DateTime       @default(now()) @map("created_at")
+  id        String         @id @default(uuid())
+  action    SecurityAction
+  userId    String?        @map("user_id")
+  targetId  String?        @map("target_id") // Target user/device ID for admin actions
+  deviceId  String?        @map("device_id")
+  ipAddress String?        @map("ip_address")
+  userAgent String?        @map("user_agent")
+  details   Json? // Additional context
+  success   Boolean        @default(true)
+  createdAt DateTime       @default(now()) @map("created_at")
 
   @@index([action, createdAt])
   @@index([userId, createdAt])
@@ -1147,24 +1187,24 @@ model SecurityLog {
 
 enum AlertType {
   // Sync alerts
-  DEVICE_OFFLINE          // Device hasn't synced in X hours
-  SYNC_FAILURE            // Sync operation failed
-  PENDING_EVENTS          // Too many pending events
-  
+  DEVICE_OFFLINE // Device hasn't synced in X hours
+  SYNC_FAILURE // Sync operation failed
+  PENDING_EVENTS // Too many pending events
+
   // Stock alerts
-  LOW_STOCK_MP            // Low raw material stock
-  LOW_STOCK_PF            // Low finished product stock
-  STOCK_EXPIRING          // Stock nearing expiry
-  
+  LOW_STOCK_MP // Low raw material stock
+  LOW_STOCK_PF // Low finished product stock
+  STOCK_EXPIRING // Stock nearing expiry
+
   // Fiscal alerts
-  HIGH_CASH_SALES         // Unusual cash sales volume
-  MISSING_STAMP_DUTY      // Cash invoice without stamp duty
-  VAT_THRESHOLD           // VAT amount exceeds threshold
-  
+  HIGH_CASH_SALES // Unusual cash sales volume
+  MISSING_STAMP_DUTY // Cash invoice without stamp duty
+  VAT_THRESHOLD // VAT amount exceeds threshold
+
   // Security alerts
-  ACCESS_DENIED_SPIKE     // Multiple access denied in short time
-  FAILED_LOGIN_SPIKE      // Multiple failed logins
-  DEVICE_REVOKED          // Device was revoked
+  ACCESS_DENIED_SPIKE // Multiple access denied in short time
+  FAILED_LOGIN_SPIKE // Multiple failed logins
+  DEVICE_REVOKED // Device was revoked
 }
 
 enum AlertSeverity {
@@ -1174,31 +1214,31 @@ enum AlertSeverity {
 }
 
 enum AlertStatus {
-  OPEN          // Alert is active
-  ACKNOWLEDGED  // Admin has seen it
-  CLOSED        // Alert resolved/dismissed
+  OPEN // Alert is active
+  ACKNOWLEDGED // Admin has seen it
+  CLOSED // Alert resolved/dismissed
 }
 
 model Alert {
-  id          String        @id @default(uuid())
-  type        AlertType
-  severity    AlertSeverity
-  status      AlertStatus   @default(OPEN)
-  title       String
-  message     String
-  entityType  String?       @map("entity_type")  // DEVICE, USER, PRODUCT, INVOICE
-  entityId    String?       @map("entity_id")
-  metadata    Json?         // Additional alert data
-  threshold   Float?        // Threshold that was exceeded
-  value       Float?        // Actual value
-  ackedBy     String?       @map("acked_by")
-  ackedAt     DateTime?     @map("acked_at")
-  closedBy    String?       @map("closed_by")
-  closedAt    DateTime?     @map("closed_at")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  expiresAt   DateTime?     @map("expires_at")
+  id         String        @id @default(uuid())
+  type       AlertType
+  severity   AlertSeverity
+  status     AlertStatus   @default(OPEN)
+  title      String
+  message    String
+  entityType String?       @map("entity_type") // DEVICE, USER, PRODUCT, INVOICE
+  entityId   String?       @map("entity_id")
+  metadata   Json? // Additional alert data
+  threshold  Decimal? // Threshold that was exceeded
+  value      Decimal? // Actual value
+  ackedBy    String?       @map("acked_by")
+  ackedAt    DateTime?     @map("acked_at")
+  closedBy   String?       @map("closed_by")
+  closedAt   DateTime?     @map("closed_at")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  expiresAt  DateTime?     @map("expires_at")
 
-  history     AlertHistory[]
+  history AlertHistory[]
 
   @@index([type, status])
   @@index([status, createdAt])
@@ -1207,14 +1247,14 @@ model Alert {
 }
 
 model AlertHistory {
-  id        String      @id @default(uuid())
-  alertId   String      @map("alert_id")
-  action    String      // CREATED, ACKNOWLEDGED, CLOSED, AUTO_CLOSED
-  userId    String?     @map("user_id")
+  id        String   @id @default(uuid())
+  alertId   String   @map("alert_id")
+  action    String // CREATED, ACKNOWLEDGED, CLOSED, AUTO_CLOSED
+  userId    String?  @map("user_id")
   note      String?
-  createdAt DateTime    @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  alert     Alert       @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  alert Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
 
   @@index([alertId, createdAt])
   @@map("alert_history")
@@ -1227,43 +1267,43 @@ model AlertHistory {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 enum ApproAlertType {
-  MP_CRITIQUE           // MP bloquante avec stock = 0
-  RUPTURE               // Rupture de stock MP
-  FOURNISSEUR_RETARD    // Fournisseur avec taux retard > seuil
-  PRODUCTION_BLOQUEE    // Production refusée par /check-production
-  DLC_PROCHE            // Lot proche de la DLC
+  MP_CRITIQUE // MP bloquante avec stock = 0
+  RUPTURE // Rupture de stock MP
+  FOURNISSEUR_RETARD // Fournisseur avec taux retard > seuil
+  PRODUCTION_BLOQUEE // Production refusée par /check-production
+  DLC_PROCHE // Lot proche de la DLC
 }
 
 enum ApproAlertLevel {
-  INFO                  // Information
-  WARNING               // Attention requise
-  CRITICAL              // Action immédiate obligatoire
+  INFO // Information
+  WARNING // Attention requise
+  CRITICAL // Action immédiate obligatoire
 }
 
 enum ApproAlertEntity {
-  MP                    // Matière première
-  SUPPLIER              // Fournisseur
-  PRODUCTION            // Ordre de production
-  LOT                   // Lot (pour alertes DLC)
+  MP // Matière première
+  SUPPLIER // Fournisseur
+  PRODUCTION // Ordre de production
+  LOT // Lot (pour alertes DLC)
 }
 
 model ApproAlert {
-  id              Int               @id @default(autoincrement())
-  type            ApproAlertType
-  niveau          ApproAlertLevel
-  entityType      ApproAlertEntity
-  entityId        Int?              @map("entity_id")
-  message         String
-  
+  id         Int              @id @default(autoincrement())
+  type       ApproAlertType
+  niveau     ApproAlertLevel
+  entityType ApproAlertEntity
+  entityId   Int?             @map("entity_id")
+  message    String
+
   // Métadonnées métier
-  metadata        Json?             // Données contextuelles (stock, seuil, etc.)
-  
+  metadata Json? // Données contextuelles (stock, seuil, etc.)
+
   // Accusé de réception (OBLIGATOIRE pour CRITICAL)
-  acknowledgedAt  DateTime?         @map("acknowledged_at")
-  acknowledgedBy  String?           @map("acknowledged_by")
-  acknowledgedByUser User?          @relation("ApproAlertAcknowledgedBy", fields: [acknowledgedBy], references: [id])
-  
-  createdAt       DateTime          @default(now()) @map("created_at")
+  acknowledgedAt     DateTime? @map("acknowledged_at")
+  acknowledgedBy     String?   @map("acknowledged_by")
+  acknowledgedByUser User?     @relation("ApproAlertAcknowledgedBy", fields: [acknowledgedBy], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([niveau, acknowledgedAt])
   @@index([type, entityId])
@@ -1276,117 +1316,118 @@ model ApproAlert {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 enum PurchaseOrderStatus {
-  DRAFT              // Généré, en attente d'envoi
-  SENT               // Envoyé au fournisseur
-  CONFIRMED          // Confirmé par fournisseur
-  PARTIAL            // Partiellement reçu
-  RECEIVED           // Entièrement reçu
-  CANCELLED          // Annulé
+  DRAFT // Généré, en attente d'envoi
+  SENT // Envoyé au fournisseur
+  CONFIRMED // Confirmé par fournisseur
+  PARTIAL // Partiellement reçu
+  RECEIVED // Entièrement reçu
+  CANCELLED // Annulé
 }
 
 model PurchaseOrder {
-  id                String              @id @default(uuid())
-  reference         String              @unique // BC-2025-00001
-  
+  id        String @id @default(uuid())
+  reference String @unique // BC-2025-00001
+
   // Fournisseur cible
-  supplierId        Int                 @map("supplier_id")
-  supplier          Supplier            @relation(fields: [supplierId], references: [id])
+  supplierId Int      @map("supplier_id")
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
 
   // Statut workflow
-  status            PurchaseOrderStatus @default(DRAFT)
-  
+  status PurchaseOrderStatus @default(DRAFT)
+
   // Montants
-  totalHT           Decimal             @default(0) @map("total_ht") @db.Decimal(18, 4) // En DA (non centimes pour simplicité)
-  currency          String              @default("DZD")
-  
+  totalHT  Decimal @default(0) @map("total_ht") @db.Decimal(18, 4) // En DA (non centimes pour simplicité)
+  currency String  @default("DZD")
+
   // Livraison
-  expectedDelivery  DateTime?           @map("expected_delivery")
-  deliveryAddress   String?             @map("delivery_address")
-  
+  expectedDelivery DateTime? @map("expected_delivery")
+  deliveryAddress  String?   @map("delivery_address")
+
   // Notes
-  notes             String?
-  
+  notes String?
+
   // Audit création
-  createdById       String              @map("created_by_id")
-  createdBy         User                @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
-  createdAt         DateTime            @default(now()) @map("created_at")
-  
+  createdById String   @map("created_by_id")
+  createdBy   User     @relation("PurchaseOrderCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now()) @map("created_at")
+
   // Audit envoi — PREUVE TRAÇABLE OBLIGATOIRE
-  sentAt            DateTime?           @map("sent_at")
-  sentById          String?             @map("sent_by_id")
-  sentBy            User?               @relation("PurchaseOrderSentBy", fields: [sentById], references: [id])
-  sentVia           String?             @map("sent_via") // EMAIL | MANUAL | FAX
-  sentToEmail       String?             @map("sent_to_email") // Email destinataire si EMAIL
-  sentMessageId     String?             @map("sent_message_id") // Message-ID email ou ref preuve
-  sentProofUrl      String?             @map("sent_proof_url") // URL preuve uploadée si MANUAL
-  sentProofNote     String?             @map("sent_proof_note") // Note explicative si MANUAL
-  
+  sentAt        DateTime? @map("sent_at")
+  sentById      String?   @map("sent_by_id")
+  sentBy        User?     @relation("PurchaseOrderSentBy", fields: [sentById], references: [id])
+  sentVia       String?   @map("sent_via") // EMAIL | MANUAL | FAX
+  sentToEmail   String?   @map("sent_to_email") // Email destinataire si EMAIL
+  sentMessageId String?   @map("sent_message_id") // Message-ID email ou ref preuve
+  sentProofUrl  String?   @map("sent_proof_url") // URL preuve uploadée si MANUAL
+  sentProofNote String?   @map("sent_proof_note") // Note explicative si MANUAL
+
   // Audit confirmation
-  confirmedAt       DateTime?           @map("confirmed_at")
-  confirmedById     String?             @map("confirmed_by_id")
-  confirmedBy       User?               @relation("PurchaseOrderConfirmedBy", fields: [confirmedById], references: [id])
-  
+  confirmedAt   DateTime? @map("confirmed_at")
+  confirmedById String?   @map("confirmed_by_id")
+  confirmedBy   User?     @relation("PurchaseOrderConfirmedBy", fields: [confirmedById], references: [id])
+
   // Audit réception
-  receivedAt        DateTime?           @map("received_at")
-  receivedById      String?             @map("received_by_id")
-  receivedBy        User?               @relation("PurchaseOrderReceivedBy", fields: [receivedById], references: [id])
-  
+  receivedAt   DateTime? @map("received_at")
+  receivedById String?   @map("received_by_id")
+  receivedBy   User?     @relation("PurchaseOrderReceivedBy", fields: [receivedById], references: [id])
+
   // Annulation
-  cancelledAt       DateTime?           @map("cancelled_at")
-  cancelledById     String?             @map("cancelled_by_id")
-  cancelledBy       User?               @relation("PurchaseOrderCancelledBy", fields: [cancelledById], references: [id])
-  cancelReason      String?             @map("cancel_reason")
-  
+  cancelledAt   DateTime? @map("cancelled_at")
+  cancelledById String?   @map("cancelled_by_id")
+  cancelledBy   User?     @relation("PurchaseOrderCancelledBy", fields: [cancelledById], references: [id])
+  cancelReason  String?   @map("cancel_reason")
+
   // Réception MP liée (après réception du BC)
-  receptionMpId     Int?                @map("reception_mp_id")
-  
-  updatedAt         DateTime            @updatedAt @map("updated_at")
-  
+  receptionMpId Int? @map("reception_mp_id")
+
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   // Lignes du BC
-  items             PurchaseOrderItem[]
-  
+  items PurchaseOrderItem[]
+
   // DURCISSEMENT P1: Verrouillage optimiste + soft lock
   version       Int       @default(1)
   lockedById    String?   @map("locked_by_id")
   lockedBy      User?     @relation("PurchaseOrderLock", fields: [lockedById], references: [id])
   lockedAt      DateTime? @map("locked_at")
   lockExpiresAt DateTime? @map("lock_expires_at")
-  
+
   // DURCISSEMENT P1.1-E: Réception partielle bornée
-  expectedTotalQty  Decimal   @default(0) @map("expected_total_qty") @db.Decimal(18, 4)
-  receivedTotalQty  Decimal   @default(0) @map("received_total_qty") @db.Decimal(18, 4)
-  partialSince      DateTime? @map("partial_since")
-  
+  expectedTotalQty Decimal   @default(0) @map("expected_total_qty") @db.Decimal(18, 4)
+  receivedTotalQty Decimal   @default(0) @map("received_total_qty") @db.Decimal(18, 4)
+  partialSince     DateTime? @map("partial_since")
+
   @@index([status])
   @@index([supplierId])
   @@index([createdAt])
   @@index([status, createdAt])
+  @@index([status, expectedDelivery])
   @@index([createdById, createdAt])
   @@map("purchase_orders")
 }
 
 model PurchaseOrderItem {
-  id                String        @id @default(uuid())
-  purchaseOrderId   String        @map("purchase_order_id")
-  purchaseOrder     PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  
+  id              String        @id @default(uuid())
+  purchaseOrderId String        @map("purchase_order_id")
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
   // Produit MP
-  productMpId       Int           @map("product_mp_id")
-  productMp         ProductMp     @relation(fields: [productMpId], references: [id])
-  
+  productMpId Int       @map("product_mp_id")
+  productMp   ProductMp @relation(fields: [productMpId], references: [id])
+
   // Quantités
-  quantity          Decimal       @db.Decimal(18, 4) // Quantité commandée
-  quantityReceived  Decimal       @default(0) @map("quantity_received") @db.Decimal(18, 4) // Quantité reçue
+  quantity         Decimal @db.Decimal(18, 4) // Quantité commandée
+  quantityReceived Decimal @default(0) @map("quantity_received") @db.Decimal(18, 4) // Quantité reçue
 
   // Prix
-  unitPrice         Decimal       @map("unit_price") @db.Decimal(18, 4) // Prix unitaire HT en DA
-  totalHT           Decimal       @map("total_ht") @db.Decimal(18, 4) // = quantity * unitPrice
-  
+  unitPrice Decimal @map("unit_price") @db.Decimal(18, 4) // Prix unitaire HT en DA
+  totalHT   Decimal @map("total_ht") @db.Decimal(18, 4) // = quantity * unitPrice
+
   // TVA (conformité fiscale algérienne)
-  tvaRate           Int           @default(19) @map("tva_rate") // 0, 9, ou 19%
-  
-  createdAt         DateTime      @default(now()) @map("created_at")
-  
+  tvaRate Int @default(19) @map("tva_rate") // 0, 9, ou 19%
+
+  createdAt DateTime @default(now()) @map("created_at")
+
   @@index([purchaseOrderId])
   @@index([productMpId])
   @@map("purchase_order_items")
@@ -1397,10 +1438,10 @@ model PurchaseOrderItem {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 enum LicenseType {
-  TRIAL           // 30-day free trial
-  STARTER         // Small business (5 devices)
-  PROFESSIONAL    // Medium business (20 devices)
-  ENTERPRISE      // Unlimited devices
+  TRIAL // 30-day free trial
+  STARTER // Small business (5 devices)
+  PROFESSIONAL // Medium business (20 devices)
+  ENTERPRISE // Unlimited devices
 }
 
 enum LicenseStatus {
@@ -1419,38 +1460,38 @@ enum DevicePlatform {
 }
 
 model Company {
-  id              String        @id @default(uuid())
-  code            String        @unique // MCG-001
-  name            String
-  taxId           String?       @map("tax_id") // NIF for Algerian companies
-  address         String?
-  phone           String?
-  email           String
-  isActive        Boolean       @default(true) @map("is_active")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  id        String   @id @default(uuid())
+  code      String   @unique // MCG-001
+  name      String
+  taxId     String?  @map("tax_id") // NIF for Algerian companies
+  address   String?
+  phone     String?
+  email     String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  licenses        License[]
-  companyDevices  CompanyDevice[]
-  companyUsers    CompanyUser[]
+  licenses       License[]
+  companyDevices CompanyDevice[]
+  companyUsers   CompanyUser[]
 
   @@map("companies")
 }
 
 model License {
-  id              String        @id @default(uuid())
-  companyId       String        @map("company_id")
-  type            LicenseType
-  status          LicenseStatus @default(ACTIVE)
-  maxDevices      Int           @map("max_devices")
-  startDate       DateTime      @map("start_date")
-  expiresAt       DateTime      @map("expires_at")
-  licenseKey      String        @unique @map("license_key") // Unique activation key
-  features        Json?         // Feature flags for the license
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
+  id         String        @id @default(uuid())
+  companyId  String        @map("company_id")
+  type       LicenseType
+  status     LicenseStatus @default(ACTIVE)
+  maxDevices Int           @map("max_devices")
+  startDate  DateTime      @map("start_date")
+  expiresAt  DateTime      @map("expires_at")
+  licenseKey String        @unique @map("license_key") // Unique activation key
+  features   Json? // Feature flags for the license
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
 
-  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId, status])
   @@index([licenseKey])
@@ -1458,16 +1499,16 @@ model License {
 }
 
 model CompanyDevice {
-  id              String         @id @default(uuid())
-  companyId       String         @map("company_id")
-  deviceId        String         @map("device_id") // References Device.id
-  platform        DevicePlatform
-  deviceName      String         @map("device_name")
-  activatedAt     DateTime       @default(now()) @map("activated_at")
-  lastSeenAt      DateTime?      @map("last_seen_at")
-  isActive        Boolean        @default(true) @map("is_active")
+  id          String         @id @default(uuid())
+  companyId   String         @map("company_id")
+  deviceId    String         @map("device_id") // References Device.id
+  platform    DevicePlatform
+  deviceName  String         @map("device_name")
+  activatedAt DateTime       @default(now()) @map("activated_at")
+  lastSeenAt  DateTime?      @map("last_seen_at")
+  isActive    Boolean        @default(true) @map("is_active")
 
-  company         Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, deviceId])
   @@index([companyId, isActive])
@@ -1475,13 +1516,13 @@ model CompanyDevice {
 }
 
 model CompanyUser {
-  id              String    @id @default(uuid())
-  companyId       String    @map("company_id")
-  userId          String    @map("user_id")
-  isAdmin         Boolean   @default(false) @map("is_admin") // Company admin
-  createdAt       DateTime  @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  companyId String   @map("company_id")
+  userId    String   @map("user_id")
+  isAdmin   Boolean  @default(false) @map("is_admin") // Company admin
+  createdAt DateTime @default(now()) @map("created_at")
 
-  company         Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, userId])
   @@map("company_users")
@@ -1506,20 +1547,20 @@ enum AuditAction {
   STOCK_RECEPTION_CREATED
   STOCK_INVENTORY_ADJUSTED
   STOCK_SALE_PROCESSED
-  
+
   // Production
   PRODUCTION_ORDER_CREATED
   PRODUCTION_ORDER_STARTED
   PRODUCTION_ORDER_COMPLETED
   PRODUCTION_ORDER_CANCELLED
-  
+
   // Appro
   APPRO_DEMANDE_CREATED
   APPRO_DEMANDE_VALIDATED
   APPRO_DEMANDE_REJECTED
   APPRO_ALERT_ACKNOWLEDGED
   APPRO_THRESHOLD_UPDATED
-  
+
   // Bons de Commande (P0.1, P0.2, P1.2)
   BC_GENERATED
   BC_SENT
@@ -1527,11 +1568,11 @@ enum AuditAction {
   BC_CANCELLED
   BC_RECEIVED
   BC_PARTIAL_RECEIVED
-  
+
   // Fournisseurs
   SUPPLIER_BLOCKED
   SUPPLIER_SURVEILLANCE
-  
+
   // Security
   AUTH_LOGIN_SUCCESS
   AUTH_LOGIN_FAILED
@@ -1539,7 +1580,7 @@ enum AuditAction {
   AUTH_TOKEN_REFRESH
   ACCESS_DENIED
   ROLE_VIOLATION
-  
+
   // Admin
   USER_CREATED
   USER_UPDATED
@@ -1555,47 +1596,47 @@ enum AuditAction {
 }
 
 enum AuditSeverity {
-  INFO       // Normal operations
-  WARNING    // Unusual but allowed
-  CRITICAL   // High-risk actions (manual overrides, admin ops)
-  SECURITY   // Security-related events
+  INFO // Normal operations
+  WARNING // Unusual but allowed
+  CRITICAL // High-risk actions (manual overrides, admin ops)
+  SECURITY // Security-related events
 }
 
 model AuditLog {
-  id           String         @id @default(uuid())
-  
+  id String @id @default(uuid())
+
   // WHO
-  actorId      String         @map("actor_id")
-  actorRole    UserRole       @map("actor_role")
-  actorEmail   String?        @map("actor_email") // Denormalized for investigation
-  
+  actorId    String   @map("actor_id")
+  actorRole  UserRole @map("actor_role")
+  actorEmail String?  @map("actor_email") // Denormalized for investigation
+
   // WHAT
-  action       AuditAction
-  severity     AuditSeverity  @default(INFO)
-  
+  action   AuditAction
+  severity AuditSeverity @default(INFO)
+
   // ON WHAT
-  entityType   String         @map("entity_type") // e.g., "StockMovement", "ProductionOrder"
-  entityId     String         @map("entity_id")   // e.g., "123", "OP-240105-001"
-  
+  entityType String @map("entity_type") // e.g., "StockMovement", "ProductionOrder"
+  entityId   String @map("entity_id") // e.g., "123", "OP-240105-001"
+
   // CONTEXT
-  requestId    String?        @map("request_id")  // For correlation across logs
-  ipAddress    String?        @map("ip_address")
-  userAgent    String?        @map("user_agent")
-  
+  requestId String? @map("request_id") // For correlation across logs
+  ipAddress String? @map("ip_address")
+  userAgent String? @map("user_agent")
+
   // STATE CAPTURE (for forensics)
-  beforeState  Json?          @map("before_state") // Partial state before action
-  afterState   Json?          @map("after_state")  // Partial state after action
-  metadata     Json?          // Additional context (reason, notes, etc.)
-  
+  beforeState Json? @map("before_state") // Partial state before action
+  afterState  Json? @map("after_state") // Partial state after action
+  metadata    Json? // Additional context (reason, notes, etc.)
+
   // WHEN
-  timestamp    DateTime       @default(now())
-  
+  timestamp DateTime @default(now())
+
   // DURCISSEMENT P1.1-F: Hash chaîné (non-falsifiable)
-  hash         String?        // SHA256 du payload + previousHash
-  previousHash String?        @map("previous_hash")
-  
+  hash         String? // SHA256 du payload + previousHash
+  previousHash String? @map("previous_hash")
+
   // IMMUTABLE: No updatedAt, no soft delete
-  
+
   // Indexes for investigation queries
   @@index([actorId, timestamp])
   @@index([action, timestamp])
@@ -1603,7 +1644,6 @@ model AuditLog {
   @@index([requestId])
   @@index([timestamp])
   @@index([severity, timestamp])
-  
   @@map("audit_logs")
 }
 
@@ -1613,19 +1653,19 @@ model AuditLog {
 
 model IdempotencyKey {
   id             String   @id @default(uuid())
-  key            String   @unique                    // UUID fourni par client
-  endpoint       String                              // POST /api/appro/demands/123/generate-bc
+  key            String   @unique // UUID fourni par client
+  endpoint       String // POST /api/appro/demands/123/generate-bc
   userId         String   @map("user_id")
-  requestHash    String   @map("request_hash")       // SHA256 du body
+  requestHash    String   @map("request_hash") // SHA256 du body
   responseStatus Int      @map("response_status")
   responseBody   String   @map("response_body") @db.Text
   createdAt      DateTime @default(now()) @map("created_at")
-  expiresAt      DateTime @map("expires_at")         // TTL 24h
-  
+  expiresAt      DateTime @map("expires_at") // TTL 24h
+
   // DURCISSEMENT P1.1-C: Idempotence métier-aware
-  entityType     String?  @map("entity_type")        // DEMANDE, PURCHASE_ORDER
-  entityId       String?  @map("entity_id")
-  expectedStatus String?  @map("expected_status")    // Statut attendu lors du replay
+  entityType     String? @map("entity_type") // DEMANDE, PURCHASE_ORDER
+  entityId       String? @map("entity_id")
+  expectedStatus String? @map("expected_status") // Statut attendu lors du replay
 
   @@index([key])
   @@index([expiresAt])
@@ -1646,23 +1686,23 @@ model IdempotencyKey {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 model DomainEvent {
-  id             String   @id @default(uuid())
-  version        Int      @unique                    // Global sequence number
-  type           String                              // EventType enum value
-  category       String                              // EventCategory (STOCK, PRODUCTION, etc.)
+  id       String @id @default(uuid())
+  version  Int    @unique // Global sequence number
+  type     String // EventType enum value
+  category String // EventCategory (STOCK, PRODUCTION, etc.)
 
   // Aggregate reference
-  aggregateType  String   @map("aggregate_type")     // Entity type (ProductMp, ProductionOrder, etc.)
-  aggregateId    String   @map("aggregate_id")       // Entity ID
+  aggregateType String @map("aggregate_type") // Entity type (ProductMp, ProductionOrder, etc.)
+  aggregateId   String @map("aggregate_id") // Entity ID
 
   // Event payload
-  payload        Json                                // Event-specific data
+  payload Json // Event-specific data
 
   // Metadata for tracing
-  metadata       Json?                               // userId, requestId, correlationId, etc.
+  metadata Json? // userId, requestId, correlationId, etc.
 
   // Timestamp
-  createdAt      DateTime @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // Indexes for efficient queries
   @@index([aggregateType, aggregateId, version])
@@ -1670,7 +1710,6 @@ model DomainEvent {
   @@index([category, createdAt])
   @@index([version])
   @@index([createdAt])
-
   @@map("domain_events")
 }
 

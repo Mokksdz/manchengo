@@ -74,7 +74,8 @@ export class ReceiveBcDto {
 
   @ApiPropertyOptional({ description: 'Date de réception (défaut: maintenant)' })
   @IsOptional()
-  @IsDateString()
+  @ValidateIf((o) => o.receptionDate !== undefined)
+  @IsDateString({}, { message: 'Format de date de réception invalide (attendu: YYYY-MM-DD)' })
   receptionDate?: string;
 
   @ApiPropertyOptional({ description: 'Notes générales sur la réception' })

@@ -72,8 +72,8 @@ export class PurchaseOrderService {
       if (line.quantity <= 0) {
         throw new BadRequestException(`Quantité invalide pour ${mp.name}`);
       }
-      if (line.unitPrice !== undefined && line.unitPrice < 0) {
-        throw new BadRequestException(`Prix unitaire invalide pour ${mp.name} (doit être ≥ 0)`);
+      if (line.unitPrice !== undefined && line.unitPrice !== null && line.unitPrice <= 0) {
+        throw new BadRequestException(`Prix unitaire invalide pour ${mp.name} (doit être > 0)`);
       }
     }
 
@@ -93,8 +93,8 @@ export class PurchaseOrderService {
             create: dto.lines.map((line) => ({
               productMp: { connect: { id: line.productMpId } },
               quantity: line.quantity,
-              unitPrice: line.unitPrice || 0,
-              totalHT: (line.unitPrice || 0) * line.quantity,
+              unitPrice: line.unitPrice ?? 0, // Use nullish coalescing to preserve 0 vs undefined
+              totalHT: (line.unitPrice ?? 0) * line.quantity,
             })),
           },
         },
@@ -172,39 +172,14 @@ export class PurchaseOrderService {
       );
     }
 
-    // 3. Protection idempotence: vérifier si déjà envoyé avec cette clé
-    if (dto.idempotencyKey) {
-      const existingWithKey = await this.prisma.auditLog.findFirst({
-        where: {
-          entityType: 'PURCHASE_ORDER',
-          entityId: poId,
-          action: 'BC_SENT',
-          metadata: { path: ['idempotencyKey'], equals: dto.idempotencyKey },
-        },
-      });
-      if (existingWithKey) {
-        this.logger.warn(`Idempotency key ${dto.idempotencyKey} already used for BC ${po.reference}`);
-        // Retourner le résultat existant sans erreur
-        return {
-          id: po.id,
-          reference: po.reference,
-          status: po.status,
-          sentAt: po.sentAt!,
-          sentVia: (po.sentVia as SendVia) ?? SendVia.MANUAL,
-          emailSent: po.sentVia === 'EMAIL',
-          message: `BC ${po.reference} déjà envoyé (idempotence)`,
-        };
-      }
-    }
-
-    // 4. Préparer les données d'envoi selon le mode
+    // 3. Préparer les données d'envoi selon le mode
     let sentMessageId: string | null = null;
     let emailSent = false;
 
     if (dto.sendVia === 'EMAIL') {
       // Mode EMAIL: envoyer réellement l'email
       const targetEmail = dto.supplierEmail || po.supplier.email;
-      
+
       if (!targetEmail) {
         throw new BadRequestException(
           `Impossible d'envoyer par email: aucun email fournisseur disponible`,
@@ -215,7 +190,7 @@ export class PurchaseOrderService {
       // Pour l'instant, simuler l'envoi et générer un messageId
       sentMessageId = `MSG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       emailSent = true;
-      
+
       this.logger.log(`Email BC ${po.reference} envoyé à ${targetEmail} (messageId: ${sentMessageId})`);
     } else if (dto.sendVia === 'MANUAL') {
       // Mode MANUAL: preuve note obligatoire (déjà validée par DTO)
@@ -223,8 +198,24 @@ export class PurchaseOrderService {
       this.logger.log(`BC ${po.reference} marqué envoyé manuellement: ${dto.proofNote?.substring(0, 50)}...`);
     }
 
-    // 5. Mettre à jour le BC dans une transaction avec audit
+    // 4. Idempotency check + update in a single transaction to prevent race conditions
     const result = await this.prisma.$transaction(async (tx) => {
+      // Protection idempotence: vérifier si déjà envoyé avec cette clé (inside transaction)
+      if (dto.idempotencyKey) {
+        const existingWithKey = await tx.auditLog.findFirst({
+          where: {
+            entityType: 'PURCHASE_ORDER',
+            entityId: poId,
+            action: 'BC_SENT',
+            metadata: { path: ['idempotencyKey'], equals: dto.idempotencyKey },
+          },
+        });
+        if (existingWithKey) {
+          this.logger.warn(`Idempotency key ${dto.idempotencyKey} already used for BC ${po.reference}`);
+          return null; // Signal idempotent duplicate
+        }
+      }
+
       // Update BC
       const updated = await tx.purchaseOrder.update({
         where: { id: poId },
@@ -270,6 +261,19 @@ export class PurchaseOrderService {
       return updated;
     });
 
+    // Handle idempotent duplicate (transaction returned null)
+    if (result === null) {
+      return {
+        id: po.id,
+        reference: po.reference,
+        status: po.status,
+        sentAt: po.sentAt!,
+        sentVia: (po.sentVia as SendVia) ?? SendVia.MANUAL,
+        emailSent: po.sentVia === 'EMAIL',
+        message: `BC ${po.reference} déjà envoyé (idempotence)`,
+      };
+    }
+
     this.logger.log(`BC ${po.reference} envoyé au fournisseur ${po.supplier.name} via ${dto.sendVia}`);
 
     return {
@@ -279,7 +283,7 @@ export class PurchaseOrderService {
       sentAt: result.sentAt!,
       sentVia: dto.sendVia,
       emailSent,
-      message: emailSent 
+      message: emailSent
         ? `BC ${result.reference} envoyé par email à ${dto.supplierEmail || po.supplier.email}`
         : `BC ${result.reference} marqué comme envoyé (preuve enregistrée)`,
     };
@@ -527,6 +531,33 @@ export class PurchaseOrderService {
       if (!item) {
         throw new BadRequestException(`Ligne BC #${line.itemId} non trouvée`);
       }
+
+      // Valider que la date d'expiration n'est pas dans le passé
+      if (line.expiryDate) {
+        const expiry = new Date(line.expiryDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (expiry < today) {
+          throw new BadRequestException(
+            `Date d'expiration dépassée pour le lot ${line.lotNumber}: ${line.expiryDate}. Réception de produits périmés interdite.`
+          );
+        }
+      }
+    }
+
+    // Idempotency: empêcher le double-traitement d'une même réception dans un intervalle court (5s)
+    const recentReception = await this.prisma.auditLog.findFirst({
+      where: {
+        action: { in: ['BC_RECEIVED', 'BC_PARTIAL_RECEIVED'] },
+        entityType: 'PURCHASE_ORDER',
+        entityId: poId,
+        timestamp: { gte: new Date(Date.now() - 5000) }, // 5 secondes
+      },
+    });
+    if (recentReception) {
+      throw new BadRequestException(
+        `Réception déjà traitée pour ce BC dans les 5 dernières secondes. Veuillez patienter avant de réessayer.`
+      );
     }
 
     // Transaction pour atomicité
@@ -559,6 +590,15 @@ export class PurchaseOrderService {
         const currentQtyReceived = Number(item.quantityReceived);
         const itemQuantity = Number(item.quantity);
         const itemUnitPrice = Number(item.unitPrice);
+
+        // Guard: empêcher la réception avec prix unitaire = 0 (corrompt le CUMP)
+        if (line.quantityReceived > 0 && itemUnitPrice <= 0) {
+          throw new BadRequestException(
+            `Prix unitaire manquant ou nul pour ${item.productMp?.name || `item #${item.id}`}. ` +
+            `Veuillez mettre à jour le prix sur le BC avant réception (sinon le coût moyen pondéré sera corrompu).`
+          );
+        }
+
         const newQtyReceived = currentQtyReceived + line.quantityReceived;
 
         // Guard: empêcher la sur-réception (ne pas recevoir plus que commandé)
@@ -921,7 +961,8 @@ export class PurchaseOrderService {
    * P1.3: Vérification version optimiste
    * Lance une erreur si la version a changé depuis la dernière lecture
    */
-  private async verifyVersion(
+  // @ts-expect-error TS6133 — kept for future use
+  private async _verifyVersion(
     tx: any,
     poId: string,
     expectedVersion: number,

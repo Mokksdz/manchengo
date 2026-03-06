@@ -45,6 +45,7 @@ export const t = {
     active: 'Actif',
     inactive: 'Inactif',
     paid: 'Payée',
+    partiallyPaid: 'Partiellement payée',
     pending: 'En attente',
     sent: 'Envoyé',
     confirmed: 'Confirmé',
@@ -52,6 +53,7 @@ export const t = {
     partial: 'Partielle',
     ordered: 'Commandée',
     bcGenerated: 'BC généré',
+    delivered: 'Livrée',
   },
 
   // ── Chargement & Messages vides ──────────────────────────────────────
@@ -232,11 +234,46 @@ export const t = {
     timbreFiscal: 'Timbre fiscal',
   },
 
+  // ── Réseau / Hors ligne ─────────────────────────────────────────────
+  network: {
+    connectionLost: 'Connexion perdue',
+    offlineWarning: 'Vos modifications ne seront pas enregistrées. Vérifiez votre connexion internet.',
+  },
+
   // ── Pagination ───────────────────────────────────────────────────────
   pagination: {
     page: 'Page',
     of: 'sur',
     previousPage: 'Page précédente',
     nextPage: 'Page suivante',
+  },
+
+  // ── Currency ─────────────────────────────────────────────────────────
+  currency: {
+    dzd: 'DA',
+    dzdFull: 'Dinar algérien',
+  },
+
+  // ── Dashboard ────────────────────────────────────────────────────────
+  dashboard: {
+    title: 'Tableau de bord',
+    welcome: 'Bienvenue',
+    overview: 'Vue d\'ensemble',
+    recentActivity: 'Activité récente',
+    quickActions: 'Actions rapides',
+  },
+
+  // ── Navigation ───────────────────────────────────────────────────────
+  nav: {
+    dashboard: 'Tableau de bord',
+    stock: 'Stock',
+    production: 'Production',
+    procurement: 'Approvisionnement',
+    sales: 'Ventes',
+    clients: 'Clients',
+    suppliers: 'Fournisseurs',
+    reports: 'Rapports',
+    settings: 'Paramètres',
+    logout: 'Déconnexion',
   },
 } as const;

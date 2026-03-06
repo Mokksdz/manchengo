@@ -82,7 +82,7 @@ export class SyncProcessor implements OnModuleInit {
 
       this.logger.info('Automatic sync jobs scheduled', 'SyncProcessor');
     } catch (error) {
-      this.logger.warn(`Failed to schedule automatic sync: ${error}`, 'SyncProcessor');
+      this.logger.warn(`Failed to schedule automatic sync: ${error instanceof Error ? error.message : 'Unknown error'}`, 'SyncProcessor');
     }
   }
 
@@ -297,13 +297,13 @@ export class SyncProcessor implements OnModuleInit {
           processed++;
         } catch (error) {
           errorCount++;
-          errors.push(`Failed to sync MP stock ${mp.id}: ${error}`);
+          errors.push(`Failed to sync MP stock ${mp.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
 
       this.logger.info(`MP stocks synced: ${processed} processed, ${errorCount} errors`, 'SyncProcessor');
     } catch (error) {
-      errors.push(`MP stock sync failed: ${error}`);
+      errors.push(`MP stock sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       errorCount++;
     }
 
@@ -323,7 +323,7 @@ export class SyncProcessor implements OnModuleInit {
         processed++;
       } catch (error) {
         errorCount++;
-        errors.push(`Failed to sync MP stock ${mpId}: ${error}`);
+        errors.push(`Failed to sync MP stock ${mpId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
@@ -379,13 +379,13 @@ export class SyncProcessor implements OnModuleInit {
           processed++;
         } catch (error) {
           errorCount++;
-          errors.push(`Failed to sync PF stock ${pf.id}: ${error}`);
+          errors.push(`Failed to sync PF stock ${pf.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
 
       this.logger.info(`PF stocks synced: ${processed} processed, ${errorCount} errors`, 'SyncProcessor');
     } catch (error) {
-      errors.push(`PF stock sync failed: ${error}`);
+      errors.push(`PF stock sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       errorCount++;
     }
 
@@ -405,7 +405,7 @@ export class SyncProcessor implements OnModuleInit {
         processed++;
       } catch (error) {
         errorCount++;
-        errors.push(`Failed to sync PF stock ${pfId}: ${error}`);
+        errors.push(`Failed to sync PF stock ${pfId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
@@ -458,13 +458,13 @@ export class SyncProcessor implements OnModuleInit {
           processed++;
         } catch (error) {
           errorCount++;
-          errors.push(`Failed to update MP metrics ${mp.id}: ${error}`);
+          errors.push(`Failed to update MP metrics ${mp.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
 
       this.logger.info(`APPRO metrics synced: ${processed} processed`, 'SyncProcessor');
     } catch (error) {
-      errors.push(`APPRO metrics sync failed: ${error}`);
+      errors.push(`APPRO metrics sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       errorCount++;
     }
 
@@ -512,7 +512,7 @@ export class SyncProcessor implements OnModuleInit {
 
       for (const supplier of suppliers) {
         try {
-          const newGrade = this.calculateGrade(supplier.tauxRetard || 0);
+          const newGrade = this.calculateGrade(Number(supplier.tauxRetard || 0));
           if (newGrade !== supplier.grade) {
             await this.prisma.supplier.update({
               where: { id: supplier.id },
@@ -522,13 +522,13 @@ export class SyncProcessor implements OnModuleInit {
           processed++;
         } catch (error) {
           errorCount++;
-          errors.push(`Failed to update supplier grade ${supplier.id}: ${error}`);
+          errors.push(`Failed to update supplier grade ${supplier.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
 
       this.logger.info(`Supplier grades synced: ${processed} processed`, 'SyncProcessor');
     } catch (error) {
-      errors.push(`Supplier grades sync failed: ${error}`);
+      errors.push(`Supplier grades sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       errorCount++;
     }
 
@@ -569,7 +569,7 @@ export class SyncProcessor implements OnModuleInit {
 
       this.logger.info(`Cleanup completed: ${processed} items removed`, 'SyncProcessor');
     } catch (error) {
-      errors.push(`Cleanup failed: ${error}`);
+      errors.push(`Cleanup failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       errorCount++;
     }
 
@@ -597,7 +597,7 @@ export class SyncProcessor implements OnModuleInit {
 
       this.logger.info(`Cache refresh: ${processed} keys invalidated`, 'SyncProcessor');
     } catch (error) {
-      errors.push(`Cache refresh failed: ${error}`);
+      errors.push(`Cache refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       errorCount++;
     }
 

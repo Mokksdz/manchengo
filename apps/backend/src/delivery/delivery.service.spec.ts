@@ -20,7 +20,7 @@
  */
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecurityLogService } from '../security/security-log.service';
@@ -483,8 +483,10 @@ describe('DeliveryService', () => {
         id: 10,
         reference: 'FAC-010',
         clientId: 3,
+        status: 'VALIDATED',
         client: { id: 3, name: 'Client C', address: '123 Rue Didouche' },
       });
+      mockPrisma.delivery.findMany.mockResolvedValue([]);
       mockPrisma.delivery.count.mockResolvedValue(0);
       mockPrisma.delivery.create.mockResolvedValue({
         id: 'new-delivery-uuid',
@@ -523,8 +525,10 @@ describe('DeliveryService', () => {
         id: 11,
         reference: 'FAC-011',
         clientId: 4,
+        status: 'VALIDATED',
         client: { id: 4, name: 'Client D', address: 'Adresse par defaut du client' },
       });
+      mockPrisma.delivery.findMany.mockResolvedValue([]);
       mockPrisma.delivery.count.mockResolvedValue(0);
       mockPrisma.delivery.create.mockImplementation(async ({ data }: any) => {
         expect(data.deliveryAddress).toBe('Adresse par defaut du client');
@@ -547,8 +551,10 @@ describe('DeliveryService', () => {
         id: 12,
         reference: 'FAC-012',
         clientId: 5,
+        status: 'VALIDATED',
         client: { id: 5, name: 'Client E', address: 'Adresse client' },
       });
+      mockPrisma.delivery.findMany.mockResolvedValue([]);
       mockPrisma.delivery.count.mockResolvedValue(2);
       mockPrisma.delivery.create.mockImplementation(async ({ data }: any) => {
         expect(data.deliveryAddress).toBe('42 Rue custom livraison');
@@ -574,8 +580,10 @@ describe('DeliveryService', () => {
         id: 13,
         reference: 'FAC-013',
         clientId: 6,
+        status: 'VALIDATED',
         client: { id: 6, name: 'Client F', address: 'Adresse F' },
       });
+      mockPrisma.delivery.findMany.mockResolvedValue([]);
       mockPrisma.delivery.count.mockResolvedValue(0);
       mockPrisma.delivery.create.mockImplementation(async ({ data }: any) => {
         // Verify QR code structure: MCG:DLV:{UUID}:{REF}:{CHECKSUM}
@@ -848,6 +856,7 @@ describe('DeliveryService', () => {
       const validQr = genererQrValide(entityId, reference);
 
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', isActive: true, role: 'COMMERCIAL' });
+      mockPrisma.invoice.findUnique.mockResolvedValue(null);
       mockPrisma.delivery.findUnique.mockResolvedValue({
         id: entityId,
         reference,
@@ -890,6 +899,7 @@ describe('DeliveryService', () => {
       const validQr = genererQrValide(entityId, reference);
 
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-1', isActive: true, role: 'ADMIN' });
+      mockPrisma.invoice.findUnique.mockResolvedValue(null);
       mockPrisma.delivery.findUnique.mockResolvedValue({
         id: entityId,
         reference,

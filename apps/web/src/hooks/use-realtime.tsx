@@ -56,9 +56,17 @@ interface DashboardUpdateEvent {
 
 let socket: Socket | null = null;
 let connectionAttempts = 0;
+const activeSubscriptions = new Set<string>();
+let disconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 const MAX_RECONNECTION_ATTEMPTS = 5;
+const DISCONNECT_DELAY_MS = 5000;
 
-function getSocket(): Socket {
+function getSocket(): Socket | null {
+  // Don't connect when offline
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return null;
+  }
+
   if (!socket) {
     // WebSocket connects directly to backend (not proxied by Next.js rewrites)
     // In browser without NEXT_PUBLIC_API_URL: use current origin for same-port, or fallback
@@ -73,12 +81,19 @@ function getSocket(): Socket {
       reconnectionDelayMax: 5000,
       timeout: 10000,
       auth: {
-        token: document.cookie
-          .split('; ')
-          .find((c) => c.startsWith('access_token=') || c.startsWith('__Host-access_token='))
-          ?.split('=')
-          .slice(1)
-          .join('=') || '',
+        token: (() => {
+          try {
+            return document.cookie
+              .split('; ')
+              .find((c) => c.startsWith('access_token=') || c.startsWith('__Host-access_token='))
+              ?.split('=')
+              .slice(1)
+              .join('=') || '';
+          } catch (e) {
+            log.warn('[WebSocket] Failed to extract token from cookies', { error: e });
+            return '';
+          }
+        })(),
       },
     });
 
@@ -99,6 +114,12 @@ function getSocket(): Socket {
         log.error('[WebSocket] Max reconnection attempts reached');
       }
     });
+  }
+
+  // Cancel any pending disconnect since a subscriber needs the socket
+  if (disconnectTimeout) {
+    clearTimeout(disconnectTimeout);
+    disconnectTimeout = null;
   }
 
   return socket;
@@ -159,7 +180,11 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
 
   // Setup WebSocket listeners
   useEffect(() => {
-    const ws = getSocket();
+    const subscriptionId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    activeSubscriptions.add(subscriptionId);
+
+    let ws: Socket | null = null;
+    let onlineHandler: (() => void) | null = null;
 
     const handleConnect = () => setIsConnected(true);
     const handleDisconnect = () => setIsConnected(false);
@@ -235,33 +260,62 @@ export function useRealtime(options: UseRealtimeOptions = {}) {
       }
     };
 
-    // Attach listeners
-    ws.on('connect', handleConnect);
-    ws.on('disconnect', handleDisconnect);
-    ws.on('stock:alert', handleStockAlert);
-    ws.on('production:update', handleProductionUpdate);
-    ws.on('delivery:validated', handleDeliveryValidated);
-    ws.on('dashboard:update', handleDashboardUpdate);
+    const attachListeners = (s: Socket) => {
+      // Remove old listeners before attaching new ones to prevent duplicates
+      s.off('connect', handleConnect);
+      s.off('disconnect', handleDisconnect);
+      s.off('stock:alert', handleStockAlert);
+      s.off('production:update', handleProductionUpdate);
+      s.off('delivery:validated', handleDeliveryValidated);
+      s.off('dashboard:update', handleDashboardUpdate);
 
-    // Check initial connection state
-    setIsConnected(ws.connected);
+      s.on('connect', handleConnect);
+      s.on('disconnect', handleDisconnect);
+      s.on('stock:alert', handleStockAlert);
+      s.on('production:update', handleProductionUpdate);
+      s.on('delivery:validated', handleDeliveryValidated);
+      s.on('dashboard:update', handleDashboardUpdate);
+
+      setIsConnected(s.connected);
+    };
+
+    ws = getSocket();
+
+    if (ws) {
+      attachListeners(ws);
+    } else if (typeof window !== 'undefined') {
+      // Offline: wait for online event then connect
+      onlineHandler = () => {
+        ws = getSocket();
+        if (ws) attachListeners(ws);
+      };
+      window.addEventListener('online', onlineHandler, { once: true });
+    }
 
     // Cleanup
     return () => {
-      ws.off('connect', handleConnect);
-      ws.off('disconnect', handleDisconnect);
-      ws.off('stock:alert', handleStockAlert);
-      ws.off('production:update', handleProductionUpdate);
-      ws.off('delivery:validated', handleDeliveryValidated);
-      ws.off('dashboard:update', handleDashboardUpdate);
+      if (onlineHandler) {
+        window.removeEventListener('online', onlineHandler);
+      }
 
-      // Disconnect socket if no more listeners are attached
-      if (ws.listeners('stock:alert').length === 0 &&
-          ws.listeners('production:update').length === 0 &&
-          ws.listeners('delivery:validated').length === 0 &&
-          ws.listeners('dashboard:update').length === 0) {
-        ws.disconnect();
-        socket = null;
+      if (ws) {
+        ws.off('connect', handleConnect);
+        ws.off('disconnect', handleDisconnect);
+        ws.off('stock:alert', handleStockAlert);
+        ws.off('production:update', handleProductionUpdate);
+        ws.off('delivery:validated', handleDeliveryValidated);
+        ws.off('dashboard:update', handleDashboardUpdate);
+      }
+
+      // Remove from set and schedule disconnect with safety delay
+      activeSubscriptions.delete(subscriptionId);
+      if (activeSubscriptions.size === 0) {
+        disconnectTimeout = setTimeout(() => {
+          if (activeSubscriptions.size === 0 && socket) {
+            socket.disconnect();
+            socket = null;
+          }
+        }, DISCONNECT_DELAY_MS);
       }
     };
   }, [queryClient, addNotification]);

@@ -31,7 +31,7 @@ export class CsrfMiddleware implements NestMiddleware {
     '/api/sync/events', // Mobile sync uses device auth
   ];
 
-  use(req: Request, res: Response, next: NextFunction) {
+  use(req: Request, _res: Response, next: NextFunction) {
     // Skip safe methods
     if (!CsrfMiddleware.UNSAFE_METHODS.includes(req.method)) {
       return next();

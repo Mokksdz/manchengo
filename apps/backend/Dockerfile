@@ -18,24 +18,28 @@ COPY apps/backend/ .
 RUN npm run build
 
 # Stage 3: Production
+# Pin to node:20-alpine — update periodically for security patches
 FROM node:20-alpine
 RUN apk add --no-cache openssl
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-COPY apps/backend/package.json ./
-
 # Run as non-root user for security
 RUN addgroup --system --gid 1001 manchengo && \
     adduser --system --uid 1001 manchengo
-RUN chown -R manchengo:manchengo /app
+
+COPY --from=deps --chown=manchengo:manchengo /app/node_modules ./node_modules
+COPY --from=deps --chown=manchengo:manchengo /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=manchengo:manchengo /app/dist ./dist
+COPY --from=builder --chown=manchengo:manchengo /app/prisma ./prisma
+COPY --from=builder --chown=manchengo:manchengo /app/package.json ./
+
 USER manchengo
 
 EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
 CMD ["node", "dist/src/main"]

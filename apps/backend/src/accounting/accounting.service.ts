@@ -74,7 +74,7 @@ export interface ExportFilters {
 export class AccountingService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly logger: LoggerService,
+    _logger: LoggerService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════════════════════════

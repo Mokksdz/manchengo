@@ -26,7 +26,7 @@ export class SyncEventApplier {
   private readonly logger = new Logger(SyncEventApplier.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    _prisma: PrismaService,
     private readonly conflictResolver: SyncConflictResolver,
   ) {}
 
@@ -94,14 +94,15 @@ export class SyncEventApplier {
           };
       }
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Failed to apply event ${event.id}: ${error.message}`,
-        error.stack,
+        `Failed to apply event ${event.id}: ${message}`,
+        error instanceof Error ? error.stack : undefined,
       );
       return {
         success: false,
         errorCode: ConflictErrorCode.VALIDATION_ERROR,
-        errorMessage: error.message,
+        errorMessage: message,
       };
     }
   }
@@ -438,7 +439,7 @@ export class SyncEventApplier {
    */
   private async applyClientEvent(
     event: SyncEventDto,
-    userId: string,
+    _userId: string,
     deviceId: string,
     tx: Prisma.TransactionClient,
   ): Promise<ApplyResult> {

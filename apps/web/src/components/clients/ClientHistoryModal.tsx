@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { History, X, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authFetch } from '@/lib/api';
+import { useEscapeKey } from '@/lib/hooks/use-focus-trap';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('ClientHistoryModal');
@@ -99,6 +100,8 @@ export function ClientHistoryModal({ isOpen, onClose, client }: ClientHistoryMod
 
   useEffect(() => { setPage(1); }, [filters]);
 
+  useEscapeKey(onClose, isOpen);
+
   if (!isOpen || !client) return null;
 
   return (
@@ -174,8 +177,19 @@ export function ClientHistoryModal({ isOpen, onClose, client }: ClientHistoryMod
                     <div className="flex items-center gap-4">
                       <span className="font-mono font-medium text-[#007AFF]">{invoice.reference}</span>
                       <span className="text-sm text-[#6E6E73]">{formatDate(invoice.date)}</span>
-                      <span className={cn('px-2 py-0.5 text-xs rounded-full', invoice.status === 'PAID' ? 'bg-[#34C759]/10 text-[#34C759]' : invoice.status === 'DRAFT' ? 'bg-black/5 text-[#86868B]' : invoice.status === 'CANCELLED' ? 'bg-[#FF3B30]/10 text-[#FF3B30]' : 'bg-yellow-100 text-yellow-700')}>
-                        {invoice.status === 'PAID' ? 'Payée' : invoice.status === 'DRAFT' ? 'Brouillon' : invoice.status === 'CANCELLED' ? 'Annulée' : invoice.status}
+                      <span className={cn('px-2 py-0.5 text-xs rounded-full',
+                        invoice.status === 'PAID' ? 'bg-[#34C759]/10 text-[#248A3D]' :
+                        invoice.status === 'DRAFT' ? 'bg-black/5 text-[#86868B]' :
+                        invoice.status === 'VALIDATED' ? 'bg-[#007AFF]/10 text-[#007AFF]' :
+                        invoice.status === 'PARTIALLY_PAID' ? 'bg-[#FF9500]/10 text-[#C93400]' :
+                        invoice.status === 'CANCELLED' ? 'bg-[#FF3B30]/10 text-[#D70015]' :
+                        'bg-yellow-100 text-yellow-700'
+                      )}>
+                        {invoice.status === 'PAID' ? 'Payée' :
+                         invoice.status === 'DRAFT' ? 'Brouillon' :
+                         invoice.status === 'VALIDATED' ? 'Validée' :
+                         invoice.status === 'PARTIALLY_PAID' ? 'Part. payée' :
+                         invoice.status === 'CANCELLED' ? 'Annulée' : invoice.status}
                       </span>
                     </div>
                     <div className="text-right"><p className="font-semibold">{formatPrice(invoice.netToPay)}</p><p className="text-xs text-[#86868B]">{invoice.paymentMethod === 'ESPECES' ? 'Espèces' : invoice.paymentMethod === 'CHEQUE' ? 'Chèque' : invoice.paymentMethod === 'VIREMENT' ? 'Virement' : invoice.paymentMethod}</p></div>

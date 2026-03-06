@@ -74,7 +74,12 @@ export class CacheService {
       this.logger.debug(`[MISS] ${key} (${duration}ms)`);
       return undefined;
     } catch (error) {
-      this.logger.warn(`[ERROR] Cache get failed for ${key}: ${error.message}`);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      if (this.isCriticalRedisError(errMsg)) {
+        this.logger.error(`[CRITICAL] Cache get failed for ${key}: ${errMsg} — Redis may be unavailable`);
+      } else {
+        this.logger.warn(`[ERROR] Cache get failed for ${key}: ${errMsg}`);
+      }
       return undefined;
     }
   }
@@ -94,7 +99,12 @@ export class CacheService {
       this.metrics.sets++;
       this.logger.debug(`[SET] ${key} (TTL: ${ttl / 1000}s, ${duration}ms)`);
     } catch (error) {
-      this.logger.warn(`[ERROR] Cache set failed for ${key}: ${error.message}`);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      if (this.isCriticalRedisError(errMsg)) {
+        this.logger.error(`[CRITICAL] Cache set failed for ${key}: ${errMsg} — Redis may be unavailable`);
+      } else {
+        this.logger.warn(`[ERROR] Cache set failed for ${key}: ${errMsg}`);
+      }
     }
   }
 
@@ -107,7 +117,12 @@ export class CacheService {
       this.metrics.invalidations++;
       this.logger.debug(`[DEL] ${key}`);
     } catch (error) {
-      this.logger.warn(`[ERROR] Cache del failed for ${key}: ${error.message}`);
+      const errMsg = error instanceof Error ? error.message : String(error);
+      if (this.isCriticalRedisError(errMsg)) {
+        this.logger.error(`[CRITICAL] Cache del failed for ${key}: ${errMsg} — Redis may be unavailable`);
+      } else {
+        this.logger.warn(`[ERROR] Cache del failed for ${key}: ${errMsg}`);
+      }
     }
   }
 
@@ -137,6 +152,30 @@ export class CacheService {
 
     this.logger.debug(`[FACTORY] ${key} computed in ${dbDuration}ms`);
     return value;
+  }
+
+  /**
+   * Determines if a Redis error is critical (connection-level) vs non-critical (key-level).
+   * Critical errors indicate Redis is unavailable and should be logged at ERROR level.
+   * Non-critical errors (key not found, serialization) are expected and logged as WARN.
+   */
+  private isCriticalRedisError(errorMessage: string): boolean {
+    const criticalPatterns = [
+      'ECONNREFUSED',
+      'ECONNRESET',
+      'ETIMEDOUT',
+      'ENOTFOUND',
+      'connection refused',
+      'connection timeout',
+      'Redis connection',
+      'connect EHOSTUNREACH',
+      'ready check failed',
+      'max retries',
+      'NOAUTH',
+      'LOADING',
+    ];
+    const lowerMsg = errorMessage.toLowerCase();
+    return criticalPatterns.some(pattern => lowerMsg.includes(pattern.toLowerCase()));
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

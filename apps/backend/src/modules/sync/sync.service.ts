@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SyncStatus } from '@prisma/client';
 import { SyncIdempotencyService } from './sync.idempotency';
@@ -62,6 +62,24 @@ export class SyncService {
         serverTime: new Date().toISOString(),
         warnings: [],
       };
+    }
+
+    // Validate device belongs to the user's organization
+    const device = await this.prisma.device.findUnique({
+      where: { id: deviceId },
+      select: { id: true, userId: true, isActive: true },
+    });
+
+    if (!device) {
+      throw new UnauthorizedException('Device non enregistré');
+    }
+
+    if (!device.isActive) {
+      throw new UnauthorizedException('Device révoqué');
+    }
+
+    if (device.userId && device.userId !== userId) {
+      this.logger.warn(`Device ${deviceId} accédé par utilisateur ${userId} (propriétaire: ${device.userId})`);
     }
 
     // Check for duplicate batch
@@ -338,7 +356,7 @@ export class SyncService {
       action: e.action,
       payload: e.payload as Record<string, unknown>,
       occurredAt: e.occurredAt.toISOString(),
-      userId: e.userId,
+      userId: e.userId ?? '',
       sourceDeviceId: e.deviceId,
     }));
 

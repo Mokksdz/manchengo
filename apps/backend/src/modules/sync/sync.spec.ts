@@ -17,8 +17,6 @@ describe('SyncModule', () => {
   let syncService: SyncService;
   let idempotencyService: SyncIdempotencyService;
   let conflictResolver: SyncConflictResolver;
-  let eventApplier: SyncEventApplier;
-  let prismaService: PrismaService;
 
   const mockPrismaService: any = {
     syncEvent: {
@@ -100,8 +98,8 @@ describe('SyncModule', () => {
     syncService = module.get<SyncService>(SyncService);
     idempotencyService = module.get<SyncIdempotencyService>(SyncIdempotencyService);
     conflictResolver = module.get<SyncConflictResolver>(SyncConflictResolver);
-    eventApplier = module.get<SyncEventApplier>(SyncEventApplier);
-    prismaService = module.get<PrismaService>(PrismaService);
+    module.get<SyncEventApplier>(SyncEventApplier);
+    module.get<PrismaService>(PrismaService);
   });
 
   describe('SyncIdempotencyService', () => {
@@ -340,10 +338,17 @@ describe('SyncModule', () => {
           events: [createMockEvent('evt-1')],
         };
 
+        // Mock device lookup
+        mockPrismaService.device.findUnique.mockResolvedValue({
+          id: 'device-1',
+          userId: 'user-1',
+          isActive: true,
+        });
+
         // Mock idempotency check - no duplicates
         mockPrismaService.syncEvent.count.mockResolvedValue(0);
         mockPrismaService.syncEvent.findMany.mockResolvedValue([]);
-        
+
         // Mock event creation
         mockPrismaService.syncEvent.create.mockResolvedValue({
           id: 'server-evt-1',
@@ -383,6 +388,13 @@ describe('SyncModule', () => {
           batchId: 'existing-batch',
           events: [createMockEvent('evt-1')],
         };
+
+        // Mock device lookup
+        mockPrismaService.device.findUnique.mockResolvedValue({
+          id: 'device-1',
+          userId: 'user-1',
+          isActive: true,
+        });
 
         // Mock batch already exists
         mockPrismaService.syncEvent.count.mockResolvedValue(1);

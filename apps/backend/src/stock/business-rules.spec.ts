@@ -449,6 +449,8 @@ describe('Stock Business Rules - StockService Integration', () => {
     },
     recipeItem: { groupBy: jest.fn() },
     lotMp: {
+      count: jest.fn().mockResolvedValue(0),
+      create: jest.fn().mockResolvedValue({ id: 1 }),
       update: jest.fn(),
       findMany: jest.fn(),
       findUnique: jest.fn(),

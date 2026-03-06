@@ -11,34 +11,42 @@ import { PaymentMethodDto } from './dto/invoice.dto';
 //   1. update() — DRAFT-only edit guard
 //   2. update() — recalculates totals when lines change
 //   3. update() — recalculates timbre when paymentMethod changes
-//   4. updateStatus() — fiscal validation on DRAFT → PAID
+//   4. updateStatus() — fiscal validation on DRAFT → VALIDATED
 //   5. updateStatus() — CANCELLED bypasses fiscal validation
 //   6. create() — TVA 19% calculation
-//   7. create() — timbre fiscal for ESPECES
+//   7. create() — timbre fiscal percentage-based for ESPECES
 //   8. create() — no timbre for non-ESPECES payment
 //   9. create() — multiple lines total calculation
-//  10. create() — reference auto-generation
+//  10. create() — reference auto-generation (F-YYYY-NNNNN)
 //  11. create() — rejects empty lines
 //  12. findAll() — filters by status and clientId
 //  13. findOne() — returns invoice or throws NotFoundException
 //  14. Edge cases — NIF format validation, large invoices, null fiscal fields
+//  15. Line-level remise (discount) support
+//  16. Status machine transitions (DRAFT→VALIDATED→PAID)
+//  17. Cancellation tracking
+//  18. Product existence validation
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// Timbre fiscal: 119000 centimes = 1190 DA, <=30000 DA => 1% rate
+// timbreFiscal = Math.round(119000 * 0.01) = 1190
 const mockInvoice = (overrides: Partial<any> = {}) => ({
   id: 1,
-  reference: 'F-250225-001',
+  reference: `F-${new Date().getFullYear()}-00001`,
   status: 'DRAFT',
   clientId: 10,
   paymentMethod: 'ESPECES',
   date: new Date('2025-02-25'),
+  fiscalYear: new Date().getFullYear(),
   totalHt: 100000,
   totalTva: 19000,
   totalTtc: 119000,
-  timbreFiscal: 5000,
-  netToPay: 124000,
+  timbreFiscal: 1190,
+  timbreRate: 0.01,
+  netToPay: 120190,
   client: { id: 10, code: 'CLI001', name: 'Test Client' },
   lines: [
-    { productPfId: 1, quantity: 10, unitPriceHt: 10000, lineHt: 100000 },
+    { productPfId: 1, quantity: 10, unitPriceHt: 10000, remise: 0, lineHt: 100000 },
   ],
   ...overrides,
 });
@@ -72,6 +80,9 @@ describe('InvoicesService', () => {
       },
       client: {
         findUnique: jest.fn(),
+      },
+      productPf: {
+        findMany: jest.fn().mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }]),
       },
       $transaction: jest.fn((fn) => fn(prisma)),
     };
@@ -131,7 +142,7 @@ describe('InvoicesService', () => {
         netToPay: 243000,
       });
 
-      const result = await service.update(
+      await service.update(
         1,
         {
           lines: [
@@ -150,12 +161,13 @@ describe('InvoicesService', () => {
     });
 
     it('should recalculate timbre when paymentMethod changes to VIREMENT', async () => {
-      const invoice = mockInvoice({ paymentMethod: 'ESPECES', timbreFiscal: 5000 });
+      const invoice = mockInvoice({ paymentMethod: 'ESPECES', timbreFiscal: 1190 });
       prisma.invoice.findUnique.mockResolvedValue(invoice);
       prisma.invoice.update.mockResolvedValue({
         ...invoice,
         paymentMethod: 'VIREMENT',
         timbreFiscal: 0,
+        timbreRate: 0,
         netToPay: 119000,
       });
 
@@ -165,6 +177,7 @@ describe('InvoicesService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             timbreFiscal: 0,
+            timbreRate: 0,
           }),
         }),
       );
@@ -191,59 +204,96 @@ describe('InvoicesService', () => {
   // ─── updateStatus() fiscal validation tests ─────────────────────────────
 
   describe('updateStatus() — fiscal validation', () => {
-    it('should allow DRAFT → PAID when client has complete fiscal data', async () => {
+    it('should allow DRAFT → VALIDATED when client has complete fiscal data', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
       prisma.client.findUnique.mockResolvedValue(mockClient());
-      prisma.invoice.update.mockResolvedValue(mockInvoice({ status: 'PAID' }));
+      prisma.invoice.update.mockResolvedValue(mockInvoice({ status: 'VALIDATED' }));
 
-      const result = await service.updateStatus(1, { status: 'PAID' as any });
-      expect(result.status).toBe('PAID');
+      const result = await service.updateStatus(1, { status: 'VALIDATED' as any });
+      expect(result.status).toBe('VALIDATED');
     });
 
-    it('should reject DRAFT → PAID when client NIF is missing', async () => {
+    it('should reject DRAFT → VALIDATED when client NIF is missing', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
       prisma.client.findUnique.mockResolvedValue(mockClient({ nif: '' }));
 
       await expect(
-        service.updateStatus(1, { status: 'PAID' as any }),
+        service.updateStatus(1, { status: 'VALIDATED' as any }),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.updateStatus(1, { status: 'PAID' as any }),
+        service.updateStatus(1, { status: 'VALIDATED' as any }),
       ).rejects.toThrow('NIF');
     });
 
-    it('should reject DRAFT → PAID when client RC is missing', async () => {
+    it('should reject DRAFT → VALIDATED when client RC is missing', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
       prisma.client.findUnique.mockResolvedValue(mockClient({ rc: '' }));
 
       await expect(
-        service.updateStatus(1, { status: 'PAID' as any }),
+        service.updateStatus(1, { status: 'VALIDATED' as any }),
       ).rejects.toThrow('RC');
     });
 
-    it('should reject DRAFT → PAID when client AI is missing', async () => {
+    it('should reject DRAFT → VALIDATED when client AI is missing', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
       prisma.client.findUnique.mockResolvedValue(mockClient({ ai: '' }));
 
       await expect(
-        service.updateStatus(1, { status: 'PAID' as any }),
+        service.updateStatus(1, { status: 'VALIDATED' as any }),
       ).rejects.toThrow("AI");
     });
 
-    it('should reject DRAFT → PAID with message listing all missing fields', async () => {
+    it('should reject DRAFT → VALIDATED with message listing all missing fields', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
       prisma.client.findUnique.mockResolvedValue(mockClient({ nif: '', rc: '', ai: '' }));
 
       try {
-        await service.updateStatus(1, { status: 'PAID' as any });
+        await service.updateStatus(1, { status: 'VALIDATED' as any });
         fail('Should have thrown');
-      } catch (err) {
+      } catch (err: any) {
         expect(err).toBeInstanceOf(BadRequestException);
         expect(err.message).toContain('NIF');
         expect(err.message).toContain('RC');
         expect(err.message).toContain('AI');
         expect(err.message).toContain('Test Client');
       }
+    });
+
+    it('should reject DRAFT → PAID (must go through VALIDATED first)', async () => {
+      prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
+
+      await expect(
+        service.updateStatus(1, { status: 'PAID' as any }),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.updateStatus(1, { status: 'PAID' as any }),
+      ).rejects.toThrow('Transition invalide');
+    });
+
+    it('should allow VALIDATED → PAID without fiscal validation', async () => {
+      prisma.invoice.findUnique.mockResolvedValue(mockInvoice({ status: 'VALIDATED' }));
+      prisma.invoice.update.mockResolvedValue(mockInvoice({ status: 'PAID' }));
+
+      const result = await service.updateStatus(1, { status: 'PAID' as any });
+      expect(result.status).toBe('PAID');
+      // Client should NOT be fetched for PAID (fiscal check is on VALIDATED)
+      expect(prisma.client.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should allow VALIDATED → PARTIALLY_PAID', async () => {
+      prisma.invoice.findUnique.mockResolvedValue(mockInvoice({ status: 'VALIDATED' }));
+      prisma.invoice.update.mockResolvedValue(mockInvoice({ status: 'PARTIALLY_PAID' }));
+
+      const result = await service.updateStatus(1, { status: 'PARTIALLY_PAID' as any });
+      expect(result.status).toBe('PARTIALLY_PAID');
+    });
+
+    it('should allow PARTIALLY_PAID → PAID', async () => {
+      prisma.invoice.findUnique.mockResolvedValue(mockInvoice({ status: 'PARTIALLY_PAID' }));
+      prisma.invoice.update.mockResolvedValue(mockInvoice({ status: 'PAID' }));
+
+      const result = await service.updateStatus(1, { status: 'PAID' as any });
+      expect(result.status).toBe('PAID');
     });
 
     it('should allow DRAFT → CANCELLED without fiscal validation', async () => {
@@ -257,7 +307,7 @@ describe('InvoicesService', () => {
       expect(prisma.client.findUnique).not.toHaveBeenCalled();
     });
 
-    it('should reject modification of already CANCELLED invoice', async () => {
+    it('should reject modification of already CANCELLED invoice (terminal state)', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice({ status: 'CANCELLED' }));
 
       await expect(
@@ -265,11 +315,19 @@ describe('InvoicesService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should reject PAID → DRAFT rollback', async () => {
+    it('should reject PAID → DRAFT rollback (PAID is terminal)', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice({ status: 'PAID' }));
 
       await expect(
         service.updateStatus(1, { status: 'DRAFT' as any }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject PAID → CANCELLED (PAID is terminal)', async () => {
+      prisma.invoice.findUnique.mockResolvedValue(mockInvoice({ status: 'PAID' }));
+
+      await expect(
+        service.updateStatus(1, { status: 'CANCELLED' as any }),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -288,13 +346,16 @@ describe('InvoicesService', () => {
       ],
     };
 
+    const currentYear = new Date().getFullYear();
+
     beforeEach(() => {
       // Default mocks for create
       prisma.invoice.findFirst.mockResolvedValue(null); // No previous invoice
       prisma.client.findUnique.mockResolvedValue(mockClient());
+      prisma.productPf.findMany.mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }]);
       prisma.invoice.create.mockImplementation(async ({ data }: any) => ({
         id: 1,
-        reference: 'F-250225-001',
+        reference: `F-${currentYear}-00001`,
         ...data,
         client: { code: 'CLI001', name: 'Test Client' },
         lines: data.lines?.create || [],
@@ -320,13 +381,17 @@ describe('InvoicesService', () => {
       expect(prisma.invoice.create).toHaveBeenCalled();
     });
 
-    it('should apply timbre fiscal of 5000 centimes (50 DA) for ESPECES payment', async () => {
+    it('should apply percentage-based timbre fiscal for ESPECES payment', async () => {
+      // totalHt=100000, totalTva=19000, totalTtc=119000
+      // 119000 centimes = 1190 DA <= 30000 DA => rate 1%
+      // timbreFiscal = Math.round(119000 * 0.01) = 1190
       prisma.invoice.create.mockImplementation(async ({ data }: any) => {
-        expect(data.timbreFiscal).toBe(5000);
-        expect(data.netToPay).toBe(data.totalTtc + 5000);
+        expect(data.timbreFiscal).toBe(1190);
+        expect(data.timbreRate).toBe(0.01);
+        expect(data.netToPay).toBe(data.totalTtc + 1190);
         return {
           id: 1,
-          reference: 'F-250225-001',
+          reference: `F-${currentYear}-00001`,
           ...data,
           client: { code: 'CLI001', name: 'Test Client' },
           lines: [],
@@ -345,10 +410,11 @@ describe('InvoicesService', () => {
 
       prisma.invoice.create.mockImplementation(async ({ data }: any) => {
         expect(data.timbreFiscal).toBe(0);
+        expect(data.timbreRate).toBe(0);
         expect(data.netToPay).toBe(data.totalTtc);
         return {
           id: 1,
-          reference: 'F-250225-001',
+          reference: `F-${currentYear}-00001`,
           ...data,
           client: { code: 'CLI001', name: 'Test Client' },
           lines: [],
@@ -367,10 +433,11 @@ describe('InvoicesService', () => {
 
       prisma.invoice.create.mockImplementation(async ({ data }: any) => {
         expect(data.timbreFiscal).toBe(0);
+        expect(data.timbreRate).toBe(0);
         expect(data.netToPay).toBe(data.totalTtc);
         return {
           id: 1,
-          reference: 'F-250225-001',
+          reference: `F-${currentYear}-00001`,
           ...data,
           client: { code: 'CLI001', name: 'Test Client' },
           lines: [],
@@ -398,11 +465,14 @@ describe('InvoicesService', () => {
         expect(data.totalTva).toBe(76000);
         // totalTtc = 400000 + 76000 = 476000
         expect(data.totalTtc).toBe(476000);
-        // netToPay = 476000 + 5000 (ESPECES) = 481000
-        expect(data.netToPay).toBe(481000);
+        // 476000 centimes = 4760 DA <= 30000 DA => 1% rate
+        // timbreFiscal = Math.round(476000 * 0.01) = 4760
+        expect(data.timbreFiscal).toBe(4760);
+        // netToPay = 476000 + 4760 = 480760
+        expect(data.netToPay).toBe(480760);
         return {
           id: 1,
-          reference: 'F-250225-001',
+          reference: `F-${currentYear}-00001`,
           ...data,
           client: { code: 'CLI001', name: 'Test Client' },
           lines: [],
@@ -427,14 +497,17 @@ describe('InvoicesService', () => {
       ).rejects.toThrow('au moins une ligne');
     });
 
-    it('should generate reference with auto-incrementing number', async () => {
-      // Simulate there is already an invoice with number 003
+    it('should generate reference with auto-incrementing number (annual format)', async () => {
+      // The service derives the year from dto.date ('2025-02-25' → 2025)
+      const invoiceYear = new Date(baseCreateDto.date).getFullYear();
+      // Simulate there is already an invoice with number 00003
       prisma.invoice.findFirst.mockResolvedValue({
-        reference: 'F-250225-003',
+        reference: `F-${invoiceYear}-00003`,
       });
 
       prisma.invoice.create.mockImplementation(async ({ data }: any) => {
-        expect(data.reference).toBe('F-250225-004');
+        expect(data.reference).toBe(`F-${invoiceYear}-00004`);
+        expect(data.fiscalYear).toBe(invoiceYear);
         return {
           id: 1,
           reference: data.reference,
@@ -448,11 +521,14 @@ describe('InvoicesService', () => {
       expect(prisma.invoice.create).toHaveBeenCalled();
     });
 
-    it('should start reference numbering at 001 when no previous invoice exists', async () => {
+    it('should start reference numbering at 00001 when no previous invoice exists', async () => {
+      // The service derives the year from dto.date ('2025-02-25' → 2025)
+      const invoiceYear = new Date(baseCreateDto.date).getFullYear();
       prisma.invoice.findFirst.mockResolvedValue(null);
 
       prisma.invoice.create.mockImplementation(async ({ data }: any) => {
-        expect(data.reference).toBe('F-250225-001');
+        expect(data.reference).toBe(`F-${invoiceYear}-00001`);
+        expect(data.fiscalYear).toBe(invoiceYear);
         return {
           id: 1,
           reference: data.reference,
@@ -471,7 +547,7 @@ describe('InvoicesService', () => {
         expect(data.status).toBe('DRAFT');
         return {
           id: 1,
-          reference: 'F-250225-001',
+          reference: `F-${currentYear}-00001`,
           ...data,
           client: { code: 'CLI001', name: 'Test Client' },
           lines: [],
@@ -490,16 +566,17 @@ describe('InvoicesService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should create invoice lines with correct lineHt (quantity * unitPriceHt)', async () => {
+    it('should create invoice lines with correct lineHt (quantity * unitPriceHt - remise)', async () => {
       prisma.invoice.create.mockImplementation(async ({ data }: any) => {
         const lines = data.lines.create;
         expect(lines).toHaveLength(1);
-        expect(lines[0].lineHt).toBe(10 * 10000); // 100000
+        expect(lines[0].lineHt).toBe(10 * 10000); // 100000 (no remise)
         expect(lines[0].quantity).toBe(10);
         expect(lines[0].unitPriceHt).toBe(10000);
+        expect(lines[0].remise).toBe(0);
         return {
           id: 1,
-          reference: 'F-250225-001',
+          reference: `F-${currentYear}-00001`,
           ...data,
           client: { code: 'CLI001', name: 'Test Client' },
           lines: [],
@@ -508,6 +585,56 @@ describe('InvoicesService', () => {
 
       await service.create(baseCreateDto, 'user-1');
       expect(prisma.invoice.create).toHaveBeenCalled();
+    });
+
+    it('should apply line-level remise (discount) correctly', async () => {
+      const dtoWithRemise = {
+        ...baseCreateDto,
+        lines: [
+          { productPfId: 1, quantity: 10, unitPriceHt: 10000, remise: 5000 },
+        ],
+      };
+
+      prisma.invoice.create.mockImplementation(async ({ data }: any) => {
+        const lines = data.lines.create;
+        expect(lines).toHaveLength(1);
+        // lineHt = (10 * 10000) - 5000 = 95000
+        expect(lines[0].lineHt).toBe(95000);
+        expect(lines[0].remise).toBe(5000);
+        // totalHt = 95000
+        expect(data.totalHt).toBe(95000);
+        // totalTva = Math.round(95000 * 0.19) = 18050
+        expect(data.totalTva).toBe(18050);
+        return {
+          id: 1,
+          reference: `F-${currentYear}-00001`,
+          ...data,
+          client: { code: 'CLI001', name: 'Test Client' },
+          lines: [],
+        };
+      });
+
+      await service.create(dtoWithRemise, 'user-1');
+      expect(prisma.invoice.create).toHaveBeenCalled();
+    });
+
+    it('should reject create when products do not exist', async () => {
+      prisma.productPf.findMany.mockResolvedValue([{ id: 1 }]); // Only product 1 exists
+
+      const dtoWithMissing = {
+        ...baseCreateDto,
+        lines: [
+          { productPfId: 1, quantity: 5, unitPriceHt: 10000 },
+          { productPfId: 99, quantity: 3, unitPriceHt: 20000 },
+        ],
+      };
+
+      await expect(
+        service.create(dtoWithMissing, 'user-1'),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.create(dtoWithMissing, 'user-1'),
+      ).rejects.toThrow('Produits introuvables');
     });
 
     it('should use $transaction for creating invoice with lines', async () => {
@@ -549,8 +676,13 @@ describe('InvoicesService', () => {
       prisma.invoice.findUnique.mockResolvedValue(invoice);
       prisma.invoiceLine.deleteMany.mockResolvedValue({ count: 1 });
       prisma.invoice.update.mockImplementation(async ({ data }: any) => {
-        expect(data.timbreFiscal).toBe(5000); // ESPECES => 50 DA timbre
-        expect(data.netToPay).toBe(data.totalTtc + 5000);
+        // New lines: qty 20 * 10000 = 200000 HT
+        // TVA: 200000 * 0.19 = 38000
+        // TTC: 238000 centimes = 2380 DA <= 30000 DA => 1% rate
+        // timbreFiscal = Math.round(238000 * 0.01) = 2380
+        expect(data.timbreFiscal).toBe(2380);
+        expect(data.timbreRate).toBe(0.01);
+        expect(data.netToPay).toBe(data.totalTtc + 2380);
         return { ...invoice, ...data };
       });
 
@@ -587,9 +719,12 @@ describe('InvoicesService', () => {
     });
 
     it('should recalculate netToPay when paymentMethod changes from VIREMENT to ESPECES', async () => {
+      // totalTtc = 119000 centimes = 1190 DA <= 30000 DA => 1% rate
+      // timbreFiscal = Math.round(119000 * 0.01) = 1190
       const invoice = mockInvoice({
         paymentMethod: 'VIREMENT',
         timbreFiscal: 0,
+        timbreRate: 0,
         totalTtc: 119000,
         netToPay: 119000,
       });
@@ -597,8 +732,9 @@ describe('InvoicesService', () => {
       prisma.invoice.update.mockResolvedValue({
         ...invoice,
         paymentMethod: 'ESPECES',
-        timbreFiscal: 5000,
-        netToPay: 124000,
+        timbreFiscal: 1190,
+        timbreRate: 0.01,
+        netToPay: 120190,
       });
 
       await service.update(1, { paymentMethod: PaymentMethodDto.ESPECES }, 'user1');
@@ -606,8 +742,9 @@ describe('InvoicesService', () => {
       expect(prisma.invoice.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            timbreFiscal: 5000,
-            netToPay: 124000,
+            timbreFiscal: 1190,
+            timbreRate: 0.01,
+            netToPay: 120190,
           }),
         }),
       );
@@ -646,24 +783,24 @@ describe('InvoicesService', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('updateStatus() — extended', () => {
-    it('should reject DRAFT → PAID when client NIF is null', async () => {
+    it('should reject DRAFT → VALIDATED when client NIF is null', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
       prisma.client.findUnique.mockResolvedValue(mockClient({ nif: null }));
 
       await expect(
-        service.updateStatus(1, { status: 'PAID' as any }),
+        service.updateStatus(1, { status: 'VALIDATED' as any }),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.updateStatus(1, { status: 'PAID' as any }),
+        service.updateStatus(1, { status: 'VALIDATED' as any }),
       ).rejects.toThrow('NIF');
     });
 
-    it('should reject DRAFT → PAID when client NIF is whitespace-only', async () => {
+    it('should reject DRAFT → VALIDATED when client NIF is whitespace-only', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
       prisma.client.findUnique.mockResolvedValue(mockClient({ nif: '   ' }));
 
       await expect(
-        service.updateStatus(1, { status: 'PAID' as any }),
+        service.updateStatus(1, { status: 'VALIDATED' as any }),
       ).rejects.toThrow('NIF');
     });
 
@@ -675,16 +812,24 @@ describe('InvoicesService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should allow PAID → CANCELLED (cancellation of paid invoice is permitted)', async () => {
-      prisma.invoice.findUnique.mockResolvedValue(mockInvoice({ status: 'PAID' }));
+    it('should store cancellation tracking data when transitioning to CANCELLED', async () => {
+      prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
       prisma.invoice.update.mockResolvedValue(mockInvoice({ status: 'CANCELLED' }));
 
-      // The service only blocks PAID → DRAFT, but allows PAID → CANCELLED
-      const result = await service.updateStatus(1, { status: 'CANCELLED' as any });
-      expect(result.status).toBe('CANCELLED');
+      await service.updateStatus(
+        1,
+        { status: 'CANCELLED' as any, cancellationReason: 'Erreur de saisie' },
+        'user-admin',
+      );
+
       expect(prisma.invoice.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ status: 'CANCELLED' }),
+          data: expect.objectContaining({
+            status: 'CANCELLED',
+            cancellationReason: 'Erreur de saisie',
+            cancelledBy: 'user-admin',
+            cancelledAt: expect.any(Date),
+          }),
         }),
       );
     });
@@ -707,9 +852,9 @@ describe('InvoicesService', () => {
       );
 
       try {
-        await service.updateStatus(1, { status: 'PAID' as any });
+        await service.updateStatus(1, { status: 'VALIDATED' as any });
         fail('Should have thrown');
-      } catch (err) {
+      } catch (err: any) {
         expect(err.message).toContain(clientName);
       }
     });
@@ -773,7 +918,7 @@ describe('InvoicesService', () => {
 
       const result = await service.findOne(1);
       expect(result.id).toBe(1);
-      expect(result.reference).toBe('F-250225-001');
+      expect(result.reference).toBe(`F-${new Date().getFullYear()}-00001`);
       expect(prisma.invoice.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 1 },
@@ -798,18 +943,21 @@ describe('InvoicesService', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('Edge cases', () => {
+    const currentYear = new Date().getFullYear();
+
     it('should round TVA to nearest centime (Math.round)', async () => {
       // Create a scenario where TVA produces a decimal
       // e.g., totalHt = 100001, TVA = 100001 * 0.19 = 19000.19 → rounded to 19000
       prisma.invoice.findFirst.mockResolvedValue(null);
       prisma.client.findUnique.mockResolvedValue(mockClient());
+      prisma.productPf.findMany.mockResolvedValue([{ id: 1 }]);
       prisma.invoice.create.mockImplementation(async ({ data }: any) => {
         // qty=1, unitPriceHt=100001 => totalHt=100001
         // TVA = Math.round(100001 * 0.19) = Math.round(19000.19) = 19000
         expect(data.totalTva).toBe(Math.round(100001 * 0.19));
         return {
           id: 1,
-          reference: 'F-250225-001',
+          reference: `F-${currentYear}-00001`,
           ...data,
           client: { code: 'CLI001', name: 'Test Client' },
           lines: [],
@@ -829,19 +977,23 @@ describe('InvoicesService', () => {
       expect(prisma.invoice.create).toHaveBeenCalled();
     });
 
-    it('should handle large invoice amounts correctly (>100k DA = >10000000 centimes)', async () => {
+    it('should handle large invoice amounts correctly with 2% timbre rate (>100k DA)', async () => {
       prisma.invoice.findFirst.mockResolvedValue(null);
       prisma.client.findUnique.mockResolvedValue(mockClient());
+      prisma.productPf.findMany.mockResolvedValue([{ id: 1 }]);
       prisma.invoice.create.mockImplementation(async ({ data }: any) => {
         // qty=100, unitPriceHt=200000 (2000 DA) => totalHt=20000000 (200,000 DA)
         expect(data.totalHt).toBe(20000000);
         expect(data.totalTva).toBe(3800000); // 20000000 * 0.19
         expect(data.totalTtc).toBe(23800000);
-        expect(data.timbreFiscal).toBe(5000); // Still 50 DA for ESPECES
-        expect(data.netToPay).toBe(23805000);
+        // 23800000 centimes = 238000 DA > 100000 DA => 2% rate
+        // timbreFiscal = Math.round(23800000 * 0.02) = 476000
+        expect(data.timbreFiscal).toBe(476000);
+        expect(data.timbreRate).toBe(0.02);
+        expect(data.netToPay).toBe(24276000);
         return {
           id: 1,
-          reference: 'F-250225-001',
+          reference: `F-${currentYear}-00001`,
           ...data,
           client: { code: 'CLI001', name: 'Test Client' },
           lines: [],
@@ -861,17 +1013,52 @@ describe('InvoicesService', () => {
       expect(prisma.invoice.create).toHaveBeenCalled();
     });
 
-    it('should handle invoice with single item of unit price = 0 (free items)', async () => {
+    it('should apply 1.5% timbre rate for medium invoices (30k-100k DA)', async () => {
       prisma.invoice.findFirst.mockResolvedValue(null);
       prisma.client.findUnique.mockResolvedValue(mockClient());
+      prisma.productPf.findMany.mockResolvedValue([{ id: 1 }]);
+      prisma.invoice.create.mockImplementation(async ({ data }: any) => {
+        // qty=50, unitPriceHt=100000 (1000 DA) => totalHt=5000000 (50,000 DA)
+        // TVA: 5000000 * 0.19 = 950000
+        // TTC: 5950000 centimes = 59500 DA => 30000 < 59500 <= 100000 => 1.5%
+        expect(data.timbreFiscal).toBe(Math.round(5950000 * 0.015));
+        expect(data.timbreRate).toBe(0.015);
+        return {
+          id: 1,
+          reference: `F-${currentYear}-00001`,
+          ...data,
+          client: { code: 'CLI001', name: 'Test Client' },
+          lines: [],
+        };
+      });
+
+      await service.create(
+        {
+          clientId: 10,
+          date: '2025-02-25',
+          paymentMethod: PaymentMethodDto.ESPECES,
+          lines: [{ productPfId: 1, quantity: 50, unitPriceHt: 100000 }],
+        },
+        'user-1',
+      );
+
+      expect(prisma.invoice.create).toHaveBeenCalled();
+    });
+
+    it('should handle invoice with single item of unit price = 0 (free items — no timbre)', async () => {
+      prisma.invoice.findFirst.mockResolvedValue(null);
+      prisma.client.findUnique.mockResolvedValue(mockClient());
+      prisma.productPf.findMany.mockResolvedValue([{ id: 1 }]);
       prisma.invoice.create.mockImplementation(async ({ data }: any) => {
         expect(data.totalHt).toBe(0);
         expect(data.totalTva).toBe(0);
         expect(data.totalTtc).toBe(0);
-        expect(data.netToPay).toBe(5000); // Only timbre for ESPECES
+        // totalTtc <= 0 => no timbre fiscal even for ESPECES
+        expect(data.timbreFiscal).toBe(0);
+        expect(data.netToPay).toBe(0);
         return {
           id: 1,
-          reference: 'F-250225-001',
+          reference: `F-${currentYear}-00001`,
           ...data,
           client: { code: 'CLI001', name: 'Test Client' },
           lines: [],
@@ -894,12 +1081,14 @@ describe('InvoicesService', () => {
     it('should not apply timbre when payment is VIREMENT even with large amount', async () => {
       prisma.invoice.findFirst.mockResolvedValue(null);
       prisma.client.findUnique.mockResolvedValue(mockClient());
+      prisma.productPf.findMany.mockResolvedValue([{ id: 1 }]);
       prisma.invoice.create.mockImplementation(async ({ data }: any) => {
         expect(data.timbreFiscal).toBe(0);
+        expect(data.timbreRate).toBe(0);
         expect(data.netToPay).toBe(data.totalTtc);
         return {
           id: 1,
-          reference: 'F-250225-001',
+          reference: `F-${currentYear}-00001`,
           ...data,
           client: { code: 'CLI001', name: 'Test Client' },
           lines: [],
@@ -919,41 +1108,41 @@ describe('InvoicesService', () => {
       expect(prisma.invoice.create).toHaveBeenCalled();
     });
 
-    it('should reject DRAFT → PAID when client RC is null (not just empty string)', async () => {
+    it('should reject DRAFT → VALIDATED when client RC is null (not just empty string)', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
       prisma.client.findUnique.mockResolvedValue(mockClient({ rc: null }));
 
       await expect(
-        service.updateStatus(1, { status: 'PAID' as any }),
+        service.updateStatus(1, { status: 'VALIDATED' as any }),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.updateStatus(1, { status: 'PAID' as any }),
+        service.updateStatus(1, { status: 'VALIDATED' as any }),
       ).rejects.toThrow('RC');
     });
 
-    it('should reject DRAFT → PAID when client AI is null (not just empty string)', async () => {
+    it('should reject DRAFT → VALIDATED when client AI is null (not just empty string)', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
       prisma.client.findUnique.mockResolvedValue(mockClient({ ai: null }));
 
       await expect(
-        service.updateStatus(1, { status: 'PAID' as any }),
+        service.updateStatus(1, { status: 'VALIDATED' as any }),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.updateStatus(1, { status: 'PAID' as any }),
+        service.updateStatus(1, { status: 'VALIDATED' as any }),
       ).rejects.toThrow('AI');
     });
 
-    it('should allow DRAFT → PAID when fiscal fields have valid non-empty values', async () => {
+    it('should allow DRAFT → VALIDATED when fiscal fields have valid non-empty values', async () => {
       prisma.invoice.findUnique.mockResolvedValue(mockInvoice());
       prisma.client.findUnique.mockResolvedValue(mockClient({
         nif: '000099901234567',
         rc: '16B9999999',
         ai: 'AI99999999',
       }));
-      prisma.invoice.update.mockResolvedValue(mockInvoice({ status: 'PAID' }));
+      prisma.invoice.update.mockResolvedValue(mockInvoice({ status: 'VALIDATED' }));
 
-      const result = await service.updateStatus(1, { status: 'PAID' as any });
-      expect(result.status).toBe('PAID');
+      const result = await service.updateStatus(1, { status: 'VALIDATED' as any });
+      expect(result.status).toBe('VALIDATED');
     });
   });
 });

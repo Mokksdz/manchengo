@@ -400,10 +400,10 @@ describe('ProductionService - Invariants metier', () => {
       });
 
       await expect(
-        service.complete(1, { quantityProduced: 10 }, 'user-1'),
+        service.complete(1, { quantityProduced: 10, qualityStatus: 'PASSED' }, 'user-1'),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.complete(1, { quantityProduced: 10 }, 'user-1'),
+        service.complete(1, { quantityProduced: 10, qualityStatus: 'PASSED' }, 'user-1'),
       ).rejects.toThrow(/statut actuel = PENDING/);
     });
 
@@ -414,10 +414,10 @@ describe('ProductionService - Invariants metier', () => {
       });
 
       await expect(
-        service.complete(1, { quantityProduced: 10 }, 'user-1'),
+        service.complete(1, { quantityProduced: 10, qualityStatus: 'PASSED' }, 'user-1'),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.complete(1, { quantityProduced: 10 }, 'user-1'),
+        service.complete(1, { quantityProduced: 10, qualityStatus: 'PASSED' }, 'user-1'),
       ).rejects.toThrow(/statut actuel = COMPLETED/);
     });
 
@@ -428,7 +428,7 @@ describe('ProductionService - Invariants metier', () => {
       });
 
       await expect(
-        service.complete(1, { quantityProduced: 10 }, 'user-1'),
+        service.complete(1, { quantityProduced: 10, qualityStatus: 'PASSED' }, 'user-1'),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -456,7 +456,7 @@ describe('ProductionService - Invariants metier', () => {
         lots: [{ id: 1, lotNumber: 'PF-001-260202-001', quantityInitial: 18 }],
       });
 
-      const result = await service.complete(1, { quantityProduced: 18 }, 'user-1');
+      const result = await service.complete(1, { quantityProduced: 18, qualityStatus: 'PASSED' }, 'user-1');
 
       expect(result.createdLot).toBeDefined();
       expect(result.createdLot.quantityInitial).toBe(18);
@@ -500,7 +500,7 @@ describe('ProductionService - Invariants metier', () => {
         };
       });
 
-      await service.complete(1, { quantityProduced: 15 }, 'user-1');
+      await service.complete(1, { quantityProduced: 15, qualityStatus: 'PASSED' }, 'user-1');
 
       expect(mockPrisma.productionOrder.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -529,7 +529,7 @@ describe('ProductionService - Invariants metier', () => {
       });
 
       // quantityProduced=10, targetQuantity=20, minAcceptable=20*0.9=18
-      await service.complete(1, { quantityProduced: 10 }, 'user-1');
+      await service.complete(1, { quantityProduced: 10, qualityStatus: 'PASSED' }, 'user-1');
 
       expect(mockLogger.businessWarn).toHaveBeenCalledWith(
         'PRODUCTION_LOW_YIELD',
@@ -604,7 +604,7 @@ describe('ProductionService - Invariants metier', () => {
         lots: [{ id: 1, lotNumber: 'PF-002-260202-001', quantityInitial: 45 }],
       });
 
-      const result = await service.complete(2, { quantityProduced: 45 }, 'user-1');
+      const result = await service.complete(2, { quantityProduced: 45, qualityStatus: 'PASSED' }, 'user-1');
 
       expect(result.createdLot).toBeDefined();
       // Verify stock IN movement was created for PF
@@ -637,7 +637,7 @@ describe('ProductionService - Invariants metier', () => {
         lots: [],
       });
 
-      await service.complete(2, { quantityProduced: 50 }, 'user-1');
+      await service.complete(2, { quantityProduced: 50, qualityStatus: 'PASSED' }, 'user-1');
 
       expect(mockPrisma.productionOrder.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -650,16 +650,16 @@ describe('ProductionService - Invariants metier', () => {
 
     it('devrait rejeter quantityProduced = 0', async () => {
       await expect(
-        service.complete(2, { quantityProduced: 0 }, 'user-1'),
+        service.complete(2, { quantityProduced: 0, qualityStatus: 'PASSED' }, 'user-1'),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.complete(2, { quantityProduced: 0 }, 'user-1'),
+        service.complete(2, { quantityProduced: 0, qualityStatus: 'PASSED' }, 'user-1'),
       ).rejects.toThrow(/strictement positive/);
     });
 
     it('devrait rejeter quantityProduced negative', async () => {
       await expect(
-        service.complete(2, { quantityProduced: -5 }, 'user-1'),
+        service.complete(2, { quantityProduced: -5, qualityStatus: 'PASSED' }, 'user-1'),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -675,7 +675,7 @@ describe('ProductionService - Invariants metier', () => {
         ...orderInProgress, status: 'COMPLETED', lots: [],
       });
 
-      await service.complete(2, { quantityProduced: 45 }, 'user-1');
+      await service.complete(2, { quantityProduced: 45, qualityStatus: 'PASSED' }, 'user-1');
 
       // shelfLifeDays = 14, so expiryDate should be ~14 days from now
       const lotCreateCall = mockPrisma.lotPf.create.mock.calls[0][0];
@@ -699,7 +699,7 @@ describe('ProductionService - Invariants metier', () => {
         ...orderInProgress, status: 'COMPLETED', lots: [],
       });
 
-      await service.complete(2, { quantityProduced: 45 }, 'user-1');
+      await service.complete(2, { quantityProduced: 45, qualityStatus: 'PASSED' }, 'user-1');
 
       expect(mockCacheService.invalidateStockCache).toHaveBeenCalled();
       expect(mockCacheService.invalidateProductionCache).toHaveBeenCalled();
@@ -1346,7 +1346,7 @@ describe('ProductionService - Invariants metier', () => {
           lots: [],
         });
 
-        const result = await service.complete(1, { quantityProduced: 18 }, 'user-1');
+        const result = await service.complete(1, { quantityProduced: 18, qualityStatus: 'PASSED' }, 'user-1');
         expect(result.status).toBe('COMPLETED');
       });
 
@@ -1436,7 +1436,7 @@ describe('ProductionService - Invariants metier', () => {
         });
 
         await expect(
-          service.complete(1, { quantityProduced: 10 }, 'user-1'),
+          service.complete(1, { quantityProduced: 10, qualityStatus: 'PASSED' }, 'user-1'),
         ).rejects.toThrow(BadRequestException);
       });
 
@@ -1508,7 +1508,7 @@ describe('ProductionService - Invariants metier', () => {
         ...orderInProgress, status: 'COMPLETED', lots: [],
       });
 
-      await service.complete(1, { quantityProduced: 18 }, 'user-1');
+      await service.complete(1, { quantityProduced: 18, qualityStatus: 'PASSED' }, 'user-1');
 
       expect(mockPrisma.stockMovement.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1605,7 +1605,7 @@ describe('ProductionService - Invariants metier', () => {
         ...orderInProgress, status: 'COMPLETED', lots: [],
       });
 
-      await service.complete(1, { quantityProduced: 20 }, 'user-1');
+      await service.complete(1, { quantityProduced: 20, qualityStatus: 'PASSED' }, 'user-1');
 
       // totalCost = (100 * 500) + (10 * 2000) = 50000 + 20000 = 70000
       // unitCost = Math.round(70000 / 20) = 3500

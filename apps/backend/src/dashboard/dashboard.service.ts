@@ -11,11 +11,28 @@ import { CacheService, CacheTTL } from '../cache/cache.service';
 @Injectable()
 export class DashboardService {
   private readonly logger = new Logger(DashboardService.name);
+  private readonly OFFLINE_THRESHOLD_HOURS = parseInt(process.env.DEVICE_OFFLINE_THRESHOLD_HOURS || '1', 10);
 
   constructor(
     private prisma: PrismaService,
     private cacheService: CacheService,
   ) {}
+
+  /**
+   * Get consistent "today at midnight" for Algeria timezone (UTC+1).
+   * All "today" calculations must use this method for consistency.
+   */
+  private getTodayAlgiers(): Date {
+    // Get current time in Algeria (UTC+1) and compute midnight in UTC
+    const now = new Date();
+    const utcHour = now.getUTCHours();
+    const algiersHour = utcHour + 1; // UTC+1
+    const algiersDate = algiersHour >= 24
+      ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
+      : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    // Midnight Algeria = 23:00 UTC previous day
+    return new Date(algiersDate.getTime() - 3600000);
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MAIN KPIs
@@ -26,13 +43,14 @@ export class DashboardService {
     try {
       return await this.cacheService.getOrSet(key, () => this.computeKpis(), CacheTTL.KPI);
     } catch (error) {
-      this.logger.error(`Failed to compute KPIs: ${error.message}`, error.stack);
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to compute KPIs: ${message}`, error instanceof Error ? error.stack : undefined);
       // Return empty KPIs instead of crashing
       return {
         stock: { mp: { total: 0, lowStock: 0 }, pf: { total: 0, lowStock: 0 } },
         sales: { todayAmount: 0, todayInvoices: 0 },
         sync: { devicesOffline: 0, pendingEvents: 0 },
-        _meta: { cachedAt: new Date().toISOString(), error: error.message },
+        _meta: { cachedAt: new Date().toISOString(), error: message },
       };
     }
   }
@@ -40,38 +58,64 @@ export class DashboardService {
   private async computeKpis() {
     const startTime = Date.now();
 
-    const [
-      totalStockMp,
-      totalStockPf,
-      todaySales,
-      todayInvoices,
-      devicesOffline,
-      pendingEvents,
-    ] = await Promise.all([
-      this.getTotalStockMp().catch(() => ({ total: 0, lowStock: 0 })),
-      this.getTotalStockPf().catch(() => ({ total: 0, lowStock: 0 })),
-      this.getTodaySalesAmount().catch(() => 0),
-      this.getTodayInvoicesCount().catch(() => 0),
-      this.getOfflineDevicesCount().catch(() => 0),
-      this.prisma.syncEvent.count({ where: { status: 'PENDING' } }).catch(() => 0),
+    const serviceNames = [
+      'getTotalStockMp',
+      'getTotalStockPf',
+      'getTodaySalesAmount',
+      'getTodayInvoicesCount',
+      'getOfflineDevicesCount',
+      'syncEventCount',
+    ];
+
+    const defaults = [
+      { total: 0, lowStock: 0 },
+      { total: 0, lowStock: 0 },
+      0,
+      0,
+      0,
+      0,
+    ];
+
+    const results = await Promise.allSettled([
+      this.getTotalStockMp(),
+      this.getTotalStockPf(),
+      this.getTodaySalesAmount(),
+      this.getTodayInvoicesCount(),
+      this.getOfflineDevicesCount(),
+      this.prisma.syncEvent.count({ where: { status: 'PENDING' } }),
     ]);
+
+    const failedServices: string[] = [];
+    const values = results.map((result, i) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      }
+      const errMsg = result.reason instanceof Error ? result.reason.stack : String(result.reason);
+      this.logger.error(`${serviceNames[i]} failed: ${errMsg}`);
+      failedServices.push(serviceNames[i]);
+      return defaults[i];
+    });
+
+    const [totalStockMp, totalStockPf, todaySales, todayInvoices, devicesOffline, pendingEvents] = values;
 
     return {
       stock: {
-        mp: totalStockMp,
-        pf: totalStockPf,
+        mp: totalStockMp as { total: number; lowStock: number },
+        pf: totalStockPf as { total: number; lowStock: number },
       },
       sales: {
-        todayAmount: todaySales,
-        todayInvoices: todayInvoices,
+        todayAmount: todaySales as number,
+        todayInvoices: todayInvoices as number,
       },
       sync: {
-        devicesOffline,
-        pendingEvents,
+        devicesOffline: devicesOffline as number,
+        pendingEvents: pendingEvents as number,
       },
       _meta: {
         cachedAt: new Date().toISOString(),
         computedInMs: Date.now() - startTime,
+        hasErrors: failedServices.length > 0,
+        failedServices,
       },
     };
   }
@@ -88,6 +132,8 @@ export class DashboardService {
     });
 
     const productIds = products.map((p) => p.id);
+
+    if (productIds.length === 0) return { total: 0, lowStock: 0 };
 
     const allMovements = await this.prisma.stockMovement.groupBy({
       by: ['productMpId', 'movementType'],
@@ -123,6 +169,8 @@ export class DashboardService {
 
     const productIds = products.map((p) => p.id);
 
+    if (productIds.length === 0) return { total: 0, lowStock: 0 };
+
     const allMovements = await this.prisma.stockMovement.groupBy({
       by: ['productPfId', 'movementType'],
       where: { productType: 'PF', productPfId: { in: productIds }, isDeleted: false },
@@ -152,15 +200,15 @@ export class DashboardService {
   // SALES KPIs
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // Chiffre d'affaires du jour = factures VALIDATED + PAID + PARTIALLY_PAID (exclut DRAFT et CANCELLED)
   private async getTodaySalesAmount(): Promise<number> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = this.getTodayAlgiers();
 
     const result = await this.prisma.invoice.aggregate({
       _sum: { netToPay: true },
       where: {
         date: { gte: today },
-        status: 'PAID',
+        status: { in: ['VALIDATED', 'PARTIALLY_PAID', 'PAID'] },
       },
     });
 
@@ -169,8 +217,7 @@ export class DashboardService {
 
   // V15: Only count non-cancelled invoices
   private async getTodayInvoicesCount(): Promise<number> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = this.getTodayAlgiers();
 
     return this.prisma.invoice.count({
       where: { date: { gte: today }, status: { not: 'CANCELLED' } },
@@ -182,15 +229,15 @@ export class DashboardService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   private async getOfflineDevicesCount(): Promise<number> {
-    const oneHourAgo = new Date();
-    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+    const threshold = new Date();
+    threshold.setHours(threshold.getHours() - this.OFFLINE_THRESHOLD_HOURS);
 
     return this.prisma.device.count({
       where: {
         isActive: true,
         OR: [
           { lastSyncAt: null },
-          { lastSyncAt: { lt: oneHourAgo } },
+          { lastSyncAt: { lt: threshold } },
         ],
       },
     });
@@ -213,7 +260,7 @@ export class DashboardService {
     const invoices = await this.prisma.invoice.findMany({
       where: {
         date: { gte: startDate },
-        status: 'PAID',
+        status: { in: ['VALIDATED', 'PARTIALLY_PAID', 'PAID'] },
       },
       select: {
         date: true,
@@ -299,12 +346,12 @@ export class DashboardService {
         where: { isActive: true },
         select: { id: true, name: true, lastSyncAt: true },
       });
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const threshold = new Date(Date.now() - this.OFFLINE_THRESHOLD_HOURS * 60 * 60 * 1000);
       return devices.map((d) => ({
         deviceId: d.id,
         name: d.name,
         lastSync: d.lastSyncAt?.toISOString() ?? null,
-        online: d.lastSyncAt ? d.lastSyncAt > oneHourAgo : false,
+        online: d.lastSyncAt ? d.lastSyncAt > threshold : false,
       }));
     }, CacheTTL.SYNC);
   }
@@ -334,8 +381,7 @@ export class DashboardService {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async getProductionDashboard(_userId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = this.getTodayAlgiers();
 
     const [
       ordersToday,
@@ -461,22 +507,37 @@ export class DashboardService {
       stockMap.set(m.productMpId, prev + (m.movementType === 'IN' ? qty : -qty));
     }
 
-    const alerts: { code: string; name: string; stock: number; minStock: number; status: string }[] = [];
+    const alerts: { code: string; name: string; stock: number; minStock: number; joursCouverture: number; status: string }[] = [];
     let sousSeuil = 0;
     let critiques = 0;
 
     for (const p of products) {
       const stock = stockMap.get(p.id) || 0;
 
-      if (stock <= p.minStock) {
+      // Enhanced alert: consider consumption rate for days of coverage
+      const consommationMoyJour = Number(p.consommationMoyJour) || 0;
+      const joursCouverture = consommationMoyJour > 0
+        ? Math.round(stock / consommationMoyJour)
+        : 999;
+
+      let status: string;
+      if (stock === 0) {
+        status = 'RUPTURE';
+      } else if (stock <= p.minStock || joursCouverture <= 3) {
+        status = 'ALERTE';
+      } else {
+        status = 'OK';
+      }
+
+      if (status !== 'OK') {
         sousSeuil++;
-        const status = stock === 0 ? 'RUPTURE' : 'ALERTE';
-        if (stock === 0) critiques++;
+        if (status === 'RUPTURE') critiques++;
         alerts.push({
           code: p.code,
           name: p.name,
           stock,
           minStock: p.minStock,
+          joursCouverture,
           status,
         });
       }

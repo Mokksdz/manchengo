@@ -13,6 +13,7 @@ describe('createLogger', () => {
     debug: jest.SpyInstance;
     info: jest.SpyInstance;
     warn: jest.SpyInstance;
+    error: jest.SpyInstance;
   };
 
   beforeEach(() => {
@@ -20,6 +21,7 @@ describe('createLogger', () => {
       debug: jest.spyOn(console, 'debug').mockImplementation(() => {}),
       info: jest.spyOn(console, 'info').mockImplementation(() => {}),
       warn: jest.spyOn(console, 'warn').mockImplementation(() => {}),
+      error: jest.spyOn(console, 'error').mockImplementation(() => {}),
     };
   });
 
@@ -97,8 +99,8 @@ describe('createLogger', () => {
         const { createLogger } = require('../logger');
         const log = createLogger('DevTest');
         log.error('error message');
-        // error() calls console.warn in the source code
-        expect(consoleSpy.warn).toHaveBeenCalledWith(
+        // error() calls console.error in the source code
+        expect(consoleSpy.error).toHaveBeenCalledWith(
           expect.stringContaining('[ERROR]'),
           expect.anything(),
         );
@@ -182,8 +184,8 @@ describe('createLogger', () => {
         const { createLogger } = require('../logger');
         const log = createLogger('ProdTest');
         log.error('critical failure');
-        // error() uses console.warn in the source
-        expect(consoleSpy.warn).toHaveBeenCalledWith(
+        // error() uses console.error in the source
+        expect(consoleSpy.error).toHaveBeenCalledWith(
           expect.stringContaining('[ERROR]'),
           expect.anything(),
         );

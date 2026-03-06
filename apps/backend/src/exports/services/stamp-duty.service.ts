@@ -43,10 +43,12 @@ export class StampDutyService {
   async getEntries(startDate: Date, endDate: Date): Promise<StampDutyEntry[]> {
     const invoices = await this.prisma.invoice.findMany({
       where: {
-        createdAt: {
+        date: {
           gte: startDate,
           lte: endDate,
         },
+        // Only VALIDATED/PAID invoices (exclude DRAFT/CANCELLED for fiscal reports)
+        status: { in: ['VALIDATED', 'PARTIALLY_PAID', 'PAID'] },
         // Only cash payments
         paymentMethod: {
           in: this.CASH_METHODS,
@@ -63,11 +65,11 @@ export class StampDutyService {
           },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { date: 'asc' },
     });
 
     return invoices.map((inv) => ({
-      date: inv.createdAt,
+      date: inv.date,
       invoiceRef: inv.reference,
       clientName: inv.client.name,
       amountTtc: inv.totalTtc,

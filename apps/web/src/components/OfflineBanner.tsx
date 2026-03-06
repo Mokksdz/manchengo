@@ -1,6 +1,7 @@
 'use client';
 
 import { useOnlineStatus } from '@/hooks/use-online-status';
+import { useLanguage } from '@/lib/i18n/language-context';
 import { WifiOff } from 'lucide-react';
 
 /**
@@ -18,6 +19,7 @@ import { WifiOff } from 'lucide-react';
  */
 export function OfflineBanner() {
   const isOnline = useOnlineStatus();
+  const { t } = useLanguage();
 
   if (isOnline) return null;
 
@@ -29,9 +31,9 @@ export function OfflineBanner() {
     >
       <WifiOff className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
       <div className="text-sm font-medium">
-        <span className="font-bold">Connexion perdue</span>
+        <span className="font-bold">{t.network.connectionLost}</span>
         {' — '}
-        <span>Vos modifications ne seront pas enregistrées. Vérifiez votre connexion internet.</span>
+        <span>{t.network.offlineWarning}</span>
       </div>
     </div>
   );

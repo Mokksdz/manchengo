@@ -74,7 +74,7 @@ function HistoryItem({
       <div>
         <p className="font-medium text-[#1D1D1F]">{label}</p>
         <p className="text-sm text-[#86868B]">
-          {new Date(date).toLocaleString('fr-FR')}
+          {(() => { const d = new Date(date); return isNaN(d.getTime()) ? date : d.toLocaleString('fr-FR'); })()}
           {user && ` par ${user.firstName} ${user.lastName}`}
         </p>
       </div>
@@ -230,6 +230,7 @@ export default function BcDetailPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      toast.success('PDF téléchargé avec succès');
     } catch (err) {
       log.error('Failed to download PDF', { error: err instanceof Error ? err.message : String(err) });
       toast.error('Erreur lors du téléchargement du PDF');
@@ -520,10 +521,10 @@ export default function BcDetailPage() {
           P0.1: MODAL ENVOI BC AVEC PREUVE TRAÇABLE
       ══════════════════════════════════════════════════════════════════════ */}
       {showSendModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="glass-card rounded-[18px] max-w-lg w-full mx-4 overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !isActioning && setShowSendModal(false)}>
+          <div className="glass-card rounded-[18px] max-w-lg w-full mx-4 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="send-modal-title" onClick={(e) => e.stopPropagation()}>
             <div className="bg-[#007AFF] px-6 py-4">
-              <h2 className="font-display text-[17px] font-bold text-white tracking-tight flex items-center gap-2">
+              <h2 id="send-modal-title" className="font-display text-[17px] font-bold text-white tracking-tight flex items-center gap-2">
                 <Send className="w-5 h-5" />
                 Envoyer le BC {bc.reference}
               </h2>
@@ -636,10 +637,10 @@ export default function BcDetailPage() {
           P0.2: MODAL ANNULATION BC SÉCURISÉE
       ══════════════════════════════════════════════════════════════════════ */}
       {showCancelModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="glass-card rounded-[18px] max-w-lg w-full mx-4 overflow-hidden">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !isCancelling && setShowCancelModal(false)}>
+          <div className="glass-card rounded-[18px] max-w-lg w-full mx-4 overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="cancel-modal-title" onClick={(e) => e.stopPropagation()}>
             <div className="bg-[#FF3B30] px-6 py-4">
-              <h2 className="font-display text-[17px] font-bold text-white tracking-tight flex items-center gap-2">
+              <h2 id="cancel-modal-title" className="font-display text-[17px] font-bold text-white tracking-tight flex items-center gap-2">
                 <Ban className="w-5 h-5" />
                 Annuler le BC {bc.reference}
               </h2>

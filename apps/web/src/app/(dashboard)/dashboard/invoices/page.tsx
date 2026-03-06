@@ -40,6 +40,7 @@ interface InvoiceLine {
   productPf?: { code: string; name: string; unit: string };
   quantity: number;
   unitPriceHt: number;
+  remise?: number;
   lineHt: number;
 }
 
@@ -75,8 +76,10 @@ const paymentMethods = [
 // Status values must match Prisma InvoiceStatus enum
 const invoiceStatuses = [
   { value: 'DRAFT', label: 'Brouillon', color: 'bg-black/5 text-[#86868B]' },
-  { value: 'PAID', label: 'Payée', color: 'bg-[#34C759]/10 text-[#34C759]' },
-  { value: 'CANCELLED', label: 'Annulée', color: 'bg-[#FF3B30]/10 text-[#FF3B30]' },
+  { value: 'VALIDATED', label: 'Validée', color: 'bg-[#007AFF]/10 text-[#007AFF]' },
+  { value: 'PARTIALLY_PAID', label: 'Partiellement payée', color: 'bg-[#FF9500]/10 text-[#C93400]' },
+  { value: 'PAID', label: 'Payée', color: 'bg-[#34C759]/10 text-[#248A3D]' },
+  { value: 'CANCELLED', label: 'Annulée', color: 'bg-[#FF3B30]/10 text-[#D70015]' },
 ];
 
 /**
@@ -104,7 +107,7 @@ export default function InvoicesPage() {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilterInv, setStatusFilterInv] = useState<'ALL' | 'DRAFT' | 'PAID' | 'CANCELLED'>('ALL');
+  const [statusFilterInv, setStatusFilterInv] = useState<'ALL' | 'DRAFT' | 'VALIDATED' | 'PARTIALLY_PAID' | 'PAID' | 'CANCELLED'>('ALL');
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -189,12 +192,15 @@ export default function InvoicesPage() {
       }
     } catch (err) {
       log.error('Failed to load invoice', { error: err instanceof Error ? err.message : String(err) });
+      toast.error('Erreur lors du chargement de la facture');
     } finally {
       setLoadingDetail(false);
     }
   };
 
   const changeInvoiceStatus = (id: number, newStatus: string) => {
+    const validStatuses = ['DRAFT', 'VALIDATED', 'PARTIALLY_PAID', 'PAID', 'CANCELLED'];
+    if (!validStatuses.includes(newStatus)) return;
     if (newStatus === 'PAID' || newStatus === 'CANCELLED') {
       setConfirmAction({ id, status: newStatus });
       return;
@@ -433,9 +439,9 @@ export default function InvoicesPage() {
                   <KeyboardHint shortcut="/" />
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                {(['ALL', 'DRAFT', 'PAID', 'CANCELLED'] as const).map((s) => {
-                  const labels: Record<string, string> = { ALL: 'Tous', DRAFT: 'Brouillon', PAID: 'Payee', CANCELLED: 'Annulee' };
+              <div className="flex items-center gap-2 flex-wrap">
+                {(['ALL', 'DRAFT', 'VALIDATED', 'PARTIALLY_PAID', 'PAID', 'CANCELLED'] as const).map((s) => {
+                  const labels: Record<string, string> = { ALL: 'Tous', DRAFT: 'Brouillon', VALIDATED: 'Validée', PARTIALLY_PAID: 'Part. payée', PAID: 'Payée', CANCELLED: 'Annulée' };
                   return (
                     <button
                       key={s}
@@ -501,9 +507,45 @@ export default function InvoicesPage() {
                               <Pencil className="w-4 h-4" />
                             </button>
                             <button
+                              onClick={() => changeInvoiceStatus(invoice.id, 'VALIDATED')}
+                              className="p-2 rounded-xl text-[#86868B] hover:text-[#007AFF] hover:bg-[#007AFF]/10 transition-all"
+                              title="Valider la facture"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => changeInvoiceStatus(invoice.id, 'CANCELLED')}
+                              className="p-2 rounded-xl text-[#86868B] hover:text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-all"
+                              title="Annuler la facture"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        {invoice.status === 'VALIDATED' && (
+                          <>
+                            <button
                               onClick={() => changeInvoiceStatus(invoice.id, 'PAID')}
                               className="p-2 rounded-xl text-[#86868B] hover:text-[#34C759] hover:bg-[#34C759]/10 transition-all"
-                              title="Valider et marquer payee"
+                              title="Marquer payée"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => changeInvoiceStatus(invoice.id, 'CANCELLED')}
+                              className="p-2 rounded-xl text-[#86868B] hover:text-[#FF3B30] hover:bg-[#FF3B30]/10 transition-all"
+                              title="Annuler la facture"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
+                        {invoice.status === 'PARTIALLY_PAID' && (
+                          <>
+                            <button
+                              onClick={() => changeInvoiceStatus(invoice.id, 'PAID')}
+                              className="p-2 rounded-xl text-[#86868B] hover:text-[#34C759] hover:bg-[#34C759]/10 transition-all"
+                              title="Marquer payée"
                             >
                               <CheckCircle className="w-4 h-4" />
                             </button>
@@ -592,8 +634,11 @@ export default function InvoicesPage() {
                       <thead className="bg-white/40 backdrop-blur-sm border-b border-black/[0.04]">
                         <tr>
                           <th className="px-3 py-2 text-left">Produit</th>
-                          <th className="px-3 py-2 text-right">Qte</th>
+                          <th className="px-3 py-2 text-right">Qté</th>
                           <th className="px-3 py-2 text-right">Prix HT</th>
+                          {selectedInvoice.lines?.some(l => l.remise && l.remise > 0) && (
+                            <th className="px-3 py-2 text-right">Remise</th>
+                          )}
                           <th className="px-3 py-2 text-right">Total HT</th>
                         </tr>
                       </thead>
@@ -603,6 +648,11 @@ export default function InvoicesPage() {
                             <td className="px-3 py-2">{line.productPf?.name || line.productName}</td>
                             <td className="px-3 py-2 text-right">{line.quantity}</td>
                             <td className="px-3 py-2 text-right">{formatCurrency(line.unitPriceHt)}</td>
+                            {selectedInvoice.lines?.some(l => l.remise && l.remise > 0) && (
+                              <td className="px-3 py-2 text-right text-[#FF9500]">
+                                {line.remise && line.remise > 0 ? `-${formatCurrency(line.remise)}` : '-'}
+                              </td>
+                            )}
                             <td className="px-3 py-2 text-right font-medium">{formatCurrency(line.lineHt)}</td>
                           </tr>
                         ))}
@@ -638,7 +688,7 @@ export default function InvoicesPage() {
               </div>
 
               <div className="flex justify-between items-center pt-4 border-t border-black/[0.04]">
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {selectedInvoice.status === 'DRAFT' && (
                     <>
                       <button
@@ -651,10 +701,42 @@ export default function InvoicesPage() {
                         </span>
                       </button>
                       <button
+                        onClick={() => changeInvoiceStatus(selectedInvoice.id, 'VALIDATED')}
+                        className="px-4 py-2 bg-[#007AFF] text-white text-sm rounded-full hover:bg-[#0056D6] font-semibold transition-all shadow-lg shadow-[#007AFF]/25"
+                      >
+                        Valider
+                      </button>
+                      <button
+                        onClick={() => changeInvoiceStatus(selectedInvoice.id, 'CANCELLED')}
+                        className="px-4 py-2 bg-[#FF3B30]/10 text-[#FF3B30] text-sm rounded-full hover:bg-[#FF3B30]/20 font-semibold transition-all"
+                      >
+                        Annuler facture
+                      </button>
+                    </>
+                  )}
+                  {selectedInvoice.status === 'VALIDATED' && (
+                    <>
+                      <button
                         onClick={() => changeInvoiceStatus(selectedInvoice.id, 'PAID')}
                         className="px-4 py-2 bg-[#34C759] text-white text-sm rounded-full hover:bg-[#2DB44D] font-semibold transition-all shadow-lg shadow-[#34C759]/25"
                       >
-                        Valider & Payer
+                        Marquer payée
+                      </button>
+                      <button
+                        onClick={() => changeInvoiceStatus(selectedInvoice.id, 'CANCELLED')}
+                        className="px-4 py-2 bg-[#FF3B30]/10 text-[#FF3B30] text-sm rounded-full hover:bg-[#FF3B30]/20 font-semibold transition-all"
+                      >
+                        Annuler facture
+                      </button>
+                    </>
+                  )}
+                  {selectedInvoice.status === 'PARTIALLY_PAID' && (
+                    <>
+                      <button
+                        onClick={() => changeInvoiceStatus(selectedInvoice.id, 'PAID')}
+                        className="px-4 py-2 bg-[#34C759] text-white text-sm rounded-full hover:bg-[#2DB44D] font-semibold transition-all shadow-lg shadow-[#34C759]/25"
+                      >
+                        Marquer payée
                       </button>
                       <button
                         onClick={() => changeInvoiceStatus(selectedInvoice.id, 'CANCELLED')}
@@ -682,16 +764,16 @@ export default function InvoicesPage() {
         open={!!confirmAction}
         onClose={() => setConfirmAction(null)}
         onConfirm={() => { if (confirmAction) { doChangeStatus(confirmAction.id, confirmAction.status); setConfirmAction(null); } }}
-        title={confirmAction?.status === 'PAID' ? 'Valider cette facture ?' : 'Annuler cette facture ?'}
-        message={confirmAction?.status === 'PAID' ? 'Le stock PF sera deduit. Cette action est irreversible.' : 'Cette action est irreversible.'}
+        title={confirmAction?.status === 'PAID' ? 'Marquer cette facture comme payée ?' : 'Annuler cette facture ?'}
+        message={confirmAction?.status === 'PAID' ? 'Le stock PF sera déduit. Cette action est irréversible.' : 'Cette action est irréversible.'}
         variant={confirmAction?.status === 'PAID' ? 'primary' : 'danger'}
-        confirmLabel={confirmAction?.status === 'PAID' ? 'Valider & Payer' : 'Annuler la facture'}
+        confirmLabel={confirmAction?.status === 'PAID' ? 'Marquer payée' : 'Annuler la facture'}
       />
 
       {/* ── Fiscal Validation Error Modal ────────────────────────────────── */}
       {fiscalError && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-md bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 animate-scale-in p-6">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in" onClick={() => setFiscalError(null)}>
+          <div className="relative w-full max-w-md bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 animate-scale-in p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-[#FF3B30]/10 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-5 h-5 text-[#FF3B30]" />

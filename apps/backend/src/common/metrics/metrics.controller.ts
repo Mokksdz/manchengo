@@ -1,5 +1,6 @@
 import { Controller, Get, Logger, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService } from '../../cache/cache.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -30,8 +31,10 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 @Controller('metrics')
 export class MetricsController {
   private readonly logger = new Logger(MetricsController.name);
-  private requestCounts: Record<string, number> = {};
-  private errorCounts: Record<string, number> = {};
+  // @ts-expect-error TS6133 — reserved for metrics tracking
+  private _requestCounts: Record<string, number> = {};
+  // @ts-expect-error TS6133 — reserved for metrics tracking
+  private _errorCounts: Record<string, number> = {};
 
   constructor(
     private prisma: PrismaService,
@@ -41,6 +44,7 @@ export class MetricsController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // Rate limit: 10 requests per minute to prevent abuse
   @ApiOperation({ summary: 'Prometheus metrics endpoint (ADMIN only)' })
   async getMetrics() {
     const lines: string[] = [];
@@ -105,7 +109,7 @@ export class MetricsController {
       lines.push('# TYPE manchengo_deliveries_pending_total gauge');
       lines.push(`manchengo_deliveries_pending_total ${pendingDeliveries}`);
     } catch (error) {
-      this.logger.warn(`Failed to collect business metrics: ${error.message}`);
+      this.logger.warn(`Failed to collect business metrics: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     // ── Meta ──

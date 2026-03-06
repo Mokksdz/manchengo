@@ -24,7 +24,7 @@ interface CompleteProductionDto {
   quantityProduced: number;
   batchWeightReal?: number;
   qualityNotes?: string;
-  qualityStatus?: string;
+  qualityStatus: string;
 }
 
 @Injectable()
@@ -43,7 +43,8 @@ export class ProductionService {
   /**
    * Générer une référence unique pour l'ordre de production
    */
-  private async generateReference(maxRetries = 3): Promise<string> {
+  // @ts-expect-error TS6133 — kept for future use
+  private async _generateReference(maxRetries = 3): Promise<string> {
     const today = new Date();
     const dateStr = today.toISOString().slice(2, 10).replace(/-/g, '');
 
@@ -89,7 +90,8 @@ export class ProductionService {
    * Générer un numéro de lot pour le PF produit
    * Inclut un mécanisme de retry pour garantir l'unicité en cas de concurrence
    */
-  private async generateLotNumber(productCode: string): Promise<string> {
+  // @ts-expect-error TS6133 — kept for future use
+  private async _generateLotNumber(productCode: string): Promise<string> {
     const today = new Date();
     const dateStr = today.toISOString().slice(2, 10).replace(/-/g, '');
     const prefix = `${productCode}-${dateStr}`;
@@ -130,6 +132,30 @@ export class ProductionService {
     const fallbackLot = `${prefix}-${ts}`;
     this.logger.warn(`Using fallback lot number: ${fallbackLot}`, 'ProductionService');
     return fallbackLot;
+  }
+
+  /**
+   * Générer un numéro de lot INSIDE an existing transaction (prevents race conditions)
+   */
+  private async generateLotNumberInTx(tx: any, productCode: string): Promise<string> {
+    const today = new Date();
+    const dateStr = today.toISOString().slice(2, 10).replace(/-/g, '');
+    const prefix = `${productCode}-${dateStr}`;
+
+    const lastLot = await tx.lotPf.findFirst({
+      where: { lotNumber: { startsWith: prefix } },
+      orderBy: { lotNumber: 'desc' },
+    });
+
+    let sequence = 1;
+    if (lastLot) {
+      const parts = lastLot.lotNumber.split('-');
+      const lastPart = parts[parts.length - 1];
+      const lastSeq = lastPart ? parseInt(lastPart, 10) : 0;
+      sequence = isNaN(lastSeq) ? 1 : lastSeq + 1;
+    }
+
+    return `${prefix}-${sequence.toString().padStart(3, '0')}`;
   }
 
   /**
@@ -227,6 +253,18 @@ export class ProductionService {
    * Créer un nouvel ordre de production
    */
   async create(dto: CreateProductionOrderDto, userId: string) {
+    // Validate batchCount: must be a positive integer
+    if (!dto.batchCount || dto.batchCount <= 0) {
+      throw new BadRequestException(
+        `batchCount invalide (${dto.batchCount}): doit être un entier strictement positif`,
+      );
+    }
+    if (!Number.isInteger(dto.batchCount)) {
+      throw new BadRequestException(
+        `batchCount invalide (${dto.batchCount}): doit être un nombre entier`,
+      );
+    }
+
     // Vérifier que le produit PF existe
     const productPf = await this.prisma.productPf.findUnique({
       where: { id: dto.productPfId },
@@ -280,33 +318,89 @@ export class ProductionService {
       );
     }
 
-    // Générer la référence
-    const reference = await this.generateReference();
+    // Réservation de stock — avertissement si stock critique (< 120% du besoin)
+    const plannedConsumptions = stockCheck.availability
+      .filter((a: any) => a.isAvailable && a.isMandatory)
+      .map((a: any) => ({
+        productMpId: a.productMpId,
+        quantityNeeded: a.requiredQuantity,
+        available: a.availableQuantity,
+      }));
+
+    for (const planned of plannedConsumptions) {
+      if (planned.available < planned.quantityNeeded * 1.2) {
+        this.logger.warn(
+          `Stock critique pour MP #${planned.productMpId}: disponible ${planned.available}, nécessaire ${planned.quantityNeeded}. Risque de rupture si autre production lancée.`,
+          'ProductionService',
+        );
+      }
+    }
 
     // Calculer la quantité cible
     const targetQuantity = recipe.outputQuantity * dto.batchCount;
 
-    // Créer l'ordre de production
-    const order = await this.prisma.productionOrder.create({
-      data: {
-        reference,
-        productPfId: dto.productPfId,
-        recipeId: recipe.id,
-        batchCount: dto.batchCount,
-        targetQuantity,
-        scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : null,
-        status: 'PENDING',
-        userId,
-      },
-      include: {
-        productPf: {
-          select: { id: true, code: true, name: true, unit: true },
-        },
-        recipe: {
-          select: { id: true, name: true, batchWeight: true, outputQuantity: true },
-        },
-      },
-    });
+    // Créer l'ordre dans une transaction Serializable pour garantir l'unicité de la référence
+    const MAX_RETRIES = 3;
+    let order: any;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        order = await this.prisma.$transaction(async (tx) => {
+          // Générer la référence INSIDE the transaction
+          const today = new Date();
+          const dateStr = today.toISOString().slice(2, 10).replace(/-/g, '');
+          const prefix = `OP-${dateStr}`;
+
+          const lastOrder = await tx.productionOrder.findFirst({
+            where: { reference: { startsWith: prefix } },
+            orderBy: { reference: 'desc' },
+          });
+
+          let sequence = 1;
+          if (lastOrder) {
+            const part = lastOrder.reference.split('-')[2];
+            const lastSeq = part ? parseInt(part, 10) : 0;
+            sequence = isNaN(lastSeq) ? 1 : lastSeq + 1;
+          }
+
+          const reference = `${prefix}-${sequence.toString().padStart(3, '0')}`;
+
+          return tx.productionOrder.create({
+            data: {
+              reference,
+              productPfId: dto.productPfId,
+              recipeId: recipe.id,
+              batchCount: dto.batchCount,
+              targetQuantity,
+              scheduledDate: dto.scheduledDate ? new Date(dto.scheduledDate) : null,
+              status: 'PENDING',
+              userId,
+            },
+            include: {
+              productPf: {
+                select: { id: true, code: true, name: true, unit: true },
+              },
+              recipe: {
+                select: { id: true, name: true, batchWeight: true, outputQuantity: true },
+              },
+            },
+          });
+        }, {
+          isolationLevel: 'Serializable',
+          timeout: 10000,
+        });
+
+        break; // Success
+      } catch (error: any) {
+        const isRetryable = error?.code === 'P2002' ||
+          error?.code === 'P2034' ||
+          error?.message?.includes('could not serialize');
+        if (isRetryable && attempt < MAX_RETRIES - 1) {
+          continue;
+        }
+        throw error;
+      }
+    }
 
     return order;
   }
@@ -529,6 +623,20 @@ export class ProductionService {
       throw new BadRequestException('La quantité produite doit être strictement positive');
     }
 
+    // Contrôle qualité obligatoire
+    if (!dto.qualityStatus) {
+      throw new BadRequestException(
+        'Le statut qualité (qualityStatus) est obligatoire: PASSED, FAILED, ou PENDING'
+      );
+    }
+
+    const validQualityStatuses = ['PASSED', 'FAILED', 'PENDING'];
+    if (!validQualityStatuses.includes(dto.qualityStatus)) {
+      throw new BadRequestException(
+        `Statut qualité invalide: ${dto.qualityStatus}. Valeurs acceptées: ${validQualityStatuses.join(', ')}`
+      );
+    }
+
     const order = await this.findById(id);
 
     if (order.status !== 'IN_PROGRESS') {
@@ -559,9 +667,6 @@ export class ProductionService {
       }
     }
 
-    // Générer le numéro de lot
-    const lotNumber = await this.generateLotNumber(order.productPf.code);
-
     // Calculer la DLC
     const manufactureDate = new Date();
     let expiryDate: Date | null = null;
@@ -570,17 +675,40 @@ export class ProductionService {
       expiryDate.setDate(expiryDate.getDate() + order.recipe.shelfLifeDays);
     }
 
-    // Calculer le coût de revient (somme des consommations)
-    const totalCost = order.consumptions.reduce((sum, c) => {
-      return sum + (Number(c.quantityConsumed) * (c.unitCost || 0));
-    }, 0);
-    const unitCost = dto.quantityProduced > 0 
-      ? Math.round(totalCost / dto.quantityProduced) 
+    // Calculer le coût de revient (somme des consommations MP + coûts FLUID)
+    let totalCost = order.consumptions
+      .filter((c: any) => !c.isReversed)
+      .reduce((sum: number, c: any) => {
+        return sum + (Number(c.quantityConsumed) * (c.unitCost || 0));
+      }, 0);
+
+    // Ajouter les coûts FLUID (non tracés via les consommations de lots)
+    if (order.recipe?.items) {
+      for (const item of order.recipe.items as any[]) {
+        if (item.type === 'FLUID' && item.unitCost) {
+          const fluidQty = Number(item.quantity) * order.batchCount;
+          totalCost += Math.round(fluidQty * Number(item.unitCost));
+        }
+      }
+    }
+
+    const unitCost = dto.quantityProduced > 0
+      ? Math.round(totalCost / dto.quantityProduced)
       : 0;
+
+    // Déterminer le statut du lot PF selon le contrôle qualité
+    const lotStatus = dto.qualityStatus === 'FAILED' ? 'BLOCKED' :
+                      dto.qualityStatus === 'PENDING' ? 'BLOCKED' : 'AVAILABLE';
+
+    const blockedReason = dto.qualityStatus === 'FAILED' ? 'QC_FAILED' :
+                          dto.qualityStatus === 'PENDING' ? 'QC_PENDING' : undefined;
 
     // Transaction atomique : lot PF + mouvement stock + mise à jour ordre
     const { updated, lot } = await this.prisma.$transaction(async (tx) => {
-      // Créer le lot PF avec status AVAILABLE
+      // Générer le numéro de lot INSIDE the transaction to prevent race conditions
+      const lotNumber = await this.generateLotNumberInTx(tx, order.productPf.code);
+
+      // Créer le lot PF avec statut basé sur le contrôle qualité
       const createdLot = await tx.lotPf.create({
         data: {
           productId: order.productPfId,
@@ -592,7 +720,9 @@ export class ProductionService {
           productionOrderId: order.id,
           unitCost,
           isActive: true,
-          status: 'AVAILABLE',
+          status: lotStatus,
+          blockedReason: blockedReason || undefined,
+          blockedAt: lotStatus === 'BLOCKED' ? new Date() : undefined,
         },
       });
 
@@ -622,7 +752,7 @@ export class ProductionService {
           batchWeightReal: dto.batchWeightReal,
           yieldPercentage,
           qualityNotes: dto.qualityNotes,
-          qualityStatus: dto.qualityStatus || 'OK',
+          qualityStatus: dto.qualityStatus,
           completedAt: new Date(),
           completedBy: userId,
         },

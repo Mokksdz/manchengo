@@ -2,7 +2,7 @@
 
 import { authFetch } from '@/lib/api';
 import { toast } from 'sonner';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Plus } from 'lucide-react';
 import { KeyboardHint } from '@/components/ui/keyboard-hint';
@@ -121,7 +121,7 @@ export default function ClientsPage() {
     }
   };
 
-  const filteredClients = clients.filter((client) => {
+  const filteredClients = useMemo(() => clients.filter((client) => {
     const matchesTab = activeTab === 'all' || client.type === activeTab;
     const matchesSearch = !searchQuery ||
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -129,7 +129,7 @@ export default function ClientsPage() {
       (client.phone || '').includes(searchQuery) ||
       (client.nif || '').includes(searchQuery);
     return matchesTab && matchesSearch;
-  });
+  }), [clients, activeTab, searchQuery]);
 
   return (
     <div className="space-y-6 animate-slide-up">
