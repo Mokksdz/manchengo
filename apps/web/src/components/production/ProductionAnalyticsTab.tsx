@@ -83,16 +83,16 @@ export function ProductionAnalyticsTab({ analytics, analyticsPeriod, onPeriodCha
     const lastAvg = lastPart.length > 0 ? lastPart.reduce((s, t) => s + t.quantity, 0) / lastPart.length : 0;
     const trendPercent = firstAvg > 0 ? ((lastAvg - firstAvg) / firstAvg) * 100 : 0;
 
-    // Calculer rendement moyen pondéré
-    const weightedYield = trend.reduce((sum, t) => sum + (t.avgYield * t.quantity), 0);
+    // Calculer rendement moyen pondéré (Number() pour Prisma Decimal sérialisé en string)
+    const weightedYield = trend.reduce((sum, t) => sum + (Number(t.avgYield) * t.quantity), 0);
     const totalQuantity = trend.reduce((sum, t) => sum + t.quantity, 0);
     const realAvgYield = totalQuantity > 0 ? weightedYield / totalQuantity : 0;
 
     // Distribution des rendements
     const yieldDistribution = [
-      { name: 'Excellent (>95%)', value: trend.filter(t => t.avgYield > 95).length, color: COLORS.success },
-      { name: 'Bon (85-95%)', value: trend.filter(t => t.avgYield >= 85 && t.avgYield <= 95).length, color: COLORS.warning },
-      { name: 'Faible (<85%)', value: trend.filter(t => t.avgYield < 85).length, color: COLORS.danger },
+      { name: 'Excellent (>95%)', value: trend.filter(t => Number(t.avgYield) > 95).length, color: COLORS.success },
+      { name: 'Bon (85-95%)', value: trend.filter(t => Number(t.avgYield) >= 85 && Number(t.avgYield) <= 95).length, color: COLORS.warning },
+      { name: 'Faible (<85%)', value: trend.filter(t => Number(t.avgYield) < 85).length, color: COLORS.danger },
     ].filter(d => d.value > 0);
 
     return {
@@ -113,7 +113,7 @@ export function ProductionAnalyticsTab({ analytics, analyticsPeriod, onPeriodCha
       date: analyticsPeriod === 'year' ? t.date.slice(5) : t.date.slice(5, 10),
       quantity: t.quantity,
       orders: t.orders,
-      yield: t.avgYield,
+      yield: Number(t.avgYield),
     }));
   }, [analytics, analyticsPeriod]);
 
@@ -198,14 +198,14 @@ export function ProductionAnalyticsTab({ analytics, analyticsPeriod, onPeriodCha
 
         <div className="glass-card p-5">
           <div className="flex items-center gap-2 mb-2">
-            <Target className={cn('w-5 h-5', analytics.summary.avgYield >= 95 ? 'text-[#34C759]' : analytics.summary.avgYield >= 85 ? 'text-[#FF9500]' : 'text-[#FF3B30]')} />
+            <Target className={cn('w-5 h-5', Number(analytics.summary.avgYield) >= 95 ? 'text-[#34C759]' : Number(analytics.summary.avgYield) >= 85 ? 'text-[#FF9500]' : 'text-[#FF3B30]')} />
             <p className="text-[#86868B] text-[13px]">Rendement moyen</p>
           </div>
-          <p className={cn('text-3xl font-bold', analytics.summary.avgYield >= 95 ? 'text-[#34C759]' : analytics.summary.avgYield >= 85 ? 'text-[#FF9500]' : 'text-[#FF3B30]')}>
-            {analytics.summary.avgYield.toFixed(1)}%
+          <p className={cn('text-3xl font-bold', Number(analytics.summary.avgYield) >= 95 ? 'text-[#34C759]' : Number(analytics.summary.avgYield) >= 85 ? 'text-[#FF9500]' : 'text-[#FF3B30]')}>
+            {Number(analytics.summary.avgYield).toFixed(1)}%
           </p>
           <p className="text-[#AEAEB2] text-[13px] mt-1">
-            {analytics.summary.avgYield >= 95 ? 'Excellent' : analytics.summary.avgYield >= 85 ? 'Acceptable' : 'À améliorer'}
+            {Number(analytics.summary.avgYield) >= 95 ? 'Excellent' : Number(analytics.summary.avgYield) >= 85 ? 'Acceptable' : 'À améliorer'}
           </p>
         </div>
       </div>

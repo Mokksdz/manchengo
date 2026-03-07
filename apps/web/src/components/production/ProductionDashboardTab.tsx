@@ -158,8 +158,8 @@ export function ProductionDashboardTab({
             <p className="text-3xl font-bold text-[#1D1D1F]">{kpis.week.completed}</p>
             <p className="text-[#86868B] text-sm">{kpis.week.totalProduced} unités</p>
             <div className="mt-3 flex items-center gap-1 text-sm">
-              <span className={cn('glass-status-pill', kpis.week.avgYield >= 95 ? 'glass-tint-emerald' : kpis.week.avgYield >= 85 ? 'glass-tint-orange' : 'glass-tint-red')}>
-                Rendement {kpis.week.avgYield}%
+              <span className={cn('glass-status-pill', Number(kpis.week.avgYield) >= 95 ? 'glass-tint-emerald' : Number(kpis.week.avgYield) >= 85 ? 'glass-tint-orange' : 'glass-tint-red')}>
+                Rendement {Number(kpis.week.avgYield)}%
               </span>
             </div>
           </div>

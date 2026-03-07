@@ -105,7 +105,7 @@ export function ProductHistoryTab({
             </div>
             <div>
               <span className="text-[#6E6E73]">Rendement moyen:</span>{' '}
-              <span className="font-semibold text-[#AF52DE]">{historyData.totals.avgYield.toFixed(1)}%</span>
+              <span className="font-semibold text-[#AF52DE]">{Number(historyData.totals.avgYield).toFixed(1)}%</span>
             </div>
           </div>
         </div>
@@ -139,8 +139,8 @@ export function ProductHistoryTab({
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">{order.quantityProduced} / {order.targetQuantity} {productUnit}</p>
-                      {order.yieldPercentage && (
-                        <p className="text-sm text-[#86868B]">Rendement: {order.yieldPercentage.toFixed(1)}%</p>
+                      {order.yieldPercentage != null && (
+                        <p className="text-sm text-[#86868B]">Rendement: {Number(order.yieldPercentage).toFixed(1)}%</p>
                       )}
                     </div>
                   </div>
