@@ -248,6 +248,48 @@ export const auth = {
   },
 };
 
+/**
+ * Fetch wrapper for binary responses (PDF, images, etc.) with automatic token refresh.
+ * Same 401 retry logic as apiFetch but returns the raw Response instead of JSON.
+ */
+export async function apiFetchRaw(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const method = (options.method || 'GET').toUpperCase();
+  const baseHeaders: HeadersInit = {
+    ...(method !== 'GET' && method !== 'HEAD' ? { 'Content-Type': 'application/json' } : {}),
+    ...options.headers,
+  };
+  const headers = withCsrfHeader(baseHeaders, options.method);
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+    credentials: 'include',
+  });
+
+  // Handle 401 - try to refresh token
+  if (response.status === 401) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      const retryHeaders = withCsrfHeader(baseHeaders, options.method);
+      const retryResponse = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers: retryHeaders,
+        credentials: 'include',
+      });
+      return retryResponse;
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:session-expired'));
+    }
+    throw new Error('Session expirée');
+  }
+
+  return response;
+}
+
 // Dashboard API
 export const dashboard = {
   getKpis: () => apiFetch<KPIs>('/dashboard/kpis'),

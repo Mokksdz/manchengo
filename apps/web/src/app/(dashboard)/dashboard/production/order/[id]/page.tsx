@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { apiFetch, authFetch } from '@/lib/api';
+import { apiFetch, apiFetchRaw } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/ui/page-header';
@@ -171,9 +171,7 @@ export default function ProductionOrderDetailPage() {
     if (!order) return;
     setIsDownloadingPdf(true);
     try {
-      const res = await authFetch(`/production/${order.id}/pdf`, {
-        credentials: 'include',
-      });
+      const res = await apiFetchRaw(`/production/${order.id}/pdf`);
       if (!res.ok) throw new Error('Erreur téléchargement PDF');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
