@@ -139,7 +139,7 @@ export function ProductHistoryTab({
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">{order.quantityProduced} / {order.targetQuantity} {productUnit}</p>
-                      {order.yieldPercentage != null && (
+                      {order.yieldPercentage !== null && (
                         <p className="text-sm text-[#86868B]">Rendement: {Number(order.yieldPercentage).toFixed(1)}%</p>
                       )}
                     </div>

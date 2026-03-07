@@ -402,7 +402,7 @@ export default function ProductionOrderDetailPage() {
                 <span className="text-[#AEAEB2] text-sm italic">En attente</span>
               )}
             </div>
-            {order.yieldPercentage != null && (
+            {order.yieldPercentage !== null && (
               <>
                 <div className="border-t border-black/[0.04]" />
                 <div className="flex justify-between items-center">
