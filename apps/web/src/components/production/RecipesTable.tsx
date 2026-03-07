@@ -71,11 +71,11 @@ export function RecipesTable({
       <div className="glass-card p-12 text-center animate-slide-up">
         <BookOpen className="w-16 h-16 text-[#E5E5E5] mx-auto mb-4" />
         <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-2">
-          Aucune recette configur\u00e9e
+          Aucune recette configurée
         </h3>
         <p className="text-[#86868B] mb-6 max-w-md mx-auto">
-          Les recettes d\u00e9finissent les ingr\u00e9dients (MP) n\u00e9cessaires pour produire chaque produit fini (PF).
-          Commencez par cr\u00e9er votre premi\u00e8re recette.
+          Les recettes définissent les ingrédients (MP) nécessaires pour produire chaque produit fini (PF).
+          Commencez par créer votre première recette.
         </p>
         {canEdit && (
           <button
@@ -83,7 +83,7 @@ export function RecipesTable({
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1D1D1F] text-white rounded-full hover:bg-[#333336] transition-all font-medium text-[13px]"
           >
             <Plus className="w-4 h-4" />
-            Cr\u00e9er une recette
+            Créer une recette
           </button>
         )}
       </div>

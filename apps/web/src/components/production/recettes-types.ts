@@ -93,10 +93,10 @@ export function getRecipeStatus(recipe: Recipe, stockMap: Map<number, number>): 
 
 export function getStatusBadge(status: RecipeStatus) {
   if (!status.isComplete) {
-    return { tint: 'glass-tint-red', icon: 'XCircle' as const, text: 'Incompl\u00e8te' };
+    return { tint: 'glass-tint-red', icon: 'XCircle' as const, text: 'Incomplète' };
   }
   if (!status.stockSufficient) {
     return { tint: 'glass-tint-orange', icon: 'AlertTriangle' as const, text: 'Stock insuffisant' };
   }
-  return { tint: 'glass-tint-emerald', icon: 'CheckCircle' as const, text: 'Pr\u00eate \u00e0 produire' };
+  return { tint: 'glass-tint-emerald', icon: 'CheckCircle' as const, text: 'Prête à produire' };
 }

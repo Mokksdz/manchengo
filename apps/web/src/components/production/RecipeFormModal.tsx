@@ -58,7 +58,7 @@ export function CreateRecipeModal({
               }}
               className="w-full rounded-[14px] border-black/[0.08] bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-[#AF52DE]/15 px-3 py-2"
             >
-              <option value={0}>-- S\u00e9lectionner un PF --</option>
+              <option value={0}>-- Sélectionner un PF --</option>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {productsPf.map((pf: any) => (
                 <option key={pf.id || pf.productId} value={pf.id || pf.productId}>
@@ -91,7 +91,7 @@ export function CreateRecipeModal({
               <p className="text-xs text-[#86868B] mt-1">{(formData.batchWeight / 1000).toFixed(1)} kg</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#1D1D1F] mb-1">Sortie (unit\u00e9s)</label>
+              <label className="block text-sm font-medium text-[#1D1D1F] mb-1">Sortie (unités)</label>
               <input
                 type="number"
                 value={formData.outputQuantity}
@@ -114,7 +114,7 @@ export function CreateRecipeModal({
                 : 'bg-[#1D1D1F] text-white hover:bg-[#333336]'
             }`}>
             <Save className="w-4 h-4" />
-            Cr\u00e9er la recette
+            Créer la recette
           </button>
         </div>
       </div>
@@ -149,14 +149,14 @@ export function AddIngredientModal({
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="glass-card rounded-[20px] w-full max-w-lg">
         <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
-          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Ajouter un ingr\u00e9dient</h2>
+          <h2 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight">Ajouter un ingrédient</h2>
           <button onClick={onClose} className="p-1 hover:bg-black/5 rounded-lg transition-colors">
             <X className="w-5 h-5 text-[#86868B]" />
           </button>
         </div>
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#1D1D1F] mb-1">Mati\u00e8re premi\u00e8re (MP) *</label>
+            <label className="block text-sm font-medium text-[#1D1D1F] mb-1">Matière première (MP) *</label>
             <select
               value={formData.productMpId}
               onChange={(e) => {
@@ -170,7 +170,7 @@ export function AddIngredientModal({
               }}
               className="w-full rounded-[14px] border-black/[0.08] bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-[#AF52DE]/15 px-3 py-2"
             >
-              <option value={0}>-- S\u00e9lectionner une MP --</option>
+              <option value={0}>-- Sélectionner une MP --</option>
               {stockMp.map((mp) => (
                 <option key={mp.productId} value={mp.productId}>
                   {mp.code} - {mp.name} ({mp.unit}) - Stock: {mp.currentStock}
@@ -180,7 +180,7 @@ export function AddIngredientModal({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#1D1D1F] mb-1">Quantit\u00e9 *</label>
+              <label className="block text-sm font-medium text-[#1D1D1F] mb-1">Quantité *</label>
               <input
                 type="number"
                 step="0.1"
@@ -191,7 +191,7 @@ export function AddIngredientModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#1D1D1F] mb-1">Unit\u00e9</label>
+              <label className="block text-sm font-medium text-[#1D1D1F] mb-1">Unité</label>
               <select
                 value={formData.unit}
                 onChange={(e) => onFormChange({ ...formData, unit: e.target.value })}
@@ -201,7 +201,7 @@ export function AddIngredientModal({
                 <option value="g">g</option>
                 <option value="L">L</option>
                 <option value="ml">ml</option>
-                <option value="unit\u00e9">unit\u00e9</option>
+                <option value="unité">unité</option>
               </select>
             </div>
           </div>
@@ -212,7 +212,7 @@ export function AddIngredientModal({
           </button>
           <button onClick={onSubmit} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1D1D1F] text-white rounded-full hover:bg-[#333336] transition-all font-medium text-[13px]">
             <Plus className="w-4 h-4" />
-            Ajouter l&apos;ingr\u00e9dient
+            Ajouter l&apos;ingrédient
           </button>
         </div>
       </div>

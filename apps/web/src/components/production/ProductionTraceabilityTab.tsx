@@ -49,14 +49,14 @@ export function ProductionTraceabilityTab({ lotSearchQuery, onSearchChange, lotS
     <div className="p-6">
       <div className="max-w-3xl mx-auto">
         <h2 className="text-xl font-bold text-[#1D1D1F] flex items-center gap-2 mb-6">
-          <Search className="w-6 h-6 text-[#AF52DE]" />Tra\u00e7abilit\u00e9 des Lots
+          <Search className="w-6 h-6 text-[#AF52DE]" />Traçabilité des Lots
         </h2>
 
         <div className="relative mb-6">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#AEAEB2]" />
           <input
             type="text"
-            placeholder="Rechercher un num\u00e9ro de lot (MP ou PF)..."
+            placeholder="Rechercher un numéro de lot (MP ou PF)..."
             value={lotSearchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-12 pr-4 py-4 border border-black/[0.06] rounded-[14px] bg-white/60 backdrop-blur-sm text-lg focus:ring-2 focus:ring-[#AF52DE]/15 focus:border-[#AF52DE] placeholder:text-[#C7C7CC] transition-all outline-none"
@@ -87,13 +87,13 @@ export function ProductionTraceabilityTab({ lotSearchQuery, onSearchChange, lotS
 
                 {result.traceability && (
                   <div className="px-5 py-4 border-t border-black/[0.04]">
-                    <h4 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-3 flex items-center gap-2"><ArrowRight className="w-4 h-4 text-[#AF52DE]" />Tra\u00e7abilit\u00e9</h4>
+                    <h4 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight mb-3 flex items-center gap-2"><ArrowRight className="w-4 h-4 text-[#AF52DE]" />Traçabilité</h4>
                     {result.type === 'PF' && result.traceability.productionOrder && (
                       <div className="bg-black/[0.03] rounded-[14px] p-4 backdrop-blur-sm">
                         <p className="font-medium">Ordre de production: <Link href={`/dashboard/production/order/${result.traceability.productionOrder.id}`} className="text-[#AF52DE] hover:underline">{result.traceability.productionOrder.reference}</Link></p>
                         {result.traceability.mpConsumed && result.traceability.mpConsumed.length > 0 && (
                           <div className="mt-3">
-                            <p className="text-sm text-[#86868B] mb-2">MP consomm\u00e9es:</p>
+                            <p className="text-sm text-[#86868B] mb-2">MP consommées:</p>
                             <div className="flex flex-wrap gap-2">
                               {result.traceability.mpConsumed.map((mp, i) => (
                                 <span key={i} className="glass-status-pill px-2.5 py-1 bg-[#007AFF]/10 text-[#007AFF] rounded-full text-sm backdrop-blur-sm">
@@ -114,7 +114,7 @@ export function ProductionTraceabilityTab({ lotSearchQuery, onSearchChange, lotS
                               <p className="text-sm text-[#86868B]">{usage.productPf?.name}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium">{usage.quantityConsumed} consomm\u00e9s</p>
+                              <p className="font-medium">{usage.quantityConsumed} consommés</p>
                               {usage.lotsPfProduced && usage.lotsPfProduced.length > 0 && (
                                 <p className="text-sm text-[#86868B]">\u2192 {usage.lotsPfProduced.join(', ')}</p>
                               )}
@@ -133,7 +133,7 @@ export function ProductionTraceabilityTab({ lotSearchQuery, onSearchChange, lotS
         {lotSearchQuery && lotSearchResults.length === 0 && !isSearchingLots && (
           <div className="text-center py-12">
             <Package className="w-16 h-16 text-[#D1D1D6] mx-auto mb-4" />
-            <p className="text-[#86868B]">Aucun lot trouv\u00e9 pour "{lotSearchQuery}"</p>
+            <p className="text-[#86868B]">Aucun lot trouvé pour "{lotSearchQuery}"</p>
           </div>
         )}
       </div>

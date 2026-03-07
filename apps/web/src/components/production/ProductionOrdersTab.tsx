@@ -19,8 +19,8 @@ interface ProductionOrder {
 const statusConfig = {
   PENDING: { label: 'En attente', color: 'text-amber-600', dot: 'bg-amber-500', icon: Clock, bar: 'bg-amber-500' },
   IN_PROGRESS: { label: 'En cours', color: 'text-blue-600', dot: 'bg-blue-500', icon: Play, bar: 'bg-blue-500' },
-  COMPLETED: { label: 'Termin\u00e9', color: 'text-emerald-600', dot: 'bg-emerald-500', icon: CheckCircle, bar: 'bg-emerald-500' },
-  CANCELLED: { label: 'Annul\u00e9', color: 'text-red-600', dot: 'bg-red-500', icon: XCircle, bar: 'bg-red-500' },
+  COMPLETED: { label: 'Terminé', color: 'text-emerald-600', dot: 'bg-emerald-500', icon: CheckCircle, bar: 'bg-emerald-500' },
+  CANCELLED: { label: 'Annulé', color: 'text-red-600', dot: 'bg-red-500', icon: XCircle, bar: 'bg-red-500' },
 };
 
 const formatDate = (date: string) => new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -58,7 +58,7 @@ export function ProductionOrdersTab({ orders, filter, onFilterChange, onNewProdu
             { key: 'all', label: 'Tous', count: stats.total },
             { key: 'pending', label: 'En attente', count: stats.pending },
             { key: 'in_progress', label: 'En cours', count: stats.inProgress },
-            { key: 'completed', label: 'Termin\u00e9s', count: stats.completed }
+            { key: 'completed', label: 'Terminés', count: stats.completed }
           ].map((f) => (
             <button
               key={f.key}
@@ -132,7 +132,7 @@ export function ProductionOrdersTab({ orders, filter, onFilterChange, onNewProdu
             </div>
             <div>
               <p className="text-2xl font-bold text-[#1D1D1F]">{stats.completed}</p>
-              <p className="text-sm text-[#86868B]">Termin\u00e9s</p>
+              <p className="text-sm text-[#86868B]">Terminés</p>
             </div>
           </div>
         </div>

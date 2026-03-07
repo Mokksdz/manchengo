@@ -88,11 +88,11 @@ function RecipeHeader({ recipe, status }: { recipe: Recipe; status: RecipeStatus
           <p className="text-2xl font-bold text-[#1D1D1F]">{yieldPct} %</p>
         </div>
         <div className="text-center">
-          <div className="flex items-center justify-center gap-1 text-[#86868B] text-sm mb-1"><Beaker className="w-4 h-4" />Sortie estim\u00e9e</div>
+          <div className="flex items-center justify-center gap-1 text-[#86868B] text-sm mb-1"><Beaker className="w-4 h-4" />Sortie estimée</div>
           <p className="text-2xl font-bold text-[#1D1D1F]">&asymp; {outputKg.toFixed(1)} kg</p>
         </div>
         <div className="text-center">
-          <div className="flex items-center justify-center gap-1 text-[#86868B] text-sm mb-1"><Box className="w-4 h-4" />Unit\u00e9s</div>
+          <div className="flex items-center justify-center gap-1 text-[#86868B] text-sm mb-1"><Box className="w-4 h-4" />Unités</div>
           <p className="text-2xl font-bold text-[#1D1D1F]">&asymp; {outputUnits}</p>
         </div>
       </div>
@@ -102,11 +102,11 @@ function RecipeHeader({ recipe, status }: { recipe: Recipe; status: RecipeStatus
 
 function RecipeStatusCard({ status }: { status: RecipeStatus }) {
   const checks = [
-    { label: 'Produit PF li\u00e9', ok: status.hasPf },
-    { label: 'Ingr\u00e9dients configur\u00e9s', ok: status.hasIngredients },
-    { label: 'Batch d\u00e9fini', ok: status.hasBatch },
-    { label: 'Rendement d\u00e9fini', ok: status.hasYield },
-    { label: 'Unit\u00e9 de sortie d\u00e9finie', ok: status.hasOutput },
+    { label: 'Produit PF lié', ok: status.hasPf },
+    { label: 'Ingrédients configurés', ok: status.hasIngredients },
+    { label: 'Batch défini', ok: status.hasBatch },
+    { label: 'Rendement défini', ok: status.hasYield },
+    { label: 'Unité de sortie définie', ok: status.hasOutput },
   ];
   const completedCount = checks.filter(c => c.ok).length;
 
@@ -115,7 +115,7 @@ function RecipeStatusCard({ status }: { status: RecipeStatus }) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
           {status.isComplete ? <CheckCircle className="w-5 h-5 text-emerald-600" /> : <AlertCircle className="w-5 h-5 text-red-600" />}
-          \u00c9tat de la recette
+          État de la recette
         </h3>
         <span className="text-sm text-[#86868B]">{completedCount}/{checks.length}</span>
       </div>
@@ -129,7 +129,7 @@ function RecipeStatusCard({ status }: { status: RecipeStatus }) {
       </div>
       {!status.isComplete && (
         <div className="mt-4 pt-4 border-t border-red-200/40">
-          <p className="text-sm text-red-700 flex items-center gap-2"><Lock className="w-4 h-4" />Cette recette ne peut pas \u00eatre utilis\u00e9e en production</p>
+          <p className="text-sm text-red-700 flex items-center gap-2"><Lock className="w-4 h-4" />Cette recette ne peut pas être utilisée en production</p>
         </div>
       )}
     </div>
@@ -148,20 +148,20 @@ function RecipeIngredientsTable({
   return (
     <div className="glass-card overflow-hidden">
       <div className="px-5 py-4 border-b border-black/[0.04] flex items-center justify-between">
-        <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2"><Package className="w-5 h-5 text-[#AEAEB2]" />Ingr\u00e9dients (Mati\u00e8res Premi\u00e8res)</h3>
+        <h3 className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2"><Package className="w-5 h-5 text-[#AEAEB2]" />Ingrédients (Matières Premières)</h3>
         {canEdit && (
           <button onClick={onAddIngredient} className="text-sm text-[#AF52DE] hover:text-[#9B30D1] flex items-center gap-1 transition-colors">
-            <Plus className="w-4 h-4" />Ajouter un ingr\u00e9dient
+            <Plus className="w-4 h-4" />Ajouter un ingrédient
           </button>
         )}
       </div>
       {ingredients.length === 0 ? (
         <div className="p-8 text-center">
           <Package className="w-10 h-10 text-[#D1D1D6] mx-auto mb-3" />
-          <p className="text-[#86868B] mb-3">Aucun ingr\u00e9dient configur\u00e9</p>
+          <p className="text-[#86868B] mb-3">Aucun ingrédient configuré</p>
           {canEdit && (
             <button onClick={onAddIngredient} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1D1D1F] text-white rounded-full hover:bg-[#333336] transition-all font-medium text-[13px]">
-              <Plus className="w-4 h-4" />Ajouter le premier ingr\u00e9dient
+              <Plus className="w-4 h-4" />Ajouter le premier ingrédient
             </button>
           )}
         </div>
@@ -169,9 +169,9 @@ function RecipeIngredientsTable({
         <table className="w-full">
           <thead>
             <tr className="border-b border-black/[0.04]">
-              <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Mati\u00e8re premi\u00e8re</th>
-              <th className="px-5 py-3 text-right text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Qt\u00e9 / batch</th>
-              <th className="px-5 py-3 text-center text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Unit\u00e9</th>
+              <th className="px-5 py-3 text-left text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Matière première</th>
+              <th className="px-5 py-3 text-right text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Qté / batch</th>
+              <th className="px-5 py-3 text-center text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Unité</th>
               <th className="px-5 py-3 text-right text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">% composition</th>
               <th className="px-5 py-3 text-center text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Stock</th>
               {canEdit && <th className="px-5 py-3 text-right text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Actions</th>}
@@ -190,7 +190,7 @@ function RecipeIngredientsTable({
                   <td className="px-5 py-4 text-right text-[#86868B]">{pct} %</td>
                   <td className="px-5 py-4 text-center">
                     <span className={cn("glass-status-pill", stockStatus === 'ok' && "glass-tint-emerald", stockStatus === 'low' && "glass-tint-orange", stockStatus === 'out' && "glass-tint-red")}>
-                      {stockStatus === 'ok' && '\u2713 OK'}{stockStatus === 'low' && '\u26a0\ufe0f Bas'}{stockStatus === 'out' && '\u274c Rupture'}
+                      {stockStatus === 'ok' && '✓ OK'}{stockStatus === 'low' && '⚠️ Bas'}{stockStatus === 'out' && '❌ Rupture'}
                     </span>
                   </td>
                   {canEdit && (
@@ -243,8 +243,8 @@ function RecipeCTA({ status, recipeId }: { status: RecipeStatus; recipeId: numbe
     return (
       <div className="glass-decision-card glass-tint-red p-6 text-center animate-slide-up">
         <Lock className="w-10 h-10 text-red-400 mx-auto mb-3" />
-        <h3 className="text-lg font-semibold text-red-900 mb-1">Production bloqu\u00e9e</h3>
-        <p className="text-red-700">Compl\u00e9tez la recette pour lancer la production</p>
+        <h3 className="text-lg font-semibold text-red-900 mb-1">Production bloquée</h3>
+        <p className="text-red-700">Complétez la recette pour lancer la production</p>
       </div>
     );
   }
@@ -253,16 +253,16 @@ function RecipeCTA({ status, recipeId }: { status: RecipeStatus; recipeId: numbe
       <div className="glass-decision-card glass-tint-orange p-6 text-center animate-slide-up">
         <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
         <h3 className="text-lg font-semibold text-amber-900 mb-1">Stock insuffisant</h3>
-        <p className="text-amber-700 mb-4">R\u00e9approvisionnez les mati\u00e8res premi\u00e8res pour lancer la production</p>
-        <Link href="/dashboard/appro/bons/new" className="glass-btn px-4 py-2 rounded-full text-[13px] text-[#6E6E73]">Cr\u00e9er un bon de commande</Link>
+        <p className="text-amber-700 mb-4">Réapprovisionnez les matières premières pour lancer la production</p>
+        <Link href="/dashboard/appro/bons/new" className="glass-btn px-4 py-2 rounded-full text-[13px] text-[#6E6E73]">Créer un bon de commande</Link>
       </div>
     );
   }
   return (
     <div className="glass-decision-card glass-tint-emerald p-6 text-center animate-slide-up">
       <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
-      <h3 className="text-lg font-semibold text-emerald-900 mb-1">Recette pr\u00eate</h3>
-      <p className="text-emerald-700 mb-4">Tous les param\u00e8tres sont configur\u00e9s, le stock est suffisant</p>
+      <h3 className="text-lg font-semibold text-emerald-900 mb-1">Recette prête</h3>
+      <p className="text-emerald-700 mb-4">Tous les paramètres sont configurés, le stock est suffisant</p>
       <Link href={`/dashboard/production?newOrder=true&recipeId=${recipeId}`} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1D1D1F] text-white rounded-full hover:bg-[#333336] transition-all font-medium text-[13px]">
         <Play className="w-4 h-4" />Lancer un ordre de production
       </Link>
@@ -355,7 +355,7 @@ export default function RecettesPage() {
   // Creer une nouvelle recette
   const handleCreateRecipe = async () => {
     if (!newRecipe.productPfId || !newRecipe.name) {
-      toast.error('Veuillez s\u00e9lectionner un produit PF et donner un nom \u00e0 la recette');
+      toast.error('Veuillez sélectionner un produit PF et donner un nom à la recette');
       return;
     }
     try {
@@ -369,21 +369,21 @@ export default function RecettesPage() {
         setShowCreateModal(false);
         setNewRecipe({ productPfId: 0, name: '', batchWeight: 10000, outputQuantity: 10 });
         await loadData();
-        toast.success('Recette cr\u00e9\u00e9e avec succ\u00e8s');
+        toast.success('Recette créée avec succès');
       } else {
         const error = await res.json();
         toast.error(`Erreur: ${error.message}`);
       }
     } catch (error) {
       log.error('Failed to create recipe', { error: error instanceof Error ? error.message : String(error) });
-      toast.error('Erreur lors de la cr\u00e9ation');
+      toast.error('Erreur lors de la création');
     }
   };
 
   // Ajouter un ingredient
   const handleAddIngredient = async () => {
     if (!selectedRecipe || !newIngredient.productMpId || newIngredient.quantity <= 0) {
-      toast.error('Veuillez s\u00e9lectionner une MP et une quantit\u00e9 valide');
+      toast.error('Veuillez sélectionner une MP et une quantité valide');
       return;
     }
     try {
@@ -407,7 +407,7 @@ export default function RecettesPage() {
           const data = await updatedRecipe.json();
           setSelectedRecipe({ ...data, ingredients: data.items || data.ingredients || [] });
         }
-        toast.success('Ingr\u00e9dient ajout\u00e9');
+        toast.success('Ingrédient ajouté');
       } else {
         const error = await res.json();
         toast.error(`Erreur: ${error.message}`);
@@ -420,7 +420,7 @@ export default function RecettesPage() {
 
   // Supprimer un ingredient
   const handleDeleteIngredient = async (itemId: number) => {
-    if (!selectedRecipe || !confirm('Supprimer cet ingr\u00e9dient ?')) return;
+    if (!selectedRecipe || !confirm('Supprimer cet ingrédient ?')) return;
     try {
       const res = await authFetch(`/recipes/${selectedRecipe.id}/items/${itemId}`, {
         method: 'DELETE',
@@ -552,13 +552,13 @@ export default function RecettesPage() {
           <p className="text-2xl font-bold text-[#1D1D1F]">{recipes.length}</p>
         </div>
         <div className="glass-card-hover p-4 animate-slide-up">
-          <p className="text-sm text-[#86868B]">Pr\u00eates</p>
+          <p className="text-sm text-[#86868B]">Prêtes</p>
           <p className="text-2xl font-bold text-[#AF52DE]">
             {recipes.filter(r => getRecipeStatus(r, stockMap).isComplete && getRecipeStatus(r, stockMap).stockSufficient).length}
           </p>
         </div>
         <div className="glass-card-hover p-4 animate-slide-up">
-          <p className="text-sm text-[#86868B]">\u00c0 configurer</p>
+          <p className="text-sm text-[#86868B]">À configurer</p>
           <p className="text-2xl font-bold text-red-600">
             {recipes.filter(r => !getRecipeStatus(r, stockMap).isComplete).length}
           </p>
