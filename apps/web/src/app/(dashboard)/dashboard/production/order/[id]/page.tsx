@@ -404,16 +404,16 @@ export default function ProductionOrderDetailPage() {
                 <span className="text-[#AEAEB2] text-sm italic">En attente</span>
               )}
             </div>
-            {order.yieldPercentage && (
+            {order.yieldPercentage != null && (
               <>
                 <div className="border-t border-black/[0.04]" />
                 <div className="flex justify-between items-center">
                   <span className="text-[#86868B]">Rendement</span>
                   <span className={cn(
                     'glass-pill font-semibold text-xs',
-                    order.yieldPercentage >= 95 ? 'text-emerald-600' : order.yieldPercentage >= 85 ? 'text-yellow-600' : 'text-red-600'
+                    Number(order.yieldPercentage) >= 95 ? 'text-emerald-600' : Number(order.yieldPercentage) >= 85 ? 'text-yellow-600' : 'text-red-600'
                   )}>
-                    {order.yieldPercentage.toFixed(1)}%
+                    {Number(order.yieldPercentage).toFixed(1)}%
                   </span>
                 </div>
               </>
