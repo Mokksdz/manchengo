@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { authFetch } from '@/lib/api';
+import { apiFetch, authFetch } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/ui/page-header';
@@ -124,7 +124,7 @@ export default function ProductionOrderDetailPage() {
   const [completeForm, setCompleteForm] = useState({
     quantityProduced: 0,
     batchWeightReal: 0,
-    qualityStatus: 'OK',
+    qualityStatus: 'PASSED',
     qualityNotes: '',
   });
   const [cancelReason, setCancelReason] = useState('');
@@ -140,11 +140,7 @@ export default function ProductionOrderDetailPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await authFetch(`/production/${orderId}`, {
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Ordre de production introuvable');
-      const data = await res.json();
+      const data = await apiFetch<ProductionOrder>(`/production/${orderId}`);
       setOrder(data);
 
       // Pre-fill complete form
@@ -152,7 +148,7 @@ export default function ProductionOrderDetailPage() {
         setCompleteForm({
           quantityProduced: data.targetQuantity,
           batchWeightReal: data.recipe.batchWeight * data.batchCount,
-          qualityStatus: 'OK',
+          qualityStatus: 'PASSED',
           qualityNotes: '',
         });
       }
@@ -199,14 +195,7 @@ export default function ProductionOrderDetailPage() {
     if (!order || !confirm('Démarrer cette production ? Les matières premières seront consommées.')) return;
     setIsStarting(true);
     try {
-      const res = await authFetch(`/production/${order.id}/start`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur');
-      }
+      await apiFetch(`/production/${order.id}/start`, { method: 'POST' });
       await loadOrder();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
@@ -219,18 +208,11 @@ export default function ProductionOrderDetailPage() {
     if (!order) return;
     setIsCompleting(true);
     try {
-      const res = await authFetch(`/production/${order.id}/complete`, {
+      await apiFetch(`/production/${order.id}/complete`, {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(completeForm),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur');
-      }
       setShowCompleteModal(false);
       await loadOrder();
     } catch (err) {
@@ -244,18 +226,11 @@ export default function ProductionOrderDetailPage() {
     if (!order) return;
     setIsCancelling(true);
     try {
-      const res = await authFetch(`/production/${order.id}/cancel`, {
+      await apiFetch(`/production/${order.id}/cancel`, {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: cancelReason }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur');
-      }
       setShowCancelModal(false);
       await loadOrder();
     } catch (err) {
@@ -579,9 +554,13 @@ export default function ProductionOrderDetailPage() {
               <span className="text-[#86868B]">Statut: </span>
               <span className={cn(
                 'glass-status-pill text-xs font-medium',
-                order.qualityStatus === 'OK' ? 'glass-tint-emerald text-emerald-600' : 'glass-tint-orange text-yellow-600'
+                order.qualityStatus === 'PASSED' ? 'glass-tint-emerald text-emerald-600' :
+                order.qualityStatus === 'PENDING' ? 'glass-tint-orange text-yellow-600' :
+                'glass-tint-red text-red-600'
               )}>
-                {order.qualityStatus}
+                {order.qualityStatus === 'PASSED' ? 'Conforme' :
+                 order.qualityStatus === 'PENDING' ? 'En attente' :
+                 'Non conforme'}
               </span>
             </p>
           )}
@@ -630,9 +609,9 @@ export default function ProductionOrderDetailPage() {
                   onChange={(e) => setCompleteForm({ ...completeForm, qualityStatus: e.target.value })}
                   className="w-full px-4 py-2.5 bg-black/[0.03] border border-black/[0.06] rounded-xl text-[#1D1D1F] focus:outline-none focus:ring-2 focus:ring-[#AF52DE]/30 focus:border-[#AF52DE]/40 transition-all"
                 >
-                  <option value="OK">OK</option>
-                  <option value="DEFAUT_MINEUR">Défaut mineur</option>
-                  <option value="DEFAUT_MAJEUR">Défaut majeur</option>
+                  <option value="PASSED">Conforme (OK)</option>
+                  <option value="FAILED">Non conforme</option>
+                  <option value="PENDING">En attente de contrôle</option>
                 </select>
               </div>
               <div>
