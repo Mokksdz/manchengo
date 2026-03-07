@@ -1,6 +1,6 @@
 'use client';
 
-import { authFetch } from '@/lib/api';
+import { apiFetch, apiFetchRaw } from '@/lib/api';
 import { toast } from 'sonner';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -152,14 +152,9 @@ export default function InvoicesPage() {
       if (statusFilterInv !== 'ALL') params.set('status', statusFilterInv);
       if (searchQuery.trim()) params.set('search', searchQuery.trim());
 
-      const res = await authFetch(`/admin/invoices?${params}`, {
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const result = await res.json();
-        setInvoices(result.data || []);
-        setMeta(result.meta || { total: 0, page: 1, totalPages: 1 });
-      }
+      const result = await apiFetch<{ data: Invoice[]; meta: typeof meta }>(`/admin/invoices?${params}`);
+      setInvoices(result.data || []);
+      setMeta(result.meta || { total: 0, page: 1, totalPages: 1 });
     } catch (err) {
       log.error('Failed to load invoices', { error: err instanceof Error ? err.message : String(err) });
     } finally {
@@ -182,14 +177,9 @@ export default function InvoicesPage() {
   const viewInvoiceDetail = async (id: number) => {
     setLoadingDetail(true);
     try {
-      const res = await authFetch(`/admin/invoices/${id}`, {
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedInvoice(data);
-        setShowDetailModal(true);
-      }
+      const data = await apiFetch<Invoice>(`/admin/invoices/${id}`);
+      setSelectedInvoice(data);
+      setShowDetailModal(true);
     } catch (err) {
       log.error('Failed to load invoice', { error: err instanceof Error ? err.message : String(err) });
       toast.error('Erreur lors du chargement de la facture');
@@ -210,36 +200,28 @@ export default function InvoicesPage() {
 
   const doChangeStatus = async (id: number, newStatus: string) => {
     try {
-      const res = await authFetch(`/admin/invoices/${id}/status`, {
+      const updated = await apiFetch<Invoice>(`/admin/invoices/${id}/status`, {
         method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (res.ok) {
-        const updated = await res.json();
-        if (selectedInvoice?.id === id) {
-          setSelectedInvoice(updated);
-        }
-        loadInvoices();
-      } else {
-        const err = await res.json().catch(() => ({ message: 'Erreur lors du changement de statut' }));
-        const message = err.message || 'Erreur lors du changement de statut';
-        // Show fiscal validation errors in a dedicated modal
-        if (message.includes('coordonnées fiscales') || message.includes('Champs manquants')) {
-          setFiscalError(message);
-        } else {
-          toast.error(message);
-        }
+      if (selectedInvoice?.id === id) {
+        setSelectedInvoice(updated);
       }
+      loadInvoices();
     } catch (err) {
-      log.error('Failed to change status', { error: err instanceof Error ? err.message : String(err) });
+      const message = err instanceof Error ? err.message : 'Erreur lors du changement de statut';
+      // Show fiscal validation errors in a dedicated modal
+      if (message.includes('coordonnées fiscales') || message.includes('Champs manquants')) {
+        setFiscalError(message);
+      } else {
+        toast.error(message);
+      }
     }
   };
 
   const downloadPdf = async (id: number, reference?: string) => {
     try {
-      const res = await authFetch(`/exports/invoice/${id}/pdf`, { credentials: 'include' });
+      const res = await apiFetchRaw(`/exports/invoice/${id}/pdf`);
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.message || `Erreur ${res.status}`);
@@ -286,12 +268,12 @@ export default function InvoicesPage() {
     // Load clients and products for dropdowns
     setEditDataLoading(true);
     try {
-      const [clientsRes, productsRes] = await Promise.all([
-        authFetch('/admin/clients', { credentials: 'include' }),
-        authFetch('/admin/stock/pf', { credentials: 'include' }),
+      const [clientsData, productsData] = await Promise.all([
+        apiFetch<Client[]>('/admin/clients'),
+        apiFetch<ProductPf[]>('/admin/stock/pf'),
       ]);
-      if (clientsRes.ok) setEditClients(await clientsRes.json());
-      if (productsRes.ok) setEditProducts(await productsRes.json());
+      setEditClients(clientsData);
+      setEditProducts(productsData);
     } catch (err) {
       log.error('Failed to load edit data', { error: err instanceof Error ? err.message : String(err) });
     } finally {
@@ -367,10 +349,9 @@ export default function InvoicesPage() {
     setEditSaving(true);
     setEditError(null);
     try {
-      const res = await authFetch(`/admin/invoices/${editInvoiceId}/edit`, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await apiFetch<any>(`/admin/invoices/${editInvoiceId}/edit`, {
         method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId: editClientId,
           date: editDate,
@@ -382,10 +363,6 @@ export default function InvoicesPage() {
           })),
         }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ message: 'Erreur lors de la modification' }));
-        throw new Error(data.message || 'Erreur lors de la modification');
-      }
       toast.success('Facture modifiée avec succès');
       setShowEditModal(false);
       loadInvoices();
@@ -498,8 +475,7 @@ export default function InvoicesPage() {
                           <>
                             <button
                               onClick={async () => {
-                                const res = await authFetch(`/admin/invoices/${invoice.id}`, { credentials: 'include' });
-                                if (res.ok) { const data = await res.json(); openEditModal(data); }
+                                try { const data = await apiFetch<Invoice>(`/admin/invoices/${invoice.id}`); openEditModal(data); } catch { /* silent */ }
                               }}
                               className="p-2 rounded-xl text-[#86868B] hover:text-[#FF9500] hover:bg-[#FF9500]/10 transition-all"
                               title="Modifier la facture"

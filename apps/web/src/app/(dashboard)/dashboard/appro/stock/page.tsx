@@ -89,15 +89,15 @@ function JoursCouvertureBadge({ jours, leadTime }: { jours: number | null; leadT
     return <span className="text-[#AEAEB2]">—</span>;
   }
 
-  const isUrgent = jours < leadTime;
-  const isCritical = jours < 3;
+  const isUrgent = Number(jours) < leadTime;
+  const isCritical = Number(jours) < 3;
 
   return (
     <span className={cn(
       'font-bold text-lg',
       isCritical ? 'text-rose-600' : isUrgent ? 'text-amber-600' : 'text-[#1D1D1F]'
     )}>
-      {jours.toFixed(0)}j
+      {Number(jours).toFixed(0)}j
     </span>
   );
 }

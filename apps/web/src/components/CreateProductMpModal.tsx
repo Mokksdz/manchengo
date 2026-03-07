@@ -1,6 +1,6 @@
 'use client';
 
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 
 import { useState, useEffect } from 'react';
 import { X, Package, Loader2, AlertCircle, Droplets } from 'lucide-react';
@@ -81,13 +81,8 @@ export function CreateProductMpModal({ isOpen, onClose, onCreated }: CreateProdu
 
   const fetchNextCode = async () => {
     try {
-      const res = await authFetch('/products/mp/next-code', {
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setNextCode(data.code);
-      }
+      const data = await apiFetch<{ code: string }>('/products/mp/next-code');
+      setNextCode(data.code);
     } catch (err) {
       log.error('Failed to fetch next code:', err);
     }
@@ -105,12 +100,8 @@ export function CreateProductMpModal({ isOpen, onClose, onCreated }: CreateProdu
     setError(null);
 
     try {
-      const res = await authFetch('/products/mp', {
+      const newProduct = await apiFetch<ProductMp>('/products/mp', {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           name: form.name.trim(),
           unit: form.unit,
@@ -121,12 +112,6 @@ export function CreateProductMpModal({ isOpen, onClose, onCreated }: CreateProdu
         }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur lors de la création');
-      }
-
-      const newProduct = await res.json();
       onCreated(newProduct);
       onClose();
     } catch (err: unknown) {

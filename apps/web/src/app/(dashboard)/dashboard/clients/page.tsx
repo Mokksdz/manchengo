@@ -1,6 +1,6 @@
 'use client';
 
-import { authFetch } from '@/lib/api';
+import { apiFetch, ApiError } from '@/lib/api';
 import { toast } from 'sonner';
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -47,10 +47,8 @@ export default function ClientsPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const res = await authFetch('/admin/clients', { credentials: 'include' });
-      if (res.ok) {
-        setClients(await res.json());
-      }
+      const data = await apiFetch<Client[]>('/admin/clients');
+      setClients(data);
     } catch (error) {
       log.error('Failed to load clients:', error);
     } finally {
@@ -102,20 +100,13 @@ export default function ClientsPage() {
     if (!deleteTarget) return;
 
     try {
-      const res = await authFetch(`/admin/clients/${deleteTarget.id}`, {
+      await apiFetch(`/admin/clients/${deleteTarget.id}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        toast.error(data.message || 'Erreur lors de la suppression');
-        return;
-      }
-
       loadData();
-    } catch {
-      toast.error('Erreur lors de la suppression');
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Erreur lors de la suppression';
+      toast.error(message);
     } finally {
       setDeleteTarget(null);
     }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { toast } from 'sonner';
 import { Factory, Clock, Package, Search, Zap, Calendar, RefreshCw, Activity, BarChart3 } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -192,28 +192,23 @@ export default function ProductionPage() {
 
   const loadOrders = useCallback(async () => {
     try {
-      const res = await authFetch('/production?limit=100', {
-        credentials: 'include',
-      });
-      if (!res.ok) { log.error('Orders API error', { status: res.status }); toast.error('Erreur chargement des ordres de production'); return; }
-      {
-        const data = await res.json();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setOrders(data.map((o: any) => ({
-          id: o.id,
-          reference: o.reference,
-          productPfId: o.productPfId,
-          productName: o.productPf?.name || 'Produit',
-          productCode: o.productPf?.code || '-',
-          quantity: o.targetQuantity || 0,
-          quantityProduced: o.quantityProduced || 0,
-          batchCount: o.batchCount || 1,
-          status: o.status,
-          yieldPercentage: o.yieldPercentage,
-          createdAt: o.createdAt,
-          user: o.user ? `${o.user.firstName} ${o.user.lastName}` : '-',
-        })));
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await apiFetch<any[]>('/production?limit=100');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setOrders(data.map((o: any) => ({
+        id: o.id,
+        reference: o.reference,
+        productPfId: o.productPfId,
+        productName: o.productPf?.name || 'Produit',
+        productCode: o.productPf?.code || '-',
+        quantity: o.targetQuantity || 0,
+        quantityProduced: o.quantityProduced || 0,
+        batchCount: o.batchCount || 1,
+        status: o.status,
+        yieldPercentage: o.yieldPercentage,
+        createdAt: o.createdAt,
+        user: o.user ? `${o.user.firstName} ${o.user.lastName}` : '-',
+      })));
     } catch (error: unknown) {
       log.error('Failed to load orders', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les ordres de production');
@@ -222,30 +217,30 @@ export default function ProductionPage() {
 
   const loadProducts = useCallback(async () => {
     try {
-      const [productsRes, recipesRes] = await Promise.all([
-        authFetch('/products/pf', { credentials: 'include' }),
-        authFetch('/recipes', { credentials: 'include' }),
+      const [productsResult, recipesResult] = await Promise.allSettled([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        apiFetch<any[]>('/products/pf'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        apiFetch<any[]>('/recipes'),
       ]);
-      if (!productsRes.ok) { log.error('Products API error', { status: productsRes.status }); toast.error('Erreur chargement des produits'); return; }
-      {
-        const productsData = await productsRes.json();
-        const recipesData = recipesRes.ok ? await recipesRes.json() : [];
-        const recipeMap = new Map();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        recipesData.forEach((r: any) => recipeMap.set(r.productPfId, r));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setProducts(productsData.map((p: any) => {
-          const recipe = recipeMap.get(p.id);
-          return {
-            id: p.id, code: p.code, name: p.name, unit: p.unit,
-            hasRecipe: !!recipe, recipeId: recipe?.id || null,
-            recipeItemsCount: recipe?.items?.length || 0,
-            recipeBatchWeight: recipe?.batchWeight || 0,
-            recipeOutputQty: recipe?.outputQuantity || 0,
-            recipeShelfLife: recipe?.shelfLifeDays || 0,
-          };
-        }));
-      }
+      if (productsResult.status !== 'fulfilled') { log.error('Products API error', { error: productsResult.reason }); toast.error('Erreur chargement des produits'); return; }
+      const productsData = productsResult.value;
+      const recipesData = recipesResult.status === 'fulfilled' ? recipesResult.value : [];
+      const recipeMap = new Map();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recipesData.forEach((r: any) => recipeMap.set(r.productPfId, r));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setProducts(productsData.map((p: any) => {
+        const recipe = recipeMap.get(p.id);
+        return {
+          id: p.id, code: p.code, name: p.name, unit: p.unit,
+          hasRecipe: !!recipe, recipeId: recipe?.id || null,
+          recipeItemsCount: recipe?.items?.length || 0,
+          recipeBatchWeight: recipe?.batchWeight || 0,
+          recipeOutputQty: recipe?.outputQuantity || 0,
+          recipeShelfLife: recipe?.shelfLifeDays || 0,
+        };
+      }));
     } catch (error: unknown) {
       log.error('Failed to load products', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les produits finis');
@@ -254,21 +249,24 @@ export default function ProductionPage() {
 
   const loadDashboardData = useCallback(async () => {
     try {
-      const [kpisRes, alertsRes, stockPfRes, calendarRes] = await Promise.all([
-        authFetch('/production/dashboard/kpis', { credentials: 'include' }),
-        authFetch('/production/dashboard/alerts', { credentials: 'include' }),
-        authFetch('/production/dashboard/stock-pf', { credentials: 'include' }),
-        authFetch('/production/dashboard/calendar', { credentials: 'include' }),
+      const [kpisResult, alertsResult, stockPfResult, calendarResult] = await Promise.allSettled([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        apiFetch<any>('/production/dashboard/kpis'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        apiFetch<any>('/production/dashboard/alerts'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        apiFetch<any>('/production/dashboard/stock-pf'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        apiFetch<any>('/production/dashboard/calendar'),
       ]);
-      if (kpisRes.ok) setKpis(await kpisRes.json());
+      if (kpisResult.status === 'fulfilled') setKpis(kpisResult.value);
       else toast.error('Erreur chargement KPIs production');
-      if (alertsRes.ok) setAlertsData(await alertsRes.json());
+      if (alertsResult.status === 'fulfilled') setAlertsData(alertsResult.value);
       else toast.error('Erreur chargement alertes');
-      if (stockPfRes.ok) setStockPf(await stockPfRes.json());
+      if (stockPfResult.status === 'fulfilled') setStockPf(stockPfResult.value);
       else toast.error('Erreur chargement stock produits finis');
-      if (calendarRes.ok) {
-        const data = await calendarRes.json();
-        setCalendarData(data.days || []);
+      if (calendarResult.status === 'fulfilled') {
+        setCalendarData(calendarResult.value.days || []);
       } else toast.error('Erreur chargement calendrier');
     } catch (error: unknown) {
       log.error('Failed to load dashboard data', { error: (error as Error)?.message || String(error) });
@@ -280,10 +278,9 @@ export default function ProductionPage() {
   const loadSupplyRisks = useCallback(async () => {
     setIsLoadingSupplyRisks(true);
     try {
-      const res = await authFetch('/production/dashboard/supply-risks', { credentials: 'include' });
-      if (res.ok) {
-        setSupplyRisks(await res.json());
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await apiFetch<any>('/production/dashboard/supply-risks');
+      setSupplyRisks(data);
     } catch (error: unknown) {
       log.error('Failed to load supply risks', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les risques supply chain');
@@ -296,11 +293,10 @@ export default function ProductionPage() {
   const loadProductionsAtRisk = useCallback(async () => {
     setIsLoadingAtRisk(true);
     try {
-      const res = await authFetch('/production/dashboard/at-risk', { credentials: 'include' });
-      if (res.ok) {
-        setProductionsAtRisk(await res.json());
-        setLastSupplyAnalysis(new Date()); // ERP Premium: Horodatage
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await apiFetch<any>('/production/dashboard/at-risk');
+      setProductionsAtRisk(data);
+      setLastSupplyAnalysis(new Date()); // ERP Premium: Horodatage
     } catch (error: unknown) {
       log.error('Failed to load productions at risk', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les productions à risque');
@@ -312,17 +308,15 @@ export default function ProductionPage() {
   // ERP Premium: Charger le responsable Appro (lecture seule)
   const loadApproManager = useCallback(async () => {
     try {
-      const res = await authFetch('/admin/users?role=APPRO', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        const users = data.users || [];
-        if (users.length > 0) {
-          const manager = users[0];
-          setApproManager({ 
-            id: manager.id, 
-            name: `${manager.firstName || ''} ${manager.lastName || ''}`.trim() || manager.email 
-          });
-        }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await apiFetch<any>('/admin/users?role=APPRO');
+      const users = data.users || [];
+      if (users.length > 0) {
+        const manager = users[0];
+        setApproManager({
+          id: manager.id,
+          name: `${manager.firstName || ''} ${manager.lastName || ''}`.trim() || manager.email
+        });
       }
     } catch (error: unknown) {
       // Silently fail - responsable appro is optional
@@ -332,9 +326,9 @@ export default function ProductionPage() {
 
   const loadAnalytics = useCallback(async (period: 'week' | 'month' | 'year') => {
     try {
-      const res = await authFetch(`/production/dashboard/analytics?period=${period}`, { credentials: 'include' });
-      if (res.ok) setAnalytics(await res.json());
-      else toast.error('Erreur chargement analytics production');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await apiFetch<any>(`/production/dashboard/analytics?period=${period}`);
+      setAnalytics(data);
     } catch (error: unknown) {
       log.error('Failed to load analytics', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les analytics');
@@ -345,11 +339,9 @@ export default function ProductionPage() {
     if (!query || query.length < 2) { setLotSearchResults([]); return; }
     setIsSearchingLots(true);
     try {
-      const res = await authFetch(`/production/lots/search?q=${encodeURIComponent(query)}`, { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        setLotSearchResults(data.results || []);
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await apiFetch<any>(`/production/lots/search?q=${encodeURIComponent(query)}`);
+      setLotSearchResults(data.results || []);
     } catch (error: unknown) {
       log.error('Failed to search lots', { error: (error as Error)?.message || String(error) });
     } finally {

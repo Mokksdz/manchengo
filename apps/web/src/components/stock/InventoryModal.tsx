@@ -3,7 +3,7 @@
 import { memo, useState, useEffect } from 'react';
 import { X, AlertTriangle, CheckCircle, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 
 export interface StockMpItem {
   productId: number;
@@ -51,21 +51,15 @@ export const InventoryModal = memo(function InventoryModal({ isOpen, onClose, on
     setError(null);
 
     try {
-      const res = await authFetch('/stock/mp/inventory', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await apiFetch<any>('/stock/mp/inventory', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: product.productId || product.id,
           physicalQuantity,
           reason,
         }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur lors de l\'ajustement');
-      }
 
       onSuccess();
       onClose();

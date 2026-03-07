@@ -34,9 +34,9 @@ interface SupplyRisksPanelProps {
  */
 function getCoverageColor(days: number | null): { bg: string; text: string; label: string } {
   if (days === null) return { bg: 'bg-black/[0.03]', text: 'text-[#6E6E73]', label: '∞' };
-  if (days < 1.5) return { bg: 'bg-gradient-to-br from-[#FF3B30]/10 to-[#FF3B30]/5', text: 'text-[#FF3B30]', label: `${days.toFixed(1)}j` };
-  if (days < 3) return { bg: 'bg-gradient-to-br from-[#FF9500]/10 to-[#FF9500]/5', text: 'text-[#FF9500]', label: `${days.toFixed(1)}j` };
-  return { bg: 'bg-gradient-to-br from-[#34C759]/10 to-[#34C759]/5', text: 'text-[#34C759]', label: `${days.toFixed(1)}j` };
+  if (Number(days) < 1.5) return { bg: 'bg-gradient-to-br from-[#FF3B30]/10 to-[#FF3B30]/5', text: 'text-[#FF3B30]', label: `${Number(days).toFixed(1)}j` };
+  if (Number(days) < 3) return { bg: 'bg-gradient-to-br from-[#FF9500]/10 to-[#FF9500]/5', text: 'text-[#FF9500]', label: `${Number(days).toFixed(1)}j` };
+  return { bg: 'bg-gradient-to-br from-[#34C759]/10 to-[#34C759]/5', text: 'text-[#34C759]', label: `${Number(days).toFixed(1)}j` };
 }
 
 /**

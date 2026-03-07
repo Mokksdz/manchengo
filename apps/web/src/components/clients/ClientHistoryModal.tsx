@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { History, X, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { useEscapeKey } from '@/lib/hooks/use-focus-trap';
 import { createLogger } from '@/lib/logger';
 
@@ -85,8 +85,8 @@ export function ClientHistoryModal({ isOpen, onClose, client }: ClientHistoryMod
       params.set('page', String(page));
       params.set('limit', '10');
 
-      const res = await authFetch(`/admin/clients/${client.id}/history?${params}`, { credentials: 'include' });
-      if (res.ok) setHistoryData(await res.json());
+      const data = await apiFetch<HistoryData>(`/admin/clients/${client.id}/history?${params}`);
+      setHistoryData(data);
     } catch (error) {
       log.error('Failed to load history:', error);
     } finally {

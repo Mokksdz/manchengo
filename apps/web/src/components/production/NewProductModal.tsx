@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, AlertTriangle, Check } from 'lucide-react';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 
 interface NewProductModalProps {
   isOpen: boolean;
@@ -31,16 +31,11 @@ export function NewProductModal({ isOpen, onClose, onSuccess }: NewProductModalP
     setIsCreating(true);
     setError('');
     try {
-      const res = await authFetch('/products/pf', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await apiFetch<any>('/products/pf', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur');
-      }
       onClose();
       setForm({ code: '', name: '', unit: 'unité' });
       onSuccess();

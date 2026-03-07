@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, ChevronLeft, ChevronRight, Plus, GripVertical, AlertTriangle, CheckCircle, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('ProductionCalendar');
@@ -131,30 +131,27 @@ export function ProductionCalendarTab({ products: _products, onOpenWizard }: Pro
     setIsLoading(true);
     try {
       const startDateStr = weekStart.toISOString().split('T')[0];
-      const res = await authFetch(`/production/planning/week?startDate=${startDateStr}`, { credentials: 'include' });
+      const data = await apiFetch<{ orders: PlannedOrder[] }>(`/production/planning/week?startDate=${startDateStr}`);
 
-      if (res.ok) {
-        const data = await res.json();
-        const days = generateWeekDays(weekStart);
+      const days = generateWeekDays(weekStart);
 
-        // Séparer les ordres planifiés des non-planifiés
-        const unscheduled: PlannedOrder[] = [];
+      // Séparer les ordres planifiés des non-planifiés
+      const unscheduled: PlannedOrder[] = [];
 
-        data.orders.forEach((order: PlannedOrder) => {
-          if (order.scheduledDate) {
-            const orderDate = order.scheduledDate.split('T')[0];
-            const dayIndex = days.findIndex(d => d.dateStr === orderDate);
-            if (dayIndex !== -1) {
-              days[dayIndex].orders.push(order);
-            }
-          } else if (order.status === 'PENDING') {
-            unscheduled.push(order);
+      data.orders.forEach((order: PlannedOrder) => {
+        if (order.scheduledDate) {
+          const orderDate = order.scheduledDate.split('T')[0];
+          const dayIndex = days.findIndex(d => d.dateStr === orderDate);
+          if (dayIndex !== -1) {
+            days[dayIndex].orders.push(order);
           }
-        });
+        } else if (order.status === 'PENDING') {
+          unscheduled.push(order);
+        }
+      });
 
-        setWeekDays(days);
-        setUnscheduledOrders(unscheduled);
-      }
+      setWeekDays(days);
+      setUnscheduledOrders(unscheduled);
     } catch (error) {
       log.error('Error loading weekly plan:', error);
     } finally {
@@ -195,16 +192,12 @@ export function ProductionCalendarTab({ products: _products, onOpenWizard }: Pro
     }
 
     try {
-      const res = await authFetch(`/production/${draggedOrder.id}/schedule`, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await apiFetch<any>(`/production/${draggedOrder.id}/schedule`, {
         method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scheduledDate: dateStr }),
       });
-
-      if (res.ok) {
-        await loadWeeklyPlan();
-      }
+      await loadWeeklyPlan();
     } catch (error) {
       log.error('Error updating schedule:', error);
     }

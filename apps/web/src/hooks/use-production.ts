@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -125,9 +125,8 @@ export function useProductionOrders(limit = 100) {
   return useQuery({
     queryKey: productionKeys.orders(),
     queryFn: async () => {
-      const res = await authFetch(`/production?limit=${limit}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Erreur chargement ordres');
-      const data = await res.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await apiFetch<any[]>(`/production?limit=${limit}`);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return data.map((o: any) => ({
         id: o.id,
@@ -156,14 +155,17 @@ export function useProductsPf() {
   return useQuery({
     queryKey: productionKeys.products(),
     queryFn: async () => {
-      const [productsRes, recipesRes] = await Promise.all([
-        authFetch('/products/pf', { credentials: 'include' }),
-        authFetch('/recipes', { credentials: 'include' }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [productsResult, recipesResult] = await Promise.allSettled([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        apiFetch<any[]>('/products/pf'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        apiFetch<any[]>('/recipes'),
       ]);
-      if (!productsRes.ok) throw new Error('Erreur chargement produits');
+      if (productsResult.status !== 'fulfilled') throw new Error('Erreur chargement produits');
 
-      const productsData = await productsRes.json();
-      const recipesData = recipesRes.ok ? await recipesRes.json() : [];
+      const productsData = productsResult.value;
+      const recipesData = recipesResult.status === 'fulfilled' ? recipesResult.value : [];
       const recipeMap = new Map();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       recipesData.forEach((r: any) => recipeMap.set(r.productPfId, r));
@@ -195,11 +197,7 @@ export function useProductsPf() {
 export function useProductionKpis() {
   return useQuery({
     queryKey: productionKeys.kpis(),
-    queryFn: async () => {
-      const res = await authFetch('/production/dashboard/kpis', { credentials: 'include' });
-      if (!res.ok) throw new Error('Erreur chargement KPIs');
-      return res.json() as Promise<DashboardKpis>;
-    },
+    queryFn: () => apiFetch<DashboardKpis>('/production/dashboard/kpis'),
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 }
@@ -210,11 +208,7 @@ export function useProductionKpis() {
 export function useProductionAlerts() {
   return useQuery({
     queryKey: productionKeys.alerts(),
-    queryFn: async () => {
-      const res = await authFetch('/production/dashboard/alerts', { credentials: 'include' });
-      if (!res.ok) throw new Error('Erreur chargement alertes');
-      return res.json() as Promise<AlertsData>;
-    },
+    queryFn: () => apiFetch<AlertsData>('/production/dashboard/alerts'),
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 }
@@ -225,11 +219,7 @@ export function useProductionAlerts() {
 export function useStockPf() {
   return useQuery({
     queryKey: productionKeys.stockPf(),
-    queryFn: async () => {
-      const res = await authFetch('/production/dashboard/stock-pf', { credentials: 'include' });
-      if (!res.ok) throw new Error('Erreur chargement stock PF');
-      return res.json() as Promise<StockPfItem[]>;
-    },
+    queryFn: () => apiFetch<StockPfItem[]>('/production/dashboard/stock-pf'),
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 }
@@ -241,9 +231,7 @@ export function useProductionCalendar() {
   return useQuery({
     queryKey: productionKeys.calendar(),
     queryFn: async () => {
-      const res = await authFetch('/production/dashboard/calendar', { credentials: 'include' });
-      if (!res.ok) throw new Error('Erreur chargement calendrier');
-      const data = await res.json();
+      const data = await apiFetch<{ days: CalendarDay[] }>('/production/dashboard/calendar');
       return (data.days || []) as CalendarDay[];
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -256,11 +244,7 @@ export function useProductionCalendar() {
 export function useWeeklyPlan(startDate: string) {
   return useQuery({
     queryKey: productionKeys.weeklyPlan(startDate),
-    queryFn: async () => {
-      const res = await authFetch(`/production/planning/week?startDate=${startDate}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Erreur chargement planning');
-      return res.json() as Promise<WeeklyPlanData>;
-    },
+    queryFn: () => apiFetch<WeeklyPlanData>(`/production/planning/week?startDate=${startDate}`),
     staleTime: 1 * 60 * 1000, // 1 minute
   });
 }
@@ -271,11 +255,7 @@ export function useWeeklyPlan(startDate: string) {
 export function useProductionAnalytics(period: 'week' | 'month' | 'year') {
   return useQuery({
     queryKey: productionKeys.analytics(period),
-    queryFn: async () => {
-      const res = await authFetch(`/production/dashboard/analytics?period=${period}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Erreur chargement analytics');
-      return res.json() as Promise<AnalyticsData>;
-    },
+    queryFn: () => apiFetch<AnalyticsData>(`/production/dashboard/analytics?period=${period}`),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
@@ -298,19 +278,11 @@ export function useCreateProductionOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: CreateProductionOrderInput) => {
-      const res = await authFetch('/production', {
+    mutationFn: (input: CreateProductionOrderInput) =>
+      apiFetch('/production', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur création ordre');
-      }
-      return res.json();
-    },
+      }),
     onSuccess: () => {
       // Invalider les queries liées
       queryClient.invalidateQueries({ queryKey: productionKeys.orders() });
@@ -328,17 +300,8 @@ export function useStartProduction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (orderId: number) => {
-      const res = await authFetch(`/production/${orderId}/start`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur démarrage');
-      }
-      return res.json();
-    },
+    mutationFn: (orderId: number) =>
+      apiFetch(`/production/${orderId}/start`, { method: 'POST' }),
     onSuccess: (_, orderId) => {
       queryClient.invalidateQueries({ queryKey: productionKeys.order(orderId) });
       queryClient.invalidateQueries({ queryKey: productionKeys.orders() });
@@ -354,19 +317,11 @@ export function useCompleteProduction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ orderId, quantityProduced }: { orderId: number; quantityProduced: number }) => {
-      const res = await authFetch(`/production/${orderId}/complete`, {
+    mutationFn: ({ orderId, quantityProduced }: { orderId: number; quantityProduced: number }) =>
+      apiFetch(`/production/${orderId}/complete`, {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ quantityProduced }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur complétion');
-      }
-      return res.json();
-    },
+      }),
     onSuccess: (_, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: productionKeys.order(orderId) });
       queryClient.invalidateQueries({ queryKey: productionKeys.orders() });
@@ -383,19 +338,11 @@ export function useCancelProduction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ orderId, reason }: { orderId: number; reason?: string }) => {
-      const res = await authFetch(`/production/${orderId}/cancel`, {
+    mutationFn: ({ orderId, reason }: { orderId: number; reason?: string }) =>
+      apiFetch(`/production/${orderId}/cancel`, {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur annulation');
-      }
-      return res.json();
-    },
+      }),
     onSuccess: (_, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: productionKeys.order(orderId) });
       queryClient.invalidateQueries({ queryKey: productionKeys.orders() });
@@ -411,19 +358,11 @@ export function useUpdateScheduledDate() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ orderId, scheduledDate }: { orderId: number; scheduledDate: string | null }) => {
-      const res = await authFetch(`/production/${orderId}/schedule`, {
+    mutationFn: ({ orderId, scheduledDate }: { orderId: number; scheduledDate: string | null }) =>
+      apiFetch(`/production/${orderId}/schedule`, {
         method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scheduledDate }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur mise à jour planning');
-      }
-      return res.json();
-    },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productionKeys.orders() });
       queryClient.invalidateQueries({ queryKey: productionKeys.calendar() });

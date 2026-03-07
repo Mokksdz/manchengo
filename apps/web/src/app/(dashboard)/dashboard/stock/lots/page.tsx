@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import {
@@ -93,19 +93,15 @@ export default function LotsPage() {
       const endpoint = activeTab === 'MP' ? '/lots/mp' : '/lots/pf';
       const includeInactive = filter === 'ALL' || filter === 'EXPIRED';
 
-      const res = await authFetch(
+      const data = await apiFetch<LotInfo[]>(
         `${endpoint}?includeInactive=${includeInactive}`,
       );
+      setLots(data);
 
-      if (res.ok) {
-        const data: LotInfo[] = await res.json();
-        setLots(data);
-
-        const active = data.filter((l) => l.isActive && l.status !== 'EXPIRED').length;
-        const soonExpired = data.filter((l) => l.status === 'SOON_EXPIRED').length;
-        const expired = data.filter((l) => l.status === 'EXPIRED').length;
-        setStats({ total: data.length, active, soonExpired, expired });
-      }
+      const active = data.filter((l) => l.isActive && l.status !== 'EXPIRED').length;
+      const soonExpired = data.filter((l) => l.status === 'SOON_EXPIRED').length;
+      const expired = data.filter((l) => l.status === 'EXPIRED').length;
+      setStats({ total: data.length, active, soonExpired, expired });
     } catch (error) {
       log.error('Failed to load lots:', error);
     } finally {

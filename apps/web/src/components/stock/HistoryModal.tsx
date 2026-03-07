@@ -3,7 +3,7 @@
 import { memo, useState, useEffect } from 'react';
 import { X, History, Filter, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('HistoryModal');
@@ -61,13 +61,10 @@ export const HistoryModal = memo(function HistoryModal({ isOpen, onClose, produc
     if (!product) return;
     setIsLoading(true);
     try {
-      const res = await authFetch(
-        `/stock/mp/${product.productId || product.id}/movements?limit=100`,
-        { credentials: 'include' }
+      const data = await apiFetch<Movement[]>(
+        `/stock/mp/${product.productId || product.id}/movements?limit=100`
       );
-      if (res.ok) {
-        setMovements(await res.json());
-      }
+      setMovements(data);
     } catch (error) {
       log.error('Failed to load movements', { error: error instanceof Error ? error.message : String(error) });
     } finally {

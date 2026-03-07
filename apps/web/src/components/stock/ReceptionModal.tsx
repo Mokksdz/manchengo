@@ -3,7 +3,7 @@
 import { memo, useState, useEffect } from 'react';
 import { X, Plus, Trash2, Check, Truck, Calendar, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { SupplierModal, type Supplier } from './SupplierModal';
 import { ProductMpCombobox, type ProductMp } from '@/components/ProductMpCombobox';
 import { CreateProductMpModal } from '@/components/CreateProductMpModal';
@@ -149,10 +149,9 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
     setError(null);
 
     try {
-      const res = await authFetch('/stock/mp/receptions', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await apiFetch<any>('/stock/mp/receptions', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           supplierId: Number(supplierId),
           date: new Date(date).toISOString(),
@@ -165,11 +164,6 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
           })),
         }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur lors de la création de la réception');
-      }
 
       onSuccess();
       onClose();

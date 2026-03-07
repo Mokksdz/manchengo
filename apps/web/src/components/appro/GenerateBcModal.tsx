@@ -85,7 +85,7 @@ export function GenerateBcModal({ demande, isOpen, onClose, onSuccess }: Generat
       group.lignes.push(ligne);
 
       const qty = ligne.quantiteValidee ?? ligne.quantiteDemandee;
-      const price = ligne.productMp?.dernierPrixAchat ?? 0;
+      const price = Number(ligne.productMp?.dernierPrixAchat ?? 0);
       group.totalHT += qty * price;
     }
 
@@ -251,7 +251,7 @@ export function GenerateBcModal({ demande, isOpen, onClose, onSuccess }: Generat
               <div className="divide-y">
                 {group.lignes.map((ligne, lidx) => {
                   const qty = ligne.quantiteValidee ?? ligne.quantiteDemandee;
-                  const price = ligne.productMp?.dernierPrixAchat ?? 0;
+                  const price = Number(ligne.productMp?.dernierPrixAchat ?? 0);
                   const totalLine = qty * price;
                   
                   return (

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { authFetch } from '@/lib/api';
+import { apiFetch, ApiError } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import {
   ClipboardList,
@@ -77,11 +77,9 @@ export default function InventairePage() {
     try {
       setIsLoading(true);
       const endpoint = filter === 'pending' ? '/inventory/pending' : '/inventory/all';
-      const res = await authFetch(endpoint);
-      if (res.ok) {
-        const data = await res.json();
-        setDeclarations(data.data || data || []);
-      }
+      const data = await apiFetch<{ data?: InventoryDeclaration[] } | InventoryDeclaration[]>(endpoint);
+      const list = Array.isArray(data) ? data : (data as { data?: InventoryDeclaration[] }).data || [];
+      setDeclarations(list);
     } catch (err) {
       log.error('Failed to load declarations', { error: err instanceof Error ? err.message : String(err) });
       toast.error('Erreur de chargement des déclarations');
@@ -102,22 +100,15 @@ export default function InventairePage() {
 
     try {
       setProcessingId(id);
-      const res = await authFetch(`/inventory/${id}/validate`, {
+      const data = await apiFetch<{ message?: string }>(`/inventory/${id}/validate`, {
         method: 'POST',
         body: JSON.stringify({ approvalReason }),
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        toast.success(data.message || 'Validation effectuée');
-        loadDeclarations();
-      } else {
-        const error = await res.json();
-        toast.error(error.message || 'Erreur de validation');
-      }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch {
-      toast.error('Erreur de validation');
+      toast.success(data.message || 'Validation effectuée');
+      loadDeclarations();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Erreur de validation';
+      toast.error(message);
     } finally {
       setProcessingId(null);
     }
@@ -136,21 +127,15 @@ export default function InventairePage() {
 
     try {
       setProcessingId(id);
-      const res = await authFetch(`/inventory/${id}/reject`, {
+      await apiFetch(`/inventory/${id}/reject`, {
         method: 'POST',
         body: JSON.stringify({ rejectionReason: reason }),
       });
-
-      if (res.ok) {
-        toast.success('Déclaration rejetée');
-        loadDeclarations();
-      } else {
-        const error = await res.json();
-        toast.error(error.message || 'Erreur de rejet');
-      }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch {
-      toast.error('Erreur de rejet');
+      toast.success('Déclaration rejetée');
+      loadDeclarations();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Erreur de rejet';
+      toast.error(message);
     } finally {
       setProcessingId(null);
     }
@@ -325,10 +310,10 @@ function DeclarationCard({
             <div className="text-[11px] text-[#86868B] mb-1">Écart</div>
             <div className={cn(
               'text-[20px] font-bold',
-              d.difference === 0 ? 'text-[#34C759]' : d.difference < 0 ? 'text-[#FF3B30]' : 'text-[#FF9500]'
+              Number(d.difference) === 0 ? 'text-[#34C759]' : Number(d.difference) < 0 ? 'text-[#FF3B30]' : 'text-[#FF9500]'
             )}>
-              {d.difference > 0 ? '+' : ''}{d.difference}
-              <span className="text-[12px] ml-1 font-medium">({d.differencePercent.toFixed(1)}%)</span>
+              {Number(d.difference) > 0 ? '+' : ''}{d.difference}
+              <span className="text-[12px] ml-1 font-medium">({Number(d.differencePercent).toFixed(1)}%)</span>
             </div>
           </div>
         </div>

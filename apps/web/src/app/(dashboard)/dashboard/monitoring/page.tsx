@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import {
   Activity,
   RefreshCw,
@@ -130,22 +130,19 @@ export default function MonitoringPage() {
     setLoading(true);
     setError(null);
     try {
-      const [kpisRes, alertsRes] = await Promise.all([
-        authFetch('/monitoring/kpis', { credentials: 'include' }),
-        authFetch(`/monitoring/alerts?status=${statusFilter}`, { credentials: 'include' }),
+      const [kpisResult, alertsResult] = await Promise.allSettled([
+        apiFetch<Kpis>('/monitoring/kpis'),
+        apiFetch<{ alerts: Alert[]; openCount: number; criticalCount: number }>(`/monitoring/alerts?status=${statusFilter}`),
       ]);
 
-      if (!kpisRes.ok || !alertsRes.ok) {
+      if (kpisResult.status !== 'fulfilled' || alertsResult.status !== 'fulfilled') {
         throw new Error('Failed to fetch monitoring data');
       }
 
-      const kpisData = await kpisRes.json();
-      const alertsData = await alertsRes.json();
-
-      setKpis(kpisData);
-      setAlerts(alertsData.alerts || []);
-      setOpenCount(alertsData.openCount || 0);
-      setCriticalCount(alertsData.criticalCount || 0);
+      setKpis(kpisResult.value);
+      setAlerts(alertsResult.value.alerts || []);
+      setOpenCount(alertsResult.value.openCount || 0);
+      setCriticalCount(alertsResult.value.criticalCount || 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading data');
     } finally {
@@ -162,9 +159,8 @@ export default function MonitoringPage() {
   const handleAcknowledge = async (alertId: string) => {
     setActionLoading(alertId);
     try {
-      await authFetch(`/monitoring/alerts/${alertId}/ack`, {
+      await apiFetch(`/monitoring/alerts/${alertId}/ack`, {
         method: 'POST',
-        credentials: 'include',
         body: JSON.stringify({}),
       });
       await fetchData();
@@ -178,9 +174,8 @@ export default function MonitoringPage() {
   const handleClose = async (alertId: string) => {
     setActionLoading(alertId);
     try {
-      await authFetch(`/monitoring/alerts/${alertId}/close`, {
+      await apiFetch(`/monitoring/alerts/${alertId}/close`, {
         method: 'POST',
-        credentials: 'include',
         body: JSON.stringify({}),
       });
       await fetchData();

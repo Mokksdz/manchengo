@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { useRequireRole } from '@/lib/hooks/use-require-role';
 import {
   Smartphone,
@@ -56,9 +56,7 @@ export default function DevicesManagementPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await authFetch('/admin/devices', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch devices');
-      const data = await res.json();
+      const data = await apiFetch<Device[] | { devices: Device[] }>('/admin/devices');
       // A5: Backend returns array directly, apply client-side filter (A11)
       const allDevices: Device[] = Array.isArray(data) ? data : data.devices || [];
       const filtered = filter === 'all'
@@ -92,9 +90,8 @@ export default function DevicesManagementPage() {
     setActionLoading(deviceId);
     try {
       const endpoint = revoke ? 'revoke' : 'reactivate';
-      await authFetch(`/admin/devices/${deviceId}/${endpoint}`, {
+      await apiFetch(`/admin/devices/${deviceId}/${endpoint}`, {
         method: 'POST',
-        credentials: 'include',
         body: JSON.stringify({ reason: revoke ? 'Admin action' : undefined }),
       });
       await fetchDevices();

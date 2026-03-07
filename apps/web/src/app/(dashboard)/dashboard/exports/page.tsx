@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { FileText, FileSpreadsheet, Download, Calendar, Loader2, Package, Factory } from 'lucide-react';
-import { authFetch } from '@/lib/api';
+import { apiFetchRaw } from '@/lib/api';
 import { useRequireRole } from '@/lib/hooks/use-require-role';
 import { PageHeader } from '@/components/ui/page-header';
 
@@ -103,7 +103,7 @@ export default function ExportsPage() {
     try {
       const url = `${exportType.endpoint}?startDate=${startDate}&endDate=${endDate}&format=${format}`;
 
-      const response = await authFetch(url, { credentials: 'include' });
+      const response = await apiFetchRaw(url);
 
       if (!response.ok) {
         throw new Error(`Erreur ${response.status}: ${response.statusText}`);

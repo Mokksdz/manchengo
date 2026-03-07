@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileText, ArrowLeft, Plus, Trash2, CheckCircle, ShoppingCart } from 'lucide-react';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import { Skeleton } from '@/components/ui/skeleton-loader';
 import { PageHeader } from '@/components/ui/page-header';
@@ -166,12 +166,12 @@ export default function CreateInvoicePage() {
   const loadData = useCallback(async () => {
     setIsLoadingData(true);
     try {
-      const [clientsRes, productsRes] = await Promise.all([
-        authFetch('/admin/clients', { credentials: 'include' }),
-        authFetch('/admin/stock/pf', { credentials: 'include' }),
+      const [clientsResult, productsResult] = await Promise.allSettled([
+        apiFetch<Client[]>('/admin/clients'),
+        apiFetch<ProductPf[]>('/admin/stock/pf'),
       ]);
-      if (clientsRes.ok) setClients(await clientsRes.json());
-      if (productsRes.ok) setProducts(await productsRes.json());
+      if (clientsResult.status === 'fulfilled') setClients(clientsResult.value);
+      if (productsResult.status === 'fulfilled') setProducts(productsResult.value);
     } catch (error) {
       log.error('Failed to load data:', error);
     } finally {
@@ -250,10 +250,8 @@ export default function CreateInvoicePage() {
     setSaving(true);
     setError(null);
     try {
-      const res = await authFetch('/admin/invoices', {
+      const created = await apiFetch<{ id: number; reference: string }>('/admin/invoices', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId: selectedClient,
           paymentMethod,
@@ -265,11 +263,6 @@ export default function CreateInvoicePage() {
           })),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Erreur lors de la création');
-      }
-      const created = data;
       setCreatedInvoice({ id: created.id, reference: created.reference });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');

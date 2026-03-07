@@ -167,7 +167,7 @@ export function ZoneCritique({ data, onAction }: ZoneCritiqueProps) {
                       <div className="flex-1">
                         <p className="text-gray-300 font-medium group-hover/alert:text-white transition-colors">{inv.productName}</p>
                         <p className="text-gray-500 text-[11px] mt-0.5">
-                          Écart {inv.ecart > 0 ? '+' : ''}{inv.ecart} &bull; {inv.ecartPercent.toFixed(1)}%
+                          Écart {Number(inv.ecart) > 0 ? '+' : ''}{inv.ecart} &bull; {Number(inv.ecartPercent).toFixed(1)}%
                         </p>
                       </div>
                       <Link

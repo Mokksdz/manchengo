@@ -1,6 +1,6 @@
 'use client';
 
-import { authFetch } from '@/lib/api';
+import { apiFetch, ApiError } from '@/lib/api';
 import { toast } from 'sonner';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
@@ -143,7 +143,7 @@ function RecipeIngredientsTable({
   onAddIngredient?: () => void; onDeleteIngredient?: (itemId: number) => void;
 }) {
   const ingredients = recipe.ingredients || [];
-  const totalWeight = ingredients.reduce((sum, ing) => sum + ing.quantity, 0);
+  const totalWeight = ingredients.reduce((sum, ing) => sum + Number(ing.quantity), 0);
 
   return (
     <div className="glass-card overflow-hidden">
@@ -180,8 +180,8 @@ function RecipeIngredientsTable({
           <tbody className="divide-y divide-black/[0.04]">
             {ingredients.map((ing) => {
               const stockQty = stockMap.get(ing.productMpId) || 0;
-              const pct = totalWeight > 0 ? ((ing.quantity / totalWeight) * 100).toFixed(1) : '0';
-              const stockStatus = stockQty >= ing.quantity ? 'ok' : stockQty > 0 ? 'low' : 'out';
+              const pct = totalWeight > 0 ? ((Number(ing.quantity) / totalWeight) * 100).toFixed(1) : '0';
+              const stockStatus = stockQty >= Number(ing.quantity) ? 'ok' : stockQty > 0 ? 'low' : 'out';
               return (
                 <tr key={ing.id} className="hover:bg-white/40 transition-colors">
                   <td className="px-5 py-4"><div><p className="font-medium text-[#1D1D1F]">{ing.productMp?.name}</p><p className="text-xs text-[#86868B]">{ing.productMp?.code}</p></div></td>
@@ -218,11 +218,11 @@ function RecipeStockImpact({ recipe, stockMap, status }: { recipe: Recipe; stock
       <div className="space-y-2 mb-4">
         {ingredients.map((ing) => {
           const currentStock = stockMap.get(ing.productMpId) || 0;
-          const afterStock = currentStock - ing.quantity;
+          const afterStock = currentStock - Number(ing.quantity);
           return (
             <div key={ing.id} className="flex items-center justify-between py-2 border-b border-black/[0.04] last:border-0">
               <div><span className="text-[#1D1D1F]">{ing.productMp?.name}</span><span className="text-xs text-[#AEAEB2] ml-2">(stock: {currentStock})</span></div>
-              <span className={cn("font-mono font-medium", afterStock < 0 ? "text-red-600" : "text-orange-600")}>-{ing.quantity} {ing.productMp?.unit}</span>
+              <span className={cn("font-mono font-medium", afterStock < 0 ? "text-red-600" : "text-orange-600")}>-{Number(ing.quantity)} {ing.productMp?.unit}</span>
             </div>
           );
         })}
@@ -305,16 +305,15 @@ export default function RecettesPage() {
   // Charger donnees
   const loadData = useCallback(async () => {
     try {
-      const [recipesRes, stockRes, pfRes] = await Promise.all([
-        authFetch('/recipes', { credentials: 'include' }),
-        authFetch('/stock/mp', { credentials: 'include' }),
-        authFetch('/products/pf', { credentials: 'include' }),
+      const [recipesResult, stockResult, pfResult] = await Promise.allSettled([
+        apiFetch<Recipe[]>('/recipes'),
+        apiFetch<StockMp[]>('/stock/mp'),
+        apiFetch<ProductPf[]>('/products/pf'),
       ]);
 
-      if (recipesRes.ok) {
-        const data = await recipesRes.json();
+      if (recipesResult.status === 'fulfilled') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const normalizedRecipes = (data || []).map((r: any) => ({
+        const normalizedRecipes = (recipesResult.value || []).map((r: any) => ({
           ...r,
           ingredients: r.items || r.ingredients || [],
         }));
@@ -322,16 +321,14 @@ export default function RecettesPage() {
       } else {
         toast.error('Erreur lors du chargement des recettes');
       }
-      if (stockRes.ok) {
-        const data = await stockRes.json();
-        setStockMp(data || []);
+      if (stockResult.status === 'fulfilled') {
+        setStockMp(stockResult.value || []);
       } else {
         toast.error('Erreur lors du chargement du stock MP');
       }
-      if (pfRes.ok) {
-        const data = await pfRes.json();
+      if (pfResult.status === 'fulfilled') {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setProductsPf((data || []).map((pf: any) => ({ ...pf, id: pf.id || pf.productId })));
+        setProductsPf((pfResult.value || []).map((pf: any) => ({ ...pf, id: pf.id || pf.productId })));
       } else {
         toast.error('Erreur lors du chargement des produits finis');
       }
@@ -359,24 +356,18 @@ export default function RecettesPage() {
       return;
     }
     try {
-      const res = await authFetch('/recipes', {
+      await apiFetch('/recipes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ ...newRecipe, items: [] }),
       });
-      if (res.ok) {
-        setShowCreateModal(false);
-        setNewRecipe({ productPfId: 0, name: '', batchWeight: 10000, outputQuantity: 10 });
-        await loadData();
-        toast.success('Recette créée avec succès');
-      } else {
-        const error = await res.json();
-        toast.error(`Erreur: ${error.message}`);
-      }
+      setShowCreateModal(false);
+      setNewRecipe({ productPfId: 0, name: '', batchWeight: 10000, outputQuantity: 10 });
+      await loadData();
+      toast.success('Recette créée avec succès');
     } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Erreur lors de la création';
       log.error('Failed to create recipe', { error: error instanceof Error ? error.message : String(error) });
-      toast.error('Erreur lors de la création');
+      toast.error(message);
     }
   };
 
@@ -387,10 +378,8 @@ export default function RecettesPage() {
       return;
     }
     try {
-      const res = await authFetch(`/recipes/${selectedRecipe.id}/items`, {
+      await apiFetch(`/recipes/${selectedRecipe.id}/items`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           productMpId: newIngredient.productMpId,
           quantity: newIngredient.quantity,
@@ -398,23 +387,18 @@ export default function RecettesPage() {
           type: 'MP',
         }),
       });
-      if (res.ok) {
-        setShowIngredientModal(false);
-        setNewIngredient({ productMpId: 0, quantity: 0, unit: 'kg' });
-        await loadData();
-        const updatedRecipe = await authFetch(`/recipes/${selectedRecipe.id}`, { credentials: 'include' });
-        if (updatedRecipe.ok) {
-          const data = await updatedRecipe.json();
-          setSelectedRecipe({ ...data, ingredients: data.items || data.ingredients || [] });
-        }
-        toast.success('Ingrédient ajouté');
-      } else {
-        const error = await res.json();
-        toast.error(`Erreur: ${error.message}`);
-      }
+      setShowIngredientModal(false);
+      setNewIngredient({ productMpId: 0, quantity: 0, unit: 'kg' });
+      await loadData();
+      try {
+        const data = await apiFetch<Recipe>(`/recipes/${selectedRecipe.id}`);
+        setSelectedRecipe({ ...data, ingredients: data.items || data.ingredients || [] });
+      } catch { /* silent refresh failure */ }
+      toast.success('Ingrédient ajouté');
     } catch (error) {
+      const message = error instanceof ApiError ? error.message : 'Erreur lors de l\'ajout';
       log.error('Failed to add ingredient', { error: error instanceof Error ? error.message : String(error) });
-      toast.error('Erreur lors de l\'ajout');
+      toast.error(message);
     }
   };
 
@@ -422,18 +406,14 @@ export default function RecettesPage() {
   const handleDeleteIngredient = async (itemId: number) => {
     if (!selectedRecipe || !confirm('Supprimer cet ingrédient ?')) return;
     try {
-      const res = await authFetch(`/recipes/${selectedRecipe.id}/items/${itemId}`, {
+      await apiFetch(`/recipes/${selectedRecipe.id}/items/${itemId}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
-      if (res.ok) {
-        await loadData();
-        const updatedRecipe = await authFetch(`/recipes/${selectedRecipe.id}`, { credentials: 'include' });
-        if (updatedRecipe.ok) {
-          const data = await updatedRecipe.json();
-          setSelectedRecipe({ ...data, ingredients: data.items || data.ingredients || [] });
-        }
-      }
+      await loadData();
+      try {
+        const data = await apiFetch<Recipe>(`/recipes/${selectedRecipe.id}`);
+        setSelectedRecipe({ ...data, ingredients: data.items || data.ingredients || [] });
+      } catch { /* silent refresh failure */ }
     } catch (error) {
       log.error('Failed to delete ingredient', { error: error instanceof Error ? error.message : String(error) });
     }

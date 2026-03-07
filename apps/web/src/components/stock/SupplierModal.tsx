@@ -3,7 +3,7 @@
 import { memo, useState, useEffect } from 'react';
 import { X, Building2, AlertCircle, FileCheck, Phone, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 
 export interface Supplier {
   id: number;
@@ -72,9 +72,8 @@ export const SupplierModal = memo(function SupplierModal({ isOpen, onClose, onSu
     setError(null);
 
     try {
-      const res = await authFetch('/suppliers', {
+      const newSupplier = await apiFetch<Supplier>('/suppliers', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: form.name.trim(),
           rc: form.rc.trim() || undefined,
@@ -86,12 +85,6 @@ export const SupplierModal = memo(function SupplierModal({ isOpen, onClose, onSu
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Erreur lors de la création du fournisseur');
-      }
-
-      const newSupplier = data;
       onSuccess(newSupplier);
       onClose();
     } catch (err: unknown) {

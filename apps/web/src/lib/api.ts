@@ -71,7 +71,10 @@ function withCsrfHeader(headers: HeadersInit, method?: string): HeadersInit {
 /**
  * Simple authenticated fetch - use for direct fetch calls
  * Adds credentials: 'include' for cookie-based auth
- * 
+ *
+ * @deprecated Use `apiFetch` (JSON with auto 401 refresh) or `apiFetchRaw` (binary with auto 401 refresh) instead.
+ * Only kept for `auth.login` which needs raw error handling without 401 retry logic.
+ *
  * @param endpoint - API endpoint (e.g., '/dashboard/production')
  * @param options - fetch options
  */

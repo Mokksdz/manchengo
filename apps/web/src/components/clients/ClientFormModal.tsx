@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { X, AlertCircle, FileText } from 'lucide-react';
 import {
   type Client,
@@ -126,18 +126,11 @@ export function ClientFormModal({
             address: formData.address || null,
           };
 
-      const res = await authFetch(url, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await apiFetch<any>(url, {
         method: editingClient ? 'PUT' : 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        const message = Array.isArray(data.message) ? data.message.join(', ') : data.message;
-        throw new Error(message || 'Erreur lors de la sauvegarde');
-      }
 
       onClose();
       onSuccess();

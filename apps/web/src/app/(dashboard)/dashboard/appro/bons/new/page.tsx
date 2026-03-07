@@ -13,7 +13,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useFocusTrap, useEscapeKey } from '@/lib/hooks/use-focus-trap';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { appro, authFetch } from '@/lib/api';
+import { appro, apiFetch, apiFetchRaw } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -273,15 +273,13 @@ export default function NewBonCommandePage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [stockRes, suppliersRes] = await Promise.all([
+      const [stockRes, suppData] = await Promise.all([
         appro.getStockMp(),
-        authFetch('/suppliers?active=true', { credentials: 'include' }),
+        apiFetch<Supplier[] | { suppliers: Supplier[] }>('/suppliers?active=true'),
       ]);
       setAllProducts(stockRes);
-      if (suppliersRes.ok) {
-        const suppData = await suppliersRes.json();
-        setSuppliers(suppData.suppliers || suppData || []);
-      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setSuppliers(Array.isArray(suppData) ? suppData : (suppData as any).suppliers || []);
     } catch (err) {
       log.error('Failed to load data:', err);
       setError('Impossible de charger les données');
@@ -428,10 +426,8 @@ export default function NewBonCommandePage() {
             unitPrice: l.unitPrice,
           }));
 
-      const res = await authFetch('/appro/purchase-orders/create-direct', {
+      const data = await apiFetch<{ id: string; reference: string }>('/appro/purchase-orders/create-direct', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           supplierId,
           lines: submitLines,
@@ -440,12 +436,6 @@ export default function NewBonCommandePage() {
         }),
       });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || 'Erreur création BC');
-      }
-
-      const data = await res.json();
       setSuccess({ id: data.id, reference: data.reference });
     } catch (err: unknown) {
       setError((err as Error).message || 'Erreur lors de la création');
@@ -490,11 +480,9 @@ export default function NewBonCommandePage() {
         address: supplierForm.address.trim(),
       });
       // Refresh suppliers list
-      const suppliersRes = await authFetch('/suppliers?active=true', { credentials: 'include' });
-      if (suppliersRes.ok) {
-        const suppData = await suppliersRes.json();
-        setSuppliers(suppData.suppliers || suppData || []);
-      }
+      const suppData = await apiFetch<Supplier[] | { suppliers: Supplier[] }>('/suppliers?active=true');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setSuppliers(Array.isArray(suppData) ? suppData : (suppData as any).suppliers || []);
       // Auto-select new supplier
       setSupplierId(result.id);
       setShowSupplierModal(false);
@@ -559,7 +547,7 @@ export default function NewBonCommandePage() {
           <button
             onClick={async () => {
               try {
-                const res = await authFetch(`/appro/purchase-orders/${success.id}/pdf`);
+                const res = await apiFetchRaw(`/appro/purchase-orders/${success.id}/pdf`);
                 if (res.ok) {
                   const blob = await res.blob();
                   const url = window.URL.createObjectURL(blob);

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { History, ArrowLeft, Package, ChevronLeft, ChevronRight, Calendar, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { formatPrice, formatDate } from '@/lib/format';
 import { Skeleton } from '@/components/ui/skeleton-loader';
 import { PageHeader } from '@/components/ui/page-header';
@@ -161,10 +161,8 @@ export default function ClientHistoriquePage() {
       searchParams.set('page', String(page));
       searchParams.set('limit', '10');
 
-      const res = await authFetch(`/admin/clients/${clientId}/history?${searchParams}`, { credentials: 'include' });
-      if (res.ok) {
-        setHistoryData(await res.json());
-      }
+      const data = await apiFetch<HistoryData>(`/admin/clients/${clientId}/history?${searchParams}`);
+      setHistoryData(data);
     } catch (error) {
       log.error('Failed to load history:', error);
     } finally {

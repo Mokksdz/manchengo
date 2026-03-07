@@ -1,6 +1,6 @@
 'use client';
 
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { useAdminStockPf } from '@/hooks/use-api';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -117,20 +117,14 @@ function InventoryModal({ isOpen, onClose, onSuccess, product }: InventoryModalP
     setError(null);
 
     try {
-      const res = await authFetch('/stock/pf/inventory', {
+      await apiFetch('/stock/pf/inventory', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: product.productId || product.id,
           physicalQuantity,
           reason,
         }),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur lors de l\'ajustement');
-      }
 
       onSuccess();
       onClose();
@@ -302,12 +296,10 @@ function HistoryModal({ isOpen, onClose, product }: HistoryModalProps) {
     if (!product) return;
     setIsLoading(true);
     try {
-      const res = await authFetch(
+      const data = await apiFetch<Movement[]>(
         `/stock/pf/${product.productId || product.id}/movements?limit=100`,
       );
-      if (res.ok) {
-        setMovements(await res.json());
-      }
+      setMovements(data);
     } catch (error) {
       log.error('Failed to load movements', { error: error instanceof Error ? error.message : String(error) });
     } finally {

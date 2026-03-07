@@ -1,6 +1,6 @@
 'use client';
 
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { useState, useEffect, useCallback } from 'react';
 import { useFocusTrap, useEscapeKey } from '@/lib/hooks/use-focus-trap';
 import { toast } from 'sonner';
@@ -115,11 +115,7 @@ export default function UsersManagementPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await authFetch('/admin/users', {
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error('Failed to fetch users');
-      const data = await res.json();
+      const data = await apiFetch<User[] | { users: User[] }>('/admin/users');
       setUsers(Array.isArray(data) ? data : data.users || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading users');
@@ -141,9 +137,8 @@ export default function UsersManagementPage() {
     setActionLoading(confirmToggle.id);
     setConfirmToggle(null);
     try {
-      await authFetch(`/admin/users/${confirmToggle.id}/toggle-status`, {
+      await apiFetch(`/admin/users/${confirmToggle.id}/toggle-status`, {
         method: 'POST',
-        credentials: 'include',
       });
       await fetchUsers();
     } catch {
@@ -158,18 +153,10 @@ export default function UsersManagementPage() {
     setSaving(true);
     setError(null);
     try {
-      const res = await authFetch('/admin/users', {
+      await apiFetch('/admin/users', {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(formData),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur lors de la création');
-      }
       setShowCreateModal(false);
       setFormData({ code: '', email: '', password: '', firstName: '', lastName: '', role: 'COMMERCIAL' });
       await fetchUsers();
@@ -186,12 +173,8 @@ export default function UsersManagementPage() {
     setSaving(true);
     setError(null);
     try {
-      const res = await authFetch(`/admin/users/${selectedUser.id}`, {
+      await apiFetch(`/admin/users/${selectedUser.id}`, {
         method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           email: formData.email,
           firstName: formData.firstName,
@@ -199,10 +182,6 @@ export default function UsersManagementPage() {
           role: formData.role,
         }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur lors de la mise à jour');
-      }
       setShowEditModal(false);
       await fetchUsers();
     } catch (err) {
@@ -218,18 +197,10 @@ export default function UsersManagementPage() {
     setSaving(true);
     setError(null);
     try {
-      const res = await authFetch(`/admin/users/${selectedUser.id}/reset-password`, {
+      await apiFetch(`/admin/users/${selectedUser.id}/reset-password`, {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ newPassword }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur');
-      }
       setShowPasswordModal(false);
       setNewPassword('');
       toast.success('Mot de passe réinitialisé avec succès');

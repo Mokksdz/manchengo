@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { useRequireRole } from '@/lib/hooks/use-require-role';
 import {
   FileText,
@@ -83,9 +83,7 @@ export default function SecurityAuditPage() {
       params.set('page', String(page));
 
       // Server-side pagination: backend returns only the requested page
-      const res = await authFetch(`/admin/security-logs?${params}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch logs');
-      const data = await res.json();
+      const data = await apiFetch<{ logs: SecurityLog[]; total: number; totalPages: number }>(`/admin/security-logs?${params}`);
       setLogs(data.logs || []);
       setTotal(data.total || 0);
       setTotalPages(data.totalPages || 1);

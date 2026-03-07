@@ -367,7 +367,7 @@ function ProductionAtRiskRow({ production }: { production: ProductionAtRisk }) {
                   <Truck className="w-3 h-3" />
                 )}
                 {reason.code || reason.label.slice(0, 20)}
-                {reason.daysCover !== undefined && ` (${reason.daysCover.toFixed(1)}j)`}
+                {reason.daysCover !== undefined && ` (${Number(reason.daysCover).toFixed(1)}j)`}
                 {reason.daysLate !== undefined && ` (+${reason.daysLate}j)`}
               </span>
             ))}

@@ -1,6 +1,6 @@
 'use client';
 
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -227,14 +227,7 @@ export default function SupplierDetailPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await authFetch(`/suppliers/${supplierId}`, {
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Fournisseur introuvable');
-      }
-      const data = await res.json();
+      const data = await apiFetch<Supplier>(`/suppliers/${supplierId}`);
       setSupplier(data);
       setEditForm({
         name: data.name || '',
@@ -264,12 +257,10 @@ export default function SupplierDetailPage() {
       params.set('page', String(page));
       params.set('limit', '10');
 
-      const res = await authFetch(
+      const data = await apiFetch<HistoryData>(
         `/suppliers/${supplierId}/history?${params}`,
       );
-      if (res.ok) {
-        setHistoryData(await res.json());
-      }
+      setHistoryData(data);
     } catch (error) {
       log.error('Failed to load history:', error);
     } finally {
@@ -279,14 +270,9 @@ export default function SupplierDetailPage() {
 
   const checkCanDelete = useCallback(async () => {
     try {
-      const res = await authFetch(`/suppliers/${supplierId}/can-delete`, {
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCanDelete(data.canDelete);
-        setCanDeleteMessage(data.message || '');
-      }
+      const data = await apiFetch<{ canDelete: boolean; message?: string }>(`/suppliers/${supplierId}/can-delete`);
+      setCanDelete(data.canDelete);
+      setCanDeleteMessage(data.message || '');
     } catch (error) {
       log.error('Failed to check delete status:', error);
     }
@@ -320,19 +306,10 @@ export default function SupplierDetailPage() {
     setIsSaving(true);
     setEditError(null);
     try {
-      const res = await authFetch(`/suppliers/${supplierId}`, {
+      const updated = await apiFetch<Supplier>(`/suppliers/${supplierId}`, {
         method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(editForm),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur lors de la sauvegarde');
-      }
-      const updated = await res.json();
       setSupplier(updated);
       setIsEditing(false);
     } catch (err) {
@@ -361,14 +338,9 @@ export default function SupplierDetailPage() {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const res = await authFetch(`/suppliers/${supplierId}`, {
+      await apiFetch(`/suppliers/${supplierId}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur lors de la desactivation');
-      }
       router.push('/dashboard/appro/fournisseurs');
     } catch (err) {
       setCanDeleteMessage(err instanceof Error ? err.message : 'Erreur');

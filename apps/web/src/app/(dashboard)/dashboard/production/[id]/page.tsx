@@ -1,6 +1,6 @@
 'use client';
 
-import { authFetch } from '@/lib/api';
+import { apiFetch, ApiError } from '@/lib/api';
 import { toast } from 'sonner';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -196,21 +196,12 @@ export default function ProductionDetailPage() {
     setError(null);
     try {
       // Load product
-      const productRes = await authFetch(`/products/pf/${productId}`, {
-        credentials: 'include',
-      });
-      if (!productRes.ok) throw new Error('Produit introuvable');
-      const productData = await productRes.json();
+      const productData = await apiFetch<ProductPf>(`/products/pf/${productId}`);
       setProduct(productData);
 
-      // Load recipe
-      const recipeRes = await authFetch(`/recipes/product/${productId}`, {
-        credentials: 'include',
-      });
-      if (recipeRes.ok) {
-        const text = await recipeRes.text();
-        let recipeData = null;
-        try { recipeData = text ? JSON.parse(text) : null; } catch { recipeData = null; }
+      // Load recipe (may return empty/null, so handle gracefully)
+      try {
+        const recipeData = await apiFetch<Recipe | null>(`/recipes/product/${productId}`);
         setRecipe(recipeData);
         if (recipeData) {
           setRecipeForm({
@@ -223,11 +214,11 @@ export default function ProductionDetailPage() {
             shelfLifeDays: recipeData.shelfLifeDays || 90,
           });
         }
-      } else {
+      } catch {
         setRecipe(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement');
+      setError(err instanceof ApiError ? err.message : (err instanceof Error ? err.message : 'Erreur de chargement'));
     } finally {
       setIsLoading(false);
     }
@@ -235,29 +226,23 @@ export default function ProductionDetailPage() {
 
   const loadMpList = useCallback(async () => {
     try {
-      // Load raw materials
-      const mpRes = await authFetch('/products/raw-materials', {
-        credentials: 'include',
-      });
-      if (mpRes.ok) {
-        setMpList(await mpRes.json());
-      } else {
+      // Load raw materials (with fallback to /products/mp)
+      try {
+        const mpData = await apiFetch<ProductMp[]>('/products/raw-materials');
+        setMpList(mpData);
+      } catch {
         // Fallback to all MP if raw-materials endpoint doesn't exist yet
-        const allMpRes = await authFetch('/products/mp', {
-          credentials: 'include',
-        });
-        if (allMpRes.ok) {
-          setMpList(await allMpRes.json());
-        }
+        try {
+          const allMpData = await apiFetch<ProductMp[]>('/products/mp');
+          setMpList(allMpData);
+        } catch { /* silent */ }
       }
 
       // Load packaging
-      const packRes = await authFetch('/products/packaging', {
-        credentials: 'include',
-      });
-      if (packRes.ok) {
-        setPackagingList(await packRes.json());
-      }
+      try {
+        const packData = await apiFetch<ProductMp[]>('/products/packaging');
+        setPackagingList(packData);
+      } catch { /* silent */ }
     } catch (error) {
       log.error('Failed to load product lists', { error: error instanceof Error ? error.message : String(error) });
     }
@@ -273,13 +258,10 @@ export default function ProductionDetailPage() {
       params.set('page', String(page));
       params.set('limit', '10');
 
-      const res = await authFetch(
-        `/production/product/${productId}/history?${params}`,
-        { credentials: 'include' }
+      const data = await apiFetch<HistoryData>(
+        `/production/product/${productId}/history?${params}`
       );
-      if (res.ok) {
-        setHistoryData(await res.json());
-      }
+      setHistoryData(data);
     } catch (error) {
       log.error('Failed to load history', { error: error instanceof Error ? error.message : String(error) });
     } finally {
@@ -291,13 +273,11 @@ export default function ProductionDetailPage() {
     if (!recipe) return;
     setIsCheckingStock(true);
     try {
-      const res = await authFetch(
-        `/recipes/${recipe.id}/check-stock?batchCount=${batchCount}`,
-        { credentials: 'include' }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await apiFetch<any>(
+        `/recipes/${recipe.id}/check-stock?batchCount=${batchCount}`
       );
-      if (res.ok) {
-        setStockCheck(await res.json());
-      }
+      setStockCheck(data);
     } catch (error) {
       log.error('Failed to check stock', { error: error instanceof Error ? error.message : String(error) });
     } finally {
@@ -337,44 +317,27 @@ export default function ProductionDetailPage() {
     try {
       if (recipe) {
         // Update existing recipe
-        const res = await authFetch(`/recipes/${recipe.id}`, {
+        const updated = await apiFetch<Recipe>(`/recipes/${recipe.id}`, {
           method: 'PUT',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify(recipeForm),
         });
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.message || 'Erreur de mise à jour');
-        }
-        const updated = await res.json();
         setRecipe(updated);
       } else {
         // Create new recipe
-        const res = await authFetch('/recipes', {
+        const created = await apiFetch<Recipe>('/recipes', {
           method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
           body: JSON.stringify({
             productPfId: product.id,
             ...recipeForm,
             items: [],
           }),
         });
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.message || 'Erreur de création');
-        }
-        const created = await res.json();
         setRecipe(created);
       }
       setIsEditingRecipe(false);
     } catch (err) {
-      setRecipeError(err instanceof Error ? err.message : 'Erreur');
+      const message = err instanceof ApiError ? err.message : (err instanceof Error ? err.message : 'Erreur');
+      setRecipeError(message);
     } finally {
       setIsSavingRecipe(false);
     }
@@ -415,18 +378,10 @@ export default function ProductionDetailPage() {
         notes: componentForm.notes || null,
       };
 
-      const res = await authFetch(`/recipes/${recipe.id}/items`, {
+      await apiFetch(`/recipes/${recipe.id}/items`, {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur');
-      }
       await loadProduct();
       setShowAddComponent(false);
       setComponentForm({
@@ -449,9 +404,8 @@ export default function ProductionDetailPage() {
   const handleRemoveIngredient = async (itemId: number) => {
     if (!recipe || !confirm('Supprimer cet ingrédient ?')) return;
     try {
-      await authFetch(`/recipes/${recipe.id}/items/${itemId}`, {
+      await apiFetch(`/recipes/${recipe.id}/items/${itemId}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
       await loadProduct();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -464,22 +418,13 @@ export default function ProductionDetailPage() {
     if (!product || !stockCheck?.canProduce) return;
     setIsCreatingOrder(true);
     try {
-      const res = await authFetch('/production', {
+      const order = await apiFetch<{ id: number }>('/production', {
         method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           productPfId: product.id,
           batchCount,
         }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur');
-      }
-      const order = await res.json();
       router.push(`/dashboard/production/order/${order.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Erreur');
@@ -688,7 +633,7 @@ export default function ProductionDetailPage() {
                   <input
                     type="number"
                     step="0.01"
-                    value={(recipeForm.lossTolerance * 100).toFixed(1)}
+                    value={(Number(recipeForm.lossTolerance) * 100).toFixed(1)}
                     onChange={(e) => setRecipeForm({ ...recipeForm, lossTolerance: (parseFloat(e.target.value) || 0) / 100 })}
                     className="w-full px-4 py-2.5 rounded-[14px] border border-black/[0.08] bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-[#AF52DE]/15 focus:border-[#AF52DE] outline-none transition-all"
                   />
