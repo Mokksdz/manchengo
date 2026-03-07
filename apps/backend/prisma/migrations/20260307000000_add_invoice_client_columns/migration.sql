@@ -16,3 +16,10 @@ ALTER TABLE "invoices" ADD COLUMN "timbreRate" DECIMAL;
 ALTER TABLE "invoices" ADD COLUMN "cancellationReason" TEXT;
 ALTER TABLE "invoices" ADD COLUMN "cancelledBy" TEXT;
 ALTER TABLE "invoices" ADD COLUMN "cancelledAt" TIMESTAMP(3);
+
+-- AlterTable: invoice_lines — add remise (discount) column
+ALTER TABLE "invoice_lines" ADD COLUMN "remise" INTEGER NOT NULL DEFAULT 0;
+
+-- AlterTable: deliveries — add delivery completion tracking
+ALTER TABLE "deliveries" ADD COLUMN "delivered_at" TIMESTAMP(3);
+ALTER TABLE "deliveries" ADD COLUMN "delivered_by_user_id" TEXT;
