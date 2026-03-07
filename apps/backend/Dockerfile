@@ -34,6 +34,7 @@ COPY --from=deps --chown=manchengo:manchengo /app/node_modules/.prisma ./node_mo
 COPY --from=builder --chown=manchengo:manchengo /app/dist ./dist
 COPY --from=builder --chown=manchengo:manchengo /app/prisma ./prisma
 COPY --from=builder --chown=manchengo:manchengo /app/package.json ./
+COPY --from=builder --chown=manchengo:manchengo /app/scripts ./scripts
 
 USER manchengo
 
@@ -42,4 +43,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
 
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=./prisma/schema.prisma 2>&1 || echo 'Migration warning - continuing startup'; node dist/src/main"]
+CMD ["sh", "./scripts/start.sh"]
