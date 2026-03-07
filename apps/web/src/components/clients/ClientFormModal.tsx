@@ -35,23 +35,23 @@ function validateForm(data: ClientFormData, isEditing: boolean): FieldErrors {
   }
 
   if (data.nif.trim() && !VALIDATION.NIF.test(data.nif)) {
-    errors.nif = 'NIF invalide \u2013 15 chiffres requis';
+    errors.nif = 'NIF invalide – 15 chiffres requis';
   }
 
   if (data.rc.trim() && !VALIDATION.RC.test(data.rc)) {
-    errors.rc = 'RC invalide \u2013 doit contenir au moins une lettre et des chiffres (8 \u00e0 15 caract\u00e8res)';
+    errors.rc = 'RC invalide – doit contenir au moins une lettre et des chiffres (8 à 15 caractères)';
   }
 
   if (data.ai.trim() && !VALIDATION.AI.test(data.ai)) {
-    errors.ai = 'AI invalide \u2013 6 \u00e0 10 chiffres requis';
+    errors.ai = 'AI invalide – 6 à 10 chiffres requis';
   }
 
   if (data.nis && data.nis.trim() && !VALIDATION.NIS.test(data.nis)) {
-    errors.nis = 'NIS invalide \u2013 15 chiffres requis si renseign\u00e9';
+    errors.nis = 'NIS invalide – 15 chiffres requis si renseigné';
   }
 
   if (data.phone && data.phone.trim() && !VALIDATION.PHONE.test(data.phone)) {
-    errors.phone = 'T\u00e9l\u00e9phone invalide \u2013 format: 05/06/07XXXXXXXX ou +2135/6/7XXXXXXXX';
+    errors.phone = 'Téléphone invalide – format: 05/06/07XXXXXXXX ou +2135/6/7XXXXXXXX';
   }
 
   return errors;
@@ -215,10 +215,10 @@ export function ClientFormModal({
               <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#FF9500]/10 to-[#FF9500]/5 flex items-center justify-center">
                 <FileText className="w-3 h-3 text-[#FF9500]" />
               </div>
-              Informations fiscales (conformit\u00e9 DGI)
+              Informations fiscales (conformité DGI)
             </h3>
             <div className="p-2.5 mb-3 text-xs text-[#FF9500] bg-[#FF9500]/8 border border-[#FF9500]/15 rounded-lg">
-              Les coordonn\u00e9es fiscales seront requises pour valider les factures de ce client.
+              Les coordonnées fiscales seront requises pour valider les factures de ce client.
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -294,7 +294,7 @@ export function ClientFormModal({
                     "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]",
                     fieldErrors.ai ? "border-[#FF3B30]/40 bg-[#FF3B30]/5" : "border-[#E5E5E5]"
                   )}
-                  placeholder="6 \u00e0 10 chiffres (ex: 16123456)"
+                  placeholder="6 à 10 chiffres (ex: 16123456)"
                   maxLength={10}
                 />
                 {fieldErrors.ai && (
@@ -320,7 +320,7 @@ export function ClientFormModal({
                     "w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]",
                     fieldErrors.nis ? "border-[#FF3B30]/40 bg-[#FF3B30]/5" : "border-[#E5E5E5]"
                   )}
-                  placeholder="15 chiffres si renseign\u00e9"
+                  placeholder="15 chiffres si renseigné"
                   maxLength={15}
                 />
                 {fieldErrors.nis && (
@@ -335,7 +335,7 @@ export function ClientFormModal({
           {/* Contact */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="field-phone" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">T\u00e9l\u00e9phone <span className="text-[#AEAEB2] text-[11px]">(optionnel)</span></label>
+              <label htmlFor="field-phone" className="block text-[13px] font-medium text-[#6E6E73] mb-1.5">Téléphone <span className="text-[#AEAEB2] text-[11px]">(optionnel)</span></label>
               <input
                 id="field-phone"
                 ref={phoneRef}
@@ -367,7 +367,7 @@ export function ClientFormModal({
                 value={formData.address}
                 onChange={(e) => onFormChange({ ...formData, address: e.target.value })}
                 className="w-full px-3 py-2 border border-[#E5E5E5] rounded-lg focus:ring-2 focus:ring-[#007AFF]/20 focus:border-[#007AFF]"
-                placeholder="Adresse compl\u00e8te"
+                placeholder="Adresse complète"
               />
             </div>
           </div>
@@ -395,7 +395,7 @@ export function ClientFormModal({
               disabled={saving || Object.keys(fieldErrors).length > 0}
               className="px-5 py-2.5 bg-[#007AFF] text-white rounded-full hover:bg-[#0056D6] disabled:opacity-50 font-semibold transition-all shadow-lg shadow-[#007AFF]/25"
             >
-              {saving ? 'Enregistrement...' : (editingClient ? 'Modifier' : 'Cr\u00e9er')}
+              {saving ? 'Enregistrement...' : (editingClient ? 'Modifier' : 'Créer')}
             </button>
           </div>
         </form>

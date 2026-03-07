@@ -43,7 +43,7 @@ export class InvoicesService {
     if (status) where.status = status;
     if (clientId) where.clientId = clientId;
 
-    return this.prisma.invoice.findMany({
+    const invoices = await this.prisma.invoice.findMany({
       where,
       orderBy: { date: 'desc' },
       include: {
@@ -56,6 +56,11 @@ export class InvoicesService {
         _count: { select: { payments: true } },
       },
     });
+
+    return invoices.map((inv) => ({
+      ...inv,
+      timbreRate: inv.timbreRate != null ? Number(inv.timbreRate) : null,
+    }));
   }
 
   /**
@@ -81,7 +86,10 @@ export class InvoicesService {
       throw new NotFoundException(`Facture #${id} introuvable`);
     }
 
-    return invoice;
+    return {
+      ...invoice,
+      timbreRate: invoice.timbreRate != null ? Number(invoice.timbreRate) : null,
+    };
   }
 
   /**

@@ -116,7 +116,7 @@ export function ProductionTraceabilityTab({ lotSearchQuery, onSearchChange, lotS
                             <div className="text-right">
                               <p className="font-medium">{usage.quantityConsumed} consommés</p>
                               {usage.lotsPfProduced && usage.lotsPfProduced.length > 0 && (
-                                <p className="text-sm text-[#86868B]">\u2192 {usage.lotsPfProduced.join(', ')}</p>
+                                <p className="text-sm text-[#86868B]">→ {usage.lotsPfProduced.join(', ')}</p>
                               )}
                             </div>
                           </div>

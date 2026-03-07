@@ -272,7 +272,7 @@ interface HistoryModalProps {
 }
 
 const ORIGIN_LABELS: Record<string, string> = {
-  RECEPTION: 'R\u00e9ception',
+  RECEPTION: 'Réception',
   PRODUCTION_OUT: 'Production',
   PRODUCTION_IN: 'Production',
   VENTE: 'Vente',
@@ -339,7 +339,7 @@ function HistoryModal({ isOpen, onClose, product }: HistoryModalProps) {
                   filter === f ? "bg-[#1D1D1F] text-white shadow-sm" : "glass-pill text-[#86868B] hover:bg-white/60"
                 )}
               >
-                {f === 'ALL' ? 'Tous' : f === 'IN' ? '\u2193 Entr\u00e9es' : '\u2191 Sorties'}
+                {f === 'ALL' ? 'Tous' : f === 'IN' ? '↓ Entrées' : '↑ Sorties'}
               </button>
             ))}
           </div>

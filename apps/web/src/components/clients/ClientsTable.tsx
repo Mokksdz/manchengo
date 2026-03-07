@@ -147,7 +147,7 @@ export function ClientsTable({
               <td colSpan={6} className="px-6 py-16 text-center">
                 <div className="glass-empty">
                   <Users className="w-12 h-12 text-[#86868B]/40 mx-auto mb-3" />
-                  <p className="text-[#86868B] font-medium">Aucun client trouv\u00e9</p>
+                  <p className="text-[#86868B] font-medium">Aucun client trouvé</p>
                 </div>
               </td>
             </tr>

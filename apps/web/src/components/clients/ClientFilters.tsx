@@ -123,7 +123,7 @@ export function ClientFilters({
         <input
           ref={searchInputRef}
           type="text"
-          placeholder="Rechercher par nom, code, NIF ou t\u00e9l\u00e9phone..."
+          placeholder="Rechercher par nom, code, NIF ou téléphone..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full pl-10 pr-10 py-2.5 glass-card rounded-full text-sm placeholder:text-[#86868B] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 border-0"
