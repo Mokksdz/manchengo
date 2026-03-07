@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Zap, Package, ChevronRight, AlertTriangle, Check, CheckCircle, XCircle, Sparkles, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { authFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 
 interface ProductPf {
   id: number;
@@ -89,14 +89,11 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
     setIsCheckingStock(true);
     setWizardError('');
     try {
-      const res = await authFetch(`/recipes/${wizardData.product.recipeId}/check-stock?batchCount=${wizardData.batchCount}`, { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        setWizardData(prev => ({ ...prev, stockCheck: data }));
-        setWizardStep(3);
-      }
-    } catch {
-      setWizardError('Erreur vérification stock');
+      const data = await apiFetch<StockCheck>(`/recipes/${wizardData.product.recipeId}/check-stock?batchCount=${wizardData.batchCount}`);
+      setWizardData(prev => ({ ...prev, stockCheck: data }));
+      setWizardStep(3);
+    } catch (err) {
+      setWizardError(err instanceof Error ? err.message : 'Erreur vérification stock');
     } finally {
       setIsCheckingStock(false);
     }
@@ -106,9 +103,8 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
     if (!wizardData.product || !wizardData.stockCheck?.canProduce) return;
     setIsCreatingOrder(true);
     try {
-      const res = await authFetch('/production', {
+      const order = await apiFetch<{ id: number }>('/production', {
         method: 'POST',
-        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productPfId: wizardData.product.id,
@@ -116,16 +112,11 @@ export function ProductionWizardModal({ isOpen, onClose, products, initialProduc
           scheduledDate: wizardData.scheduledDate || undefined,
         }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erreur');
-      }
-      const order = await res.json();
       onClose();
       onSuccess();
       router.push(`/dashboard/production/order/${order.id}`);
     } catch (err) {
-      setWizardError(err instanceof Error ? err.message : 'Erreur');
+      setWizardError(err instanceof Error ? err.message : 'Erreur création ordre');
     } finally {
       setIsCreatingOrder(false);
     }
