@@ -619,7 +619,7 @@ export default function LivraisonsPage() {
                 <div className="flex justify-end gap-3">
                   {selectedDelivery.status === 'PENDING' && (
                     <Button
-                      variant="danger"
+                      variant="destructive"
                       onClick={() => {
                         setCancelTarget({ id: selectedDelivery.id, reference: selectedDelivery.reference });
                       }}
@@ -630,7 +630,7 @@ export default function LivraisonsPage() {
                   )}
                   {selectedDelivery.status === 'VALIDATED' && (
                     <Button
-                      variant="primary"
+                      variant="default"
                       onClick={() => {
                         setDeliverTarget({ id: selectedDelivery.id, reference: selectedDelivery.reference });
                       }}
