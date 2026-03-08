@@ -3,12 +3,13 @@
 import { apiFetch } from '@/lib/api';
 import { toast } from 'sonner';
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDate } from '@/lib/utils';
 import { formatPrice } from '@/lib/format';
 import { useFocusTrap, useEscapeKey } from '@/lib/hooks/use-focus-trap';
 import {
-  Truck, Plus, X, Eye, Search, Ban, CheckCircle, Loader2,
-  MapPin, Calendar, FileText, Package,
+  Truck, Plus, X, Eye, Search, Ban, CheckCircle,
+  MapPin, Calendar, Package,
 } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
@@ -64,15 +65,6 @@ interface DeliveryDetail extends Delivery {
   };
 }
 
-interface InvoiceForBL {
-  id: number;
-  reference: string;
-  date: string;
-  status: string;
-  netToPay: number;
-  client: { id: number; name: string; code?: string; address?: string };
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // STATUS CONFIG
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -97,6 +89,8 @@ function getStatusLabel(status: string): string {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function LivraisonsPage() {
+  const router = useRouter();
+
   // ── List state ──
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: 20, totalPages: 1 });
@@ -112,20 +106,6 @@ export default function LivraisonsPage() {
   const detailModalRef = useFocusTrap<HTMLDivElement>(showDetailModal);
   const closeDetailModal = useCallback(() => setShowDetailModal(false), []);
   useEscapeKey(closeDetailModal, showDetailModal);
-
-  // ── Create modal ──
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [invoicesForBL, setInvoicesForBL] = useState<InvoiceForBL[]>([]);
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
-  const [scheduledDate, setScheduledDate] = useState('');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [deliveryNotes, setDeliveryNotesField] = useState('');
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [loadingInvoices, setLoadingInvoices] = useState(false);
-  const createModalRef = useFocusTrap<HTMLDivElement>(showCreateModal);
-  const closeCreateModal = useCallback(() => { setShowCreateModal(false); setCreateError(null); }, []);
-  useEscapeKey(closeCreateModal, showCreateModal);
 
   // ── Cancel prompt ──
   const [cancelTarget, setCancelTarget] = useState<{ id: string; reference: string } | null>(null);
@@ -164,7 +144,7 @@ export default function LivraisonsPage() {
 
   // Keyboard shortcuts
   useKeyboardShortcuts([
-    { key: 'n', handler: () => openCreateModal(), description: 'Nouveau BL' },
+    { key: 'n', handler: () => router.push('/dashboard/livraisons/new'), description: 'Nouveau BL' },
     { key: 'r', handler: () => { loadDeliveries(); }, description: 'Actualiser' },
     { key: '/', handler: () => { searchInputRef.current?.focus(); }, description: 'Rechercher' },
   ]);
@@ -181,66 +161,6 @@ export default function LivraisonsPage() {
     } catch (err) {
       log.error('Failed to load delivery', { error: err instanceof Error ? err.message : String(err) });
       toast.error('Erreur lors du chargement du bon de livraison');
-    }
-  };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CREATE BL
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const openCreateModal = async () => {
-    setShowCreateModal(true);
-    setSelectedInvoiceId(null);
-    setScheduledDate('');
-    setDeliveryAddress('');
-    setDeliveryNotesField('');
-    setCreateError(null);
-
-    setLoadingInvoices(true);
-    try {
-      const result = await apiFetch<{ data: InvoiceForBL[]; meta: { total: number } }>('/admin/invoices?status=VALIDATED');
-      setInvoicesForBL(result.data || []);
-    } catch (err) {
-      log.error('Failed to load invoices', { error: err instanceof Error ? err.message : String(err) });
-      setCreateError('Impossible de charger les factures');
-    } finally {
-      setLoadingInvoices(false);
-    }
-  };
-
-  const handleSelectInvoice = (invoiceId: number) => {
-    setSelectedInvoiceId(invoiceId);
-    const invoice = invoicesForBL.find(i => i.id === invoiceId);
-    if (invoice?.client?.address) {
-      setDeliveryAddress(invoice.client.address);
-    }
-  };
-
-  const handleCreateSubmit = async () => {
-    if (!selectedInvoiceId) {
-      setCreateError('Veuillez sélectionner une facture');
-      return;
-    }
-
-    setCreateLoading(true);
-    setCreateError(null);
-    try {
-      await apiFetch('/deliveries', {
-        method: 'POST',
-        body: JSON.stringify({
-          invoiceId: selectedInvoiceId,
-          scheduledDate: scheduledDate || undefined,
-          deliveryAddress: deliveryAddress || undefined,
-          deliveryNotes: deliveryNotes || undefined,
-        }),
-      });
-      toast.success('Bon de livraison créé avec succès');
-      setShowCreateModal(false);
-      loadDeliveries();
-    } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création');
-    } finally {
-      setCreateLoading(false);
     }
   };
 
@@ -290,8 +210,6 @@ export default function LivraisonsPage() {
   // RENDER
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const selectedInvoiceForCreate = invoicesForBL.find(i => i.id === selectedInvoiceId);
-
   return (
     <div className="space-y-6 animate-slide-up">
       <PageHeader
@@ -299,7 +217,7 @@ export default function LivraisonsPage() {
         subtitle={`${meta.total} bon${meta.total !== 1 ? 's' : ''} de livraison au total`}
         icon={<Truck className="w-5 h-5" />}
         actions={
-          <Button onClick={openCreateModal} variant="amber">
+          <Button onClick={() => router.push('/dashboard/livraisons/new')} variant="amber">
             <Plus className="w-4 h-4" />
             Nouveau BL
             <KeyboardHint shortcut="N" />
@@ -641,135 +559,6 @@ export default function LivraisonsPage() {
                   )}
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {/* CREATE BL MODAL                                                      */}
-      {/* ══════════════════════════════════════════════════════════════════════ */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
-          <div ref={createModalRef} role="dialog" aria-modal="true" aria-labelledby="create-bl-title" className="relative w-full bg-white/95 backdrop-blur-xl rounded-[28px] shadow-2xl border border-white/20 animate-scale-in max-w-lg mx-4">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-black/[0.04]">
-              <h2 id="create-bl-title" className="font-display text-[17px] font-bold text-[#1D1D1F] tracking-tight flex items-center gap-2">
-                <Plus className="w-5 h-5 text-[#EC7620]" />
-                Nouveau Bon de Livraison
-              </h2>
-              <button onClick={closeCreateModal} className="p-1 text-[#AEAEB2] hover:text-[#1D1D1F] rounded-[8px]">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              {/* Error */}
-              {createError && (
-                <div className="p-3 rounded-2xl bg-[#FF3B30]/10 text-[#D70015] text-sm font-medium">
-                  {createError}
-                </div>
-              )}
-
-              {/* Invoice selector */}
-              <div>
-                <label htmlFor="invoice-select" className="block text-[13px] font-semibold text-[#1D1D1F] mb-1.5">
-                  Facture validée <span className="text-[#FF3B30]">*</span>
-                </label>
-                {loadingInvoices ? (
-                  <div className="flex items-center gap-2 text-sm text-[#86868B]">
-                    <Loader2 className="w-4 h-4 animate-spin" /> Chargement des factures...
-                  </div>
-                ) : invoicesForBL.length === 0 ? (
-                  <p className="text-sm text-[#86868B]">Aucune facture validée disponible</p>
-                ) : (
-                  <select
-                    id="invoice-select"
-                    value={selectedInvoiceId || ''}
-                    onChange={(e) => handleSelectInvoice(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 text-sm rounded-2xl bg-white/60 border border-black/[0.06] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF]"
-                  >
-                    <option value="">-- Sélectionner une facture --</option>
-                    {invoicesForBL.map((inv) => (
-                      <option key={inv.id} value={inv.id}>
-                        {inv.reference} — {inv.client.name} — {formatPrice(inv.netToPay)}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              {/* Selected invoice info */}
-              {selectedInvoiceForCreate && (
-                <div className="glass-card p-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <div>
-                      <p className="font-medium">{selectedInvoiceForCreate.client.name}</p>
-                      <p className="text-[13px] text-[#86868B]">{selectedInvoiceForCreate.client.code}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-[#EC7620]">{formatPrice(selectedInvoiceForCreate.netToPay)}</p>
-                      <p className="text-[13px] text-[#86868B]">{formatDate(selectedInvoiceForCreate.date)}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Scheduled date */}
-              <div>
-                <label htmlFor="scheduled-date" className="block text-[13px] font-semibold text-[#1D1D1F] mb-1.5">
-                  Date prévue de livraison
-                </label>
-                <input
-                  id="scheduled-date"
-                  type="date"
-                  value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  className="w-full px-4 py-2.5 text-sm rounded-2xl bg-white/60 border border-black/[0.06] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF]"
-                />
-              </div>
-
-              {/* Delivery address */}
-              <div>
-                <label htmlFor="delivery-address" className="block text-[13px] font-semibold text-[#1D1D1F] mb-1.5">
-                  <MapPin className="w-3.5 h-3.5 inline mr-1" />
-                  Adresse de livraison
-                </label>
-                <input
-                  id="delivery-address"
-                  type="text"
-                  value={deliveryAddress}
-                  onChange={(e) => setDeliveryAddress(e.target.value)}
-                  placeholder="Adresse du client (auto-remplie)"
-                  className="w-full px-4 py-2.5 text-sm rounded-2xl bg-white/60 border border-black/[0.06] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] placeholder:text-[#86868B]"
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label htmlFor="delivery-notes" className="block text-[13px] font-semibold text-[#1D1D1F] mb-1.5">
-                  Notes de livraison
-                </label>
-                <textarea
-                  id="delivery-notes"
-                  value={deliveryNotes}
-                  onChange={(e) => setDeliveryNotesField(e.target.value)}
-                  placeholder="Instructions spéciales pour le livreur..."
-                  rows={3}
-                  className="w-full px-4 py-2.5 text-sm rounded-2xl bg-white/60 border border-black/[0.06] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] placeholder:text-[#86868B] resize-none"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-2">
-                <Button variant="secondary" onClick={closeCreateModal} disabled={createLoading}>
-                  Annuler
-                </Button>
-                <Button variant="amber" onClick={handleCreateSubmit} disabled={createLoading || !selectedInvoiceId}>
-                  {createLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                  {createLoading ? 'Création...' : 'Créer le BL'}
-                </Button>
-              </div>
             </div>
           </div>
         </div>
