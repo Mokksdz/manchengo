@@ -895,9 +895,22 @@ export class StockDashboardService {
   }
 
   /**
-   * Obtient les stats d'expiration (utilisé par le job DLC)
+   * Obtient les stats d'expiration (compteurs)
    */
   async getExpiryStats() {
     return this.lotExpiryJob.getExpiryStats();
+  }
+
+  /**
+   * Obtient les stats d'expiration détaillées (compteurs + lots + valeur)
+   * Utilisé par la page Gestion DLC / Expiration
+   */
+  async getExpiryStatsDetailed() {
+    const [stats, detailed] = await Promise.all([
+      this.lotExpiryJob.getExpiryStats(),
+      this.lotExpiryJob.getExpiryLotsDetailed(),
+    ]);
+
+    return { stats, ...detailed };
   }
 }

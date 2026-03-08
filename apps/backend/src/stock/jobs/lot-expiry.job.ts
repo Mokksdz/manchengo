@@ -367,6 +367,122 @@ export class LotExpiryJob {
   }
 
   /**
+   * Récupère les lots à risque (expirés bloqués + expirant bientôt) avec détails
+   * Utilisé par le controller pour la page DLC / Expiration
+   */
+  async getExpiryLotsDetailed(): Promise<{
+    lots: Array<{
+      id: number;
+      lotNumber: string;
+      productName: string;
+      expiryDate: string;
+      daysUntilExpiry: number;
+      quantity: number;
+      unitCost: number | null;
+      type: 'MP' | 'PF';
+    }>;
+    totalAtRisk: number;
+    valueAtRisk: number;
+  }> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const j7 = new Date(today);
+    j7.setDate(j7.getDate() + 7);
+
+    // Lots MP bloqués DLC + expirant sous 7j
+    const lotsMp = await this.prisma.$queryRaw<
+      Array<{
+        id: number;
+        lotNumber: string;
+        productName: string;
+        expiryDate: Date;
+        quantityRemaining: number;
+        unitCost: number | null;
+        status: string;
+      }>
+    >`
+      SELECT
+        lm.id,
+        lm.lot_number as "lotNumber",
+        pm.name as "productName",
+        lm.expiry_date as "expiryDate",
+        lm.quantity_remaining as "quantityRemaining",
+        lm.unit_cost as "unitCost",
+        lm.status
+      FROM lots_mp lm
+      JOIN products_mp pm ON lm.product_id = pm.id
+      WHERE lm.quantity_remaining > 0
+        AND (
+          (lm.status = 'BLOCKED' AND lm.blocked_reason = 'DLC_EXPIRED_AUTO')
+          OR (lm.status = 'AVAILABLE' AND lm.expiry_date < ${j7})
+        )
+      ORDER BY lm.expiry_date ASC
+    `;
+
+    // Lots PF bloqués DLC + expirant sous 7j
+    const lotsPf = await this.prisma.$queryRaw<
+      Array<{
+        id: number;
+        lotNumber: string;
+        productName: string;
+        expiryDate: Date;
+        quantityRemaining: number;
+        unitCost: number | null;
+        status: string;
+      }>
+    >`
+      SELECT
+        lp.id,
+        lp.lot_number as "lotNumber",
+        pp.name as "productName",
+        lp.expiry_date as "expiryDate",
+        lp.quantity_remaining as "quantityRemaining",
+        lp.unit_cost as "unitCost",
+        lp.status
+      FROM lots_pf lp
+      JOIN products_pf pp ON lp.product_id = pp.id
+      WHERE lp.quantity_remaining > 0
+        AND (
+          (lp.status = 'BLOCKED' AND lp.blocked_reason = 'DLC_EXPIRED_AUTO')
+          OR (lp.status = 'AVAILABLE' AND lp.expiry_date < ${j7})
+        )
+      ORDER BY lp.expiry_date ASC
+    `;
+
+    const allLots = [
+      ...lotsMp.map((l) => ({ ...l, type: 'MP' as const })),
+      ...lotsPf.map((l) => ({ ...l, type: 'PF' as const })),
+    ];
+
+    // Calculer daysUntilExpiry et valeur à risque
+    const lots = allLots
+      .map((l) => {
+        const expiryDate = new Date(l.expiryDate);
+        const diffMs = expiryDate.getTime() - today.getTime();
+        const daysUntilExpiry = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        return {
+          id: l.id,
+          lotNumber: l.lotNumber,
+          productName: l.productName,
+          expiryDate: l.expiryDate instanceof Date ? l.expiryDate.toISOString() : String(l.expiryDate),
+          daysUntilExpiry,
+          quantity: Number(l.quantityRemaining),
+          unitCost: l.unitCost ? Number(l.unitCost) : null,
+          type: l.type,
+        };
+      })
+      .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+
+    const totalAtRisk = lots.length;
+    const valueAtRisk = lots.reduce((sum, l) => {
+      return sum + (l.unitCost ? l.quantity * l.unitCost : 0);
+    }, 0);
+
+    return { lots, totalAtRisk, valueAtRisk };
+  }
+
+  /**
    * Obtient les statistiques des lots proches de l'expiration
    */
   async getExpiryStats(): Promise<{

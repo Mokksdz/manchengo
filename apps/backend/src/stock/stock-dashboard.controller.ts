@@ -116,21 +116,23 @@ export class StockDashboardController {
 
   /**
    * Stats d'expiration DLC détaillées
+   * Retourne compteurs, lots à risque et valeur à risque
    */
   @Get('expiry')
   @Roles('ADMIN', 'APPRO', 'PRODUCTION')
   async getExpiryStats() {
-    const stats = await this.dashboardService.getExpiryStats();
+    const { stats, lots, totalAtRisk, valueAtRisk } =
+      await this.dashboardService.getExpiryStatsDetailed();
 
     return {
       success: true,
       data: {
         stats,
         summary: {
-          needsImmediateAction: stats.expiredBlocked + stats.expiringJ1,
-          needsAttentionSoon: stats.expiringJ3,
-          upcoming: stats.expiringJ7,
+          totalAtRisk,
+          valueAtRisk,
         },
+        lots,
       },
     };
   }
