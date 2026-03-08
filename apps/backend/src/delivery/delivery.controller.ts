@@ -201,4 +201,28 @@ export class DeliveryController {
       userAgent,
     );
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MARK DELIVERY AS DELIVERED
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @Post(':id/deliver')
+  @HttpCode(HttpStatus.OK)
+  @Roles('ADMIN', 'COMMERCIAL')
+  @ApiOperation({
+    summary: 'Mark a validated delivery as delivered',
+    description: 'Transitions delivery from VALIDATED to DELIVERED status',
+  })
+  @ApiParam({ name: 'id', description: 'Delivery UUID' })
+  @ApiResponse({ status: 200, description: 'Delivery marked as delivered' })
+  @ApiResponse({ status: 400, description: 'Invalid status transition' })
+  @ApiResponse({ status: 404, description: 'Delivery not found' })
+  async markDelivered(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: Request,
+  ) {
+    const user = req.user as { id?: string; role?: string };
+    if (!user?.id) throw new UnauthorizedException('User ID not found');
+    return this.deliveryService.markDelivered(id, user.id);
+  }
 }

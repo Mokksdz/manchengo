@@ -89,6 +89,7 @@ const navSections: NavSection[] = [
     roles: ['ADMIN', 'COMMERCIAL'],
     items: [
       { name: 'Ventes', href: '/dashboard/invoices', icon: FileText, roles: ['ADMIN', 'COMMERCIAL'] },
+      { name: 'Bons de Livraison', href: '/dashboard/livraisons', icon: Truck, roles: ['ADMIN', 'COMMERCIAL'] },
       { name: 'Clients', href: '/dashboard/clients', icon: Users, roles: ['ADMIN', 'COMMERCIAL'] },
     ],
   },

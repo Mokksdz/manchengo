@@ -541,12 +541,19 @@ export class DeliveryService {
       }
     }
 
+    if (query.search) {
+      where.OR = [
+        { reference: { contains: query.search, mode: 'insensitive' } },
+        { client: { name: { contains: query.search, mode: 'insensitive' } } },
+      ];
+    }
+
     const [deliveries, total] = await Promise.all([
       this.prisma.delivery.findMany({
         where,
         include: {
           client: { select: { id: true, name: true } },
-          invoice: { select: { id: true, reference: true } },
+          invoice: { select: { id: true, reference: true, netToPay: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,

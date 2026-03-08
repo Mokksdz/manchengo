@@ -149,7 +149,7 @@ export class DeliveryQueryDto {
   @ApiPropertyOptional({ description: 'Filter by status' })
   @IsOptional()
   @IsString()
-  status?: 'PENDING' | 'VALIDATED' | 'CANCELLED';
+  status?: 'PENDING' | 'VALIDATED' | 'DELIVERED' | 'CANCELLED';
 
   @ApiPropertyOptional({ description: 'Filter by client ID' })
   @IsOptional()
@@ -167,6 +167,11 @@ export class DeliveryQueryDto {
   @IsOptional()
   @IsDateString()
   dateTo?: string;
+
+  @ApiPropertyOptional({ description: 'Search by reference or client name' })
+  @IsOptional()
+  @IsString()
+  search?: string;
 
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsOptional()
