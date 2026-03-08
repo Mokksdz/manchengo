@@ -198,9 +198,8 @@ export default function LivraisonsPage() {
 
     setLoadingInvoices(true);
     try {
-      // The invoices endpoint returns an array directly (not wrapped in { data, meta })
-      const invoices = await apiFetch<InvoiceForBL[]>('/admin/invoices?status=VALIDATED');
-      setInvoicesForBL(invoices || []);
+      const result = await apiFetch<{ data: InvoiceForBL[]; meta: { total: number } }>('/admin/invoices?status=VALIDATED');
+      setInvoicesForBL(result.data || []);
     } catch (err) {
       log.error('Failed to load invoices', { error: err instanceof Error ? err.message : String(err) });
       setCreateError('Impossible de charger les factures');

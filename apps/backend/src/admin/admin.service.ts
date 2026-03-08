@@ -298,7 +298,7 @@ export class AdminService {
       this.prisma.invoice.findMany({
         where,
         include: {
-          client: { select: { id: true, code: true, name: true } },
+          client: { select: { id: true, code: true, name: true, address: true } },
           lines: {
             include: {
               productPf: { select: { id: true, code: true, name: true } },
