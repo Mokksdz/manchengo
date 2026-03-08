@@ -35,6 +35,7 @@ import {
  *   POST   /inventory/:id/validate     - Valider une déclaration
  *   POST   /inventory/:id/reject       - Rejeter une déclaration
  *   GET    /inventory/pending          - Liste des inventaires en attente
+ *   GET    /inventory/all             - Toutes les déclarations (historique)
  *   GET    /inventory/:id              - Détail d'une déclaration
  *   GET    /inventory/history/:type/:productId - Historique par produit
  *
@@ -190,8 +191,24 @@ export class InventoryController {
 
     return {
       success: true,
-      data: pending,
+      data: this.mapDeclarationsForFrontend(pending),
       count: pending.length,
+    };
+  }
+
+  /**
+   * Toutes les déclarations (historique)
+   * Accessible: ADMIN, APPRO, PRODUCTION
+   */
+  @Get('all')
+  @Roles('ADMIN', 'APPRO', 'PRODUCTION')
+  async getAllDeclarations() {
+    const declarations = await this.inventoryService.getAllDeclarations();
+
+    return {
+      success: true,
+      data: this.mapDeclarationsForFrontend(declarations),
+      count: declarations.length,
     };
   }
 
@@ -221,6 +238,31 @@ export class InventoryController {
    * Historique des inventaires pour un produit
    * Accessible: ADMIN, COMPTABLE
    */
+  /**
+   * Mappe les champs backend vers les noms attendus par le frontend
+   * backend: theoreticalStock/declaredStock → frontend: systemQuantity/declaredQuantity
+   */
+  private mapDeclarationsForFrontend(declarations: any[]) {
+    return declarations.map((d) => ({
+      id: d.id,
+      productType: d.productType,
+      productName: d.productName,
+      productCode: d.productCode,
+      declaredQuantity: d.declaredStock,
+      systemQuantity: d.theoreticalStock,
+      difference: d.difference,
+      differencePercent: d.differencePercent,
+      riskLevel: d.riskLevel,
+      status: d.status,
+      countedBy: d.countedBy,
+      countedAt: d.countedAt,
+      notes: d.notes,
+      hasEvidence: d.hasEvidence,
+      validatedBy: d.validatedBy || null,
+      validatedAt: d.validatedAt || null,
+    }));
+  }
+
   @Get('history/:productType/:productId')
   @Roles('ADMIN', 'APPRO')
   async getInventoryHistory(

@@ -97,6 +97,8 @@ export interface PendingInventory {
   countedAt: Date;
   notes: string | null;
   hasEvidence: boolean;
+  validatedBy?: { firstName: string; lastName: string };
+  validatedAt?: Date;
 }
 
 @Injectable()
@@ -449,18 +451,37 @@ export class InventoryService {
    */
 
   async getPendingValidations(): Promise<PendingInventory[]> {
+    return this.getDeclarationsByFilter({
+      status: { in: ['PENDING_VALIDATION', 'PENDING_DOUBLE_VALIDATION'] },
+    });
+  }
+
+  /**
+   * Toutes les déclarations d'inventaire (pour l'historique)
+   * Triées par date décroissante
+   */
+  async getAllDeclarations(): Promise<PendingInventory[]> {
+    return this.getDeclarationsByFilter({});
+  }
+
+  /**
+   * Méthode commune pour récupérer les déclarations avec enrichissement produit
+   */
+  private async getDeclarationsByFilter(
+    where: Prisma.InventoryDeclarationWhereInput,
+  ): Promise<PendingInventory[]> {
     const declarations = await this.prisma.inventoryDeclaration.findMany({
-      where: {
-        status: {
-          in: ['PENDING_VALIDATION', 'PENDING_DOUBLE_VALIDATION'],
-        },
-      },
+      where,
       include: {
         countedBy: {
           select: { id: true, firstName: true, lastName: true },
         },
+        validatedBy: {
+          select: { firstName: true, lastName: true },
+        },
       },
-      orderBy: [{ riskLevel: 'desc' }, { countedAt: 'asc' }],
+      orderBy: [{ countedAt: 'desc' }],
+      take: 100,
     });
 
     const results: PendingInventory[] = [];
@@ -500,6 +521,8 @@ export class InventoryService {
         countedAt: decl.countedAt,
         notes: decl.notes,
         hasEvidence: decl.evidencePhotos.length > 0,
+        validatedBy: decl.validatedBy || undefined,
+        validatedAt: decl.validatedAt || undefined,
       });
     }
 
