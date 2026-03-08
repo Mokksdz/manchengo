@@ -79,9 +79,9 @@ interface InvoiceForBL {
 
 const deliveryStatuses = [
   { value: 'PENDING', label: 'En attente', color: 'bg-[#FF9500]/10 text-[#C93400]' },
-  { value: 'VALIDATED', label: 'Valid\u00e9', color: 'bg-[#007AFF]/10 text-[#007AFF]' },
-  { value: 'DELIVERED', label: 'Livr\u00e9', color: 'bg-[#34C759]/10 text-[#248A3D]' },
-  { value: 'CANCELLED', label: 'Annul\u00e9', color: 'bg-[#FF3B30]/10 text-[#D70015]' },
+  { value: 'VALIDATED', label: 'Validé', color: 'bg-[#007AFF]/10 text-[#007AFF]' },
+  { value: 'DELIVERED', label: 'Livré', color: 'bg-[#34C759]/10 text-[#248A3D]' },
+  { value: 'CANCELLED', label: 'Annulé', color: 'bg-[#FF3B30]/10 text-[#D70015]' },
 ];
 
 function getStatusStyle(status: string): string {
@@ -198,8 +198,9 @@ export default function LivraisonsPage() {
 
     setLoadingInvoices(true);
     try {
-      const result = await apiFetch<{ data: InvoiceForBL[]; meta: { total: number } }>('/admin/invoices?status=VALIDATED&limit=100');
-      setInvoicesForBL(result.data || []);
+      // The invoices endpoint returns an array directly (not wrapped in { data, meta })
+      const invoices = await apiFetch<InvoiceForBL[]>('/admin/invoices?status=VALIDATED');
+      setInvoicesForBL(invoices || []);
     } catch (err) {
       log.error('Failed to load invoices', { error: err instanceof Error ? err.message : String(err) });
       setCreateError('Impossible de charger les factures');
@@ -218,7 +219,7 @@ export default function LivraisonsPage() {
 
   const handleCreateSubmit = async () => {
     if (!selectedInvoiceId) {
-      setCreateError('Veuillez s\u00e9lectionner une facture');
+      setCreateError('Veuillez sélectionner une facture');
       return;
     }
 
@@ -234,11 +235,11 @@ export default function LivraisonsPage() {
           deliveryNotes: deliveryNotes || undefined,
         }),
       });
-      toast.success('Bon de livraison cr\u00e9\u00e9 avec succ\u00e8s');
+      toast.success('Bon de livraison créé avec succès');
       setShowCreateModal(false);
       loadDeliveries();
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Erreur lors de la cr\u00e9ation');
+      setCreateError(err instanceof Error ? err.message : 'Erreur lors de la création');
     } finally {
       setCreateLoading(false);
     }
@@ -256,12 +257,12 @@ export default function LivraisonsPage() {
         method: 'POST',
         body: JSON.stringify({ reason }),
       });
-      toast.success(`BL ${cancelTarget.reference} annul\u00e9`);
+      toast.success(`BL ${cancelTarget.reference} annulé`);
       setCancelTarget(null);
       setShowDetailModal(false);
       loadDeliveries();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de l\'annulation');
+      toast.error(err instanceof Error ? err.message : "Erreur lors de l'annulation");
     } finally {
       setCancelLoading(false);
     }
@@ -277,12 +278,12 @@ export default function LivraisonsPage() {
       await apiFetch(`/deliveries/${deliverTarget.id}/deliver`, {
         method: 'POST',
       });
-      toast.success(`BL ${deliverTarget.reference} marqu\u00e9 comme livr\u00e9`);
+      toast.success(`BL ${deliverTarget.reference} marqué comme livré`);
       setDeliverTarget(null);
       setShowDetailModal(false);
       loadDeliveries();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erreur lors de la mise \u00e0 jour');
+      toast.error(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
     }
   };
 
@@ -326,7 +327,7 @@ export default function LivraisonsPage() {
                 <input
                   ref={searchInputRef}
                   type="text"
-                  placeholder="Rechercher par r\u00e9f\u00e9rence ou client..."
+                  placeholder="Rechercher par référence ou client..."
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                   className="w-full pl-9 pr-10 py-2 text-sm rounded-full bg-white/60 border border-black/[0.04] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] placeholder:text-[#86868B]"
@@ -337,7 +338,7 @@ export default function LivraisonsPage() {
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {(['ALL', 'PENDING', 'VALIDATED', 'DELIVERED', 'CANCELLED'] as const).map((s) => {
-                  const labels: Record<string, string> = { ALL: 'Tous', PENDING: 'En attente', VALIDATED: 'Valid\u00e9', DELIVERED: 'Livr\u00e9', CANCELLED: 'Annul\u00e9' };
+                  const labels: Record<string, string> = { ALL: 'Tous', PENDING: 'En attente', VALIDATED: 'Validé', DELIVERED: 'Livré', CANCELLED: 'Annulé' };
                   return (
                     <button
                       key={s}
@@ -358,7 +359,7 @@ export default function LivraisonsPage() {
             <table className="w-full">
               <thead className="bg-white/40 backdrop-blur-sm border-b border-black/[0.04]">
                 <tr>
-                  <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">R\u00e9f\u00e9rence</th>
+                  <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Référence</th>
                   <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Date</th>
                   <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Client</th>
                   <th className="px-5 py-3.5 text-left text-[11px] font-semibold text-[#86868B] uppercase tracking-wider">Facture</th>
@@ -394,7 +395,7 @@ export default function LivraisonsPage() {
                         <button
                           onClick={() => viewDeliveryDetail(delivery.id)}
                           className="p-2 rounded-xl text-[#86868B] hover:text-[#007AFF] hover:bg-[#007AFF]/10 transition-all"
-                          title="Voir d\u00e9tails"
+                          title="Voir détails"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -402,7 +403,7 @@ export default function LivraisonsPage() {
                           <button
                             onClick={() => setDeliverTarget({ id: delivery.id, reference: delivery.reference })}
                             className="p-2 rounded-xl text-[#86868B] hover:text-[#34C759] hover:bg-[#34C759]/10 transition-all"
-                            title="Marquer livr\u00e9"
+                            title="Marquer livré"
                           >
                             <CheckCircle className="w-4 h-4" />
                           </button>
@@ -424,7 +425,7 @@ export default function LivraisonsPage() {
                   <tr>
                     <td colSpan={7} className="px-6 py-16 text-center">
                       <Truck className="w-12 h-12 text-[#86868B]/40 mx-auto mb-3" />
-                      <p className="text-[#86868B] font-medium">Aucun bon de livraison trouv\u00e9</p>
+                      <p className="text-[#86868B] font-medium">Aucun bon de livraison trouvé</p>
                     </td>
                   </tr>
                 )}
@@ -476,7 +477,7 @@ export default function LivraisonsPage() {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-[#86868B] mb-1">Facture li\u00e9e</h3>
+                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-[#86868B] mb-1">Facture liée</h3>
                     <p className="font-mono text-sm font-medium">{selectedDelivery.invoice.reference}</p>
                   </div>
                 </div>
@@ -488,34 +489,34 @@ export default function LivraisonsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-[13px]">
                       <Calendar className="w-3.5 h-3.5 text-[#86868B]" />
-                      <span className="text-[#86868B]">Cr\u00e9\u00e9 le:</span>
+                      <span className="text-[#86868B]">Créé le:</span>
                       <span>{formatDate(selectedDelivery.createdAt)}</span>
                     </div>
                     {selectedDelivery.scheduledDate && (
                       <div className="flex items-center gap-2 text-[13px]">
                         <Calendar className="w-3.5 h-3.5 text-[#FF9500]" />
-                        <span className="text-[#86868B]">Pr\u00e9vu le:</span>
+                        <span className="text-[#86868B]">Prévu le:</span>
                         <span>{formatDate(selectedDelivery.scheduledDate)}</span>
                       </div>
                     )}
                     {selectedDelivery.validatedAt && (
                       <div className="flex items-center gap-2 text-[13px]">
                         <CheckCircle className="w-3.5 h-3.5 text-[#007AFF]" />
-                        <span className="text-[#86868B]">Valid\u00e9 le:</span>
+                        <span className="text-[#86868B]">Validé le:</span>
                         <span>{formatDate(selectedDelivery.validatedAt)}</span>
                       </div>
                     )}
                     {selectedDelivery.deliveredAt && (
                       <div className="flex items-center gap-2 text-[13px]">
                         <Truck className="w-3.5 h-3.5 text-[#34C759]" />
-                        <span className="text-[#86868B]">Livr\u00e9 le:</span>
+                        <span className="text-[#86868B]">Livré le:</span>
                         <span>{formatDate(selectedDelivery.deliveredAt)}</span>
                       </div>
                     )}
                     {selectedDelivery.cancelledAt && (
                       <div className="flex items-center gap-2 text-[13px]">
                         <Ban className="w-3.5 h-3.5 text-[#FF3B30]" />
-                        <span className="text-[#86868B]">Annul\u00e9 le:</span>
+                        <span className="text-[#86868B]">Annulé le:</span>
                         <span>{formatDate(selectedDelivery.cancelledAt)}</span>
                       </div>
                     )}
@@ -560,7 +561,7 @@ export default function LivraisonsPage() {
                       <thead className="bg-white/40 backdrop-blur-sm border-b border-black/[0.04]">
                         <tr>
                           <th className="px-3 py-2 text-left">Produit</th>
-                          <th className="px-3 py-2 text-right">Qt\u00e9</th>
+                          <th className="px-3 py-2 text-right">Qté</th>
                           <th className="px-3 py-2 text-right">Prix HT</th>
                           <th className="px-3 py-2 text-right">Total HT</th>
                         </tr>
@@ -609,7 +610,7 @@ export default function LivraisonsPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-sm font-bold pt-2 mt-2 border-t border-black/[0.08]">
-                  <span>Net \u00e0 payer</span>
+                  <span>Net à payer</span>
                   <span className="text-[#EC7620]">{formatPrice(selectedDelivery.invoice.netToPay)}</span>
                 </div>
               </div>
@@ -636,7 +637,7 @@ export default function LivraisonsPage() {
                       }}
                     >
                       <CheckCircle className="w-4 h-4" />
-                      Marquer livr\u00e9
+                      Marquer livré
                     </Button>
                   )}
                 </div>
@@ -674,14 +675,14 @@ export default function LivraisonsPage() {
               {/* Invoice selector */}
               <div>
                 <label htmlFor="invoice-select" className="block text-[13px] font-semibold text-[#1D1D1F] mb-1.5">
-                  Facture valid\u00e9e <span className="text-[#FF3B30]">*</span>
+                  Facture validée <span className="text-[#FF3B30]">*</span>
                 </label>
                 {loadingInvoices ? (
                   <div className="flex items-center gap-2 text-sm text-[#86868B]">
                     <Loader2 className="w-4 h-4 animate-spin" /> Chargement des factures...
                   </div>
                 ) : invoicesForBL.length === 0 ? (
-                  <p className="text-sm text-[#86868B]">Aucune facture valid\u00e9e disponible</p>
+                  <p className="text-sm text-[#86868B]">Aucune facture validée disponible</p>
                 ) : (
                   <select
                     id="invoice-select"
@@ -689,10 +690,10 @@ export default function LivraisonsPage() {
                     onChange={(e) => handleSelectInvoice(Number(e.target.value))}
                     className="w-full px-4 py-2.5 text-sm rounded-2xl bg-white/60 border border-black/[0.06] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF]"
                   >
-                    <option value="">-- S\u00e9lectionner une facture --</option>
+                    <option value="">-- Sélectionner une facture --</option>
                     {invoicesForBL.map((inv) => (
                       <option key={inv.id} value={inv.id}>
-                        {inv.reference} \u2014 {inv.client.name} \u2014 {formatPrice(inv.netToPay)}
+                        {inv.reference} — {inv.client.name} — {formatPrice(inv.netToPay)}
                       </option>
                     ))}
                   </select>
@@ -718,7 +719,7 @@ export default function LivraisonsPage() {
               {/* Scheduled date */}
               <div>
                 <label htmlFor="scheduled-date" className="block text-[13px] font-semibold text-[#1D1D1F] mb-1.5">
-                  Date pr\u00e9vue de livraison
+                  Date prévue de livraison
                 </label>
                 <input
                   id="scheduled-date"
@@ -754,7 +755,7 @@ export default function LivraisonsPage() {
                   id="delivery-notes"
                   value={deliveryNotes}
                   onChange={(e) => setDeliveryNotesField(e.target.value)}
-                  placeholder="Instructions sp\u00e9ciales pour le livreur..."
+                  placeholder="Instructions spéciales pour le livreur..."
                   rows={3}
                   className="w-full px-4 py-2.5 text-sm rounded-2xl bg-white/60 border border-black/[0.06] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 focus:border-[#007AFF] placeholder:text-[#86868B] resize-none"
                 />
@@ -767,7 +768,7 @@ export default function LivraisonsPage() {
                 </Button>
                 <Button variant="amber" onClick={handleCreateSubmit} disabled={createLoading || !selectedInvoiceId}>
                   {createLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                  {createLoading ? 'Cr\u00e9ation...' : 'Cr\u00e9er le BL'}
+                  {createLoading ? 'Création...' : 'Créer le BL'}
                 </Button>
               </div>
             </div>
@@ -783,7 +784,7 @@ export default function LivraisonsPage() {
         onClose={() => setCancelTarget(null)}
         onSubmit={handleCancel}
         title="Annuler ce bon de livraison ?"
-        message={`Saisissez le motif d'annulation pour le BL ${cancelTarget?.reference || ''} (minimum 5 caract\u00e8res).`}
+        message={`Saisissez le motif d'annulation pour le BL ${cancelTarget?.reference || ''} (minimum 5 caractères).`}
         placeholder="Motif d'annulation..."
         multiline
         submitLabel="Confirmer l'annulation"
@@ -799,8 +800,8 @@ export default function LivraisonsPage() {
         open={!!deliverTarget}
         onClose={() => setDeliverTarget(null)}
         onConfirm={handleMarkDelivered}
-        title="Marquer comme livr\u00e9 ?"
-        message={`Confirmer que la livraison ${deliverTarget?.reference || ''} a \u00e9t\u00e9 effectu\u00e9e.`}
+        title="Marquer comme livré ?"
+        message={`Confirmer que la livraison ${deliverTarget?.reference || ''} a été effectuée.`}
         confirmLabel="Confirmer la livraison"
         variant="primary"
       />
