@@ -113,7 +113,7 @@ describe('StatCard', () => {
   it('renders with all color variants', () => {
     const colors = ['default', 'purple', 'blue', 'emerald', 'amber', 'red'] as const;
     for (const color of colors) {
-      const { unmount, container } = render(
+      const { unmount } = render(
         <StatCard
           title={`Color ${color}`}
           value={100}

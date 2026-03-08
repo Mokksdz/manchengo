@@ -7,8 +7,7 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor } from '@testing-library/react';
 
 // ─── Mocks ───
 jest.mock('next/navigation', () => ({
@@ -17,7 +16,9 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>;
+  const MockLink = ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>;
+  MockLink.displayName = 'MockLink';
+  return MockLink;
 });
 
 const mockAuth = {
@@ -76,9 +77,9 @@ jest.mock('@/components/ui/button', () => ({
 }));
 
 jest.mock('@/components/stock', () => ({
-  ZoneCritique: ({ data }: { data: unknown }) => <div data-testid="zone-critique">Zone Critique</div>,
-  ZoneATraiter: ({ data }: { data: unknown }) => <div data-testid="zone-atraiter">Zone À Traiter</div>,
-  ZoneSante: ({ data }: { data: unknown }) => <div data-testid="zone-sante">Zone Santé</div>,
+  ZoneCritique: ({ data: _data }: { data: unknown }) => <div data-testid="zone-critique">Zone Critique</div>,
+  ZoneATraiter: ({ data: _data2 }: { data: unknown }) => <div data-testid="zone-atraiter">Zone À Traiter</div>,
+  ZoneSante: ({ data: _data3 }: { data: unknown }) => <div data-testid="zone-sante">Zone Santé</div>,
 }));
 
 import StockDashboardPage from '../page';

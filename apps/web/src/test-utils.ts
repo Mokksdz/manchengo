@@ -2,9 +2,6 @@
  * Shared test helpers and mock factories for Manchengo Smart ERP tests.
  */
 
-import React, { ReactNode } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
-
 // ─── Mock User Factory ───
 export type MockRole = 'ADMIN' | 'APPRO' | 'PRODUCTION' | 'COMMERCIAL';
 

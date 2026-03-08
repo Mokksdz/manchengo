@@ -59,7 +59,7 @@ export class InvoicesService {
 
     return invoices.map((inv) => ({
       ...inv,
-      timbreRate: inv.timbreRate != null ? Number(inv.timbreRate) : null,
+      timbreRate: inv.timbreRate !== null && inv.timbreRate !== undefined ? Number(inv.timbreRate) : null,
     }));
   }
 
@@ -88,7 +88,7 @@ export class InvoicesService {
 
     return {
       ...invoice,
-      timbreRate: invoice.timbreRate != null ? Number(invoice.timbreRate) : null,
+      timbreRate: invoice.timbreRate !== null && invoice.timbreRate !== undefined ? Number(invoice.timbreRate) : null,
     };
   }
 

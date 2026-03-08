@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // ─── Mocks ───
@@ -19,9 +19,11 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('next/link', () => {
-  return ({ children, href, onClick, ...props }: { children: React.ReactNode; href: string; onClick?: () => void }) => (
+  const MockLink = ({ children, href, onClick, ...props }: { children: React.ReactNode; href: string; onClick?: () => void }) => (
     <a href={href} onClick={onClick} {...props}>{children}</a>
   );
+  MockLink.displayName = 'MockLink';
+  return MockLink;
 });
 
 jest.mock('next/dynamic', () => {

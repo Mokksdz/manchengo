@@ -316,7 +316,7 @@ export class AdminService {
     return {
       data: invoices.map((inv) => ({
         ...inv,
-        timbreRate: inv.timbreRate != null ? Number(inv.timbreRate) : null,
+        timbreRate: inv.timbreRate !== null && inv.timbreRate !== undefined ? Number(inv.timbreRate) : null,
       })),
       meta: {
         total,

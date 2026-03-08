@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 // ─── Mocks ───
 jest.mock('next/navigation', () => ({
@@ -15,9 +15,11 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('next/link', () => {
-  return ({ children, href, ...props }: { children: React.ReactNode; href: string }) => (
+  const MockLink = ({ children, href, ...props }: { children: React.ReactNode; href: string }) => (
     <a href={href} {...props}>{children}</a>
   );
+  MockLink.displayName = 'MockLink';
+  return MockLink;
 });
 
 const mockAuth: { user: null | { id: string; code: string; email: string; firstName: string; lastName: string; role: string }; isLoading: boolean; isAuthenticated: boolean } = {
