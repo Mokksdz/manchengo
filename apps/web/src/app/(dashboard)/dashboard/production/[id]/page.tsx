@@ -7,17 +7,30 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
 import { Factory, Settings, History, ArrowLeft, AlertTriangle, Beaker, Layers, Save, Plus } from 'lucide-react';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
-import {
-  ProductParamsTab,
-  ProductRecipeTab,
-  ProductBatchTab,
-  ProductHistoryTab,
-} from '@/components/production';
 import { createLogger } from '@/lib/logger';
+
+// ── Dynamic imports: product detail tab components (only rendered when active) ──
+const ProductParamsTab = dynamic(
+  () => import('@/components/production/ProductParamsTab').then(mod => ({ default: mod.ProductParamsTab })),
+  { loading: () => <div className="animate-pulse h-48 bg-gray-100/50 rounded-xl m-6" /> }
+);
+const ProductRecipeTab = dynamic(
+  () => import('@/components/production/ProductRecipeTab').then(mod => ({ default: mod.ProductRecipeTab })),
+  { loading: () => <div className="animate-pulse h-48 bg-gray-100/50 rounded-xl m-6" /> }
+);
+const ProductBatchTab = dynamic(
+  () => import('@/components/production/ProductBatchTab').then(mod => ({ default: mod.ProductBatchTab })),
+  { loading: () => <div className="animate-pulse h-48 bg-gray-100/50 rounded-xl m-6" /> }
+);
+const ProductHistoryTab = dynamic(
+  () => import('@/components/production/ProductHistoryTab').then(mod => ({ default: mod.ProductHistoryTab })),
+  { loading: () => <div className="animate-pulse h-48 bg-gray-100/50 rounded-xl m-6" /> }
+);
 
 const log = createLogger('ProductDetail');
 
@@ -96,6 +109,22 @@ interface HistoryData {
   orders: ProductionOrder[];
 }
 
+interface StockAvailability {
+  productMpId: number;
+  productMp: { id: number; code: string; name: string };
+  requiredQuantity: number;
+  availableQuantity: number;
+  isAvailable: boolean;
+  isMandatory: boolean;
+  shortage?: number;
+}
+
+interface StockCheckResult {
+  canProduce: boolean;
+  targetOutput: number;
+  availability: StockAvailability[];
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -171,8 +200,7 @@ export default function ProductionDetailPage() {
 
   // Production batch state
   const [batchCount, setBatchCount] = useState(1);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [stockCheck, setStockCheck] = useState<any>(null);
+  const [stockCheck, setStockCheck] = useState<StockCheckResult | null>(null);
   const [isCheckingStock, setIsCheckingStock] = useState(false);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
@@ -273,8 +301,7 @@ export default function ProductionDetailPage() {
     if (!recipe) return;
     setIsCheckingStock(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await apiFetch<any>(
+      const data = await apiFetch<StockCheckResult>(
         `/recipes/${recipe.id}/check-stock?batchCount=${batchCount}`
       );
       setStockCheck(data);

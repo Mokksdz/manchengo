@@ -192,8 +192,7 @@ export function ProductionCalendarTab({ products: _products, onOpenWizard }: Pro
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await apiFetch<any>(`/production/${draggedOrder.id}/schedule`, {
+      await apiFetch<{ success: boolean }>(`/production/${draggedOrder.id}/schedule`, {
         method: 'PUT',
         body: JSON.stringify({ scheduledDate: dateStr }),
       });

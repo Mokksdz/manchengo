@@ -4,210 +4,113 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
 import { toast } from 'sonner';
-import { Factory, Clock, Package, Search, Zap, Calendar, RefreshCw, Activity, BarChart3 } from 'lucide-react';
+import { Factory, Zap, RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import {
-  NewProductModal,
-  ProductionCalendarTab,
-  ProductionAnalyticsTab,
-  ProductionTraceabilityTab,
-  ProductionDashboardTab,
-  ProductionProductsTab,
-  ProductionOrdersTab,
   type SupplyRisksData,
   type ProductionsAtRiskData,
+  ProductionLoadingSkeleton,
+  ProductionTabBar,
+} from '@/components/production';
+import type {
+  ProductionOrder,
+  ProductPf,
+  DashboardKpis,
+  AlertsData,
+  StockPfItem,
+  CalendarDay,
+  AnalyticsData,
+  LotSearchResult,
+  MainTab,
+  RawProductionOrder,
+  RawProductPf,
+  RawRecipe,
+  AdminUsersResponse,
 } from '@/components/production';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('Production');
 
+const ProductionDashboardTab = dynamic(
+  () => import('@/components/production/ProductionDashboardTab').then(mod => ({ default: mod.ProductionDashboardTab })),
+  { loading: () => <div className="animate-pulse h-64 bg-gray-100/50 rounded-xl m-6" /> }
+);
+const ProductionProductsTab = dynamic(
+  () => import('@/components/production/ProductionProductsTab').then(mod => ({ default: mod.ProductionProductsTab })),
+  { loading: () => <div className="animate-pulse h-64 bg-gray-100/50 rounded-xl m-6" /> }
+);
+const ProductionOrdersTab = dynamic(
+  () => import('@/components/production/ProductionOrdersTab').then(mod => ({ default: mod.ProductionOrdersTab })),
+  { loading: () => <div className="animate-pulse h-64 bg-gray-100/50 rounded-xl m-6" /> }
+);
+const ProductionCalendarTab = dynamic(
+  () => import('@/components/production/ProductionCalendarTab').then(mod => ({ default: mod.ProductionCalendarTab })),
+  { loading: () => <div className="animate-pulse h-64 bg-gray-100/50 rounded-xl m-6" /> }
+);
+const ProductionTraceabilityTab = dynamic(
+  () => import('@/components/production/ProductionTraceabilityTab').then(mod => ({ default: mod.ProductionTraceabilityTab })),
+  { loading: () => <div className="animate-pulse h-64 bg-gray-100/50 rounded-xl m-6" /> }
+);
+const ProductionAnalyticsTab = dynamic(
+  () => import('@/components/production/ProductionAnalyticsTab').then(mod => ({ default: mod.ProductionAnalyticsTab })),
+  { loading: () => <div className="animate-pulse h-64 bg-gray-100/50 rounded-xl m-6" />, ssr: false }
+);
+
+const NewProductModal = dynamic(
+  () => import('@/components/production/NewProductModal').then(mod => ({ default: mod.NewProductModal })),
+  { loading: () => null }
+);
 const ProductionWizardModal = dynamic(
   () => import('@/components/production/ProductionWizardModal').then(mod => ({ default: mod.ProductionWizardModal })),
   { loading: () => <div className="animate-pulse p-8">Chargement...</div> }
 );
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TYPES & CONFIG
-// ═══════════════════════════════════════════════════════════════════════════════
-
-interface ProductionOrder {
-  id: number;
-  reference: string;
-  productPfId: number;
-  productName: string;
-  productCode: string;
-  quantity: number;
-  quantityProduced: number;
-  batchCount: number;
-  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  yieldPercentage: number | null;
-  createdAt: string;
-  user: string;
-}
-
-interface ProductPf {
-  id: number;
-  code: string;
-  name: string;
-  unit: string;
-  hasRecipe: boolean;
-  recipeId: number | null;
-  recipeItemsCount: number;
-  recipeBatchWeight: number;
-  recipeOutputQty: number;
-  recipeShelfLife: number;
-}
-
-
-
-interface DashboardKpis {
-  today: { completed: number; inProgress: number; pending: number; totalProduced: number };
-  week: { completed: number; totalProduced: number; avgYield: number; lowYieldCount: number };
-  month: { completed: number; totalProduced: number };
-  activeOrders: number;
-  blockedOrders: number;
-}
-
-interface ProductionAlert {
-  id: string;
-  type: 'DLC_PROCHE' | 'RENDEMENT_FAIBLE' | 'ORDRE_BLOQUE' | 'STOCK_PF_BAS';
-  severity: 'critical' | 'warning' | 'info';
-  title: string;
-  description: string;
-  link?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  data?: any;
-  createdAt: string;
-}
-
-interface AlertsData {
-  total: number;
-  critical: number;
-  warning: number;
-  alerts: ProductionAlert[];
-}
-
-interface StockPfItem {
-  id: number;
-  code: string;
-  name: string;
-  unit: string;
-  minStock: number;
-  currentStock: number;
-  status: 'ok' | 'bas' | 'rupture';
-  coverage: number;
-  recipe: { id: number; name: string; outputQuantity: number } | null;
-}
-
-interface CalendarDay {
-  date: string;
-  dayName: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  orders: any[];
-  totalOrders: number;
-  pending: number;
-  inProgress: number;
-  completed: number;
-}
-
-interface AnalyticsData {
-  period: string;
-  summary: { totalOrders: number; totalProduced: number; avgYield: number };
-  trend: { date: string; quantity: number; orders: number; avgYield: number }[];
-  topProducts: { product: { id: number; code: string; name: string }; quantity: number; orders: number }[];
-}
-
-interface LotSearchResult {
-  type: 'MP' | 'PF';
-  lot: {
-    id: number;
-    lotNumber: string;
-    product: { id: number; code: string; name: string; unit: string };
-    quantityInitial: number;
-    quantityRemaining: number;
-    expiryDate?: string;
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  traceability: any;
-}
-
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// MAIN COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export default function ProductionPage() {
+  // Core state
   const [orders, setOrders] = useState<ProductionOrder[]>([]);
   const [products, setProducts] = useState<ProductPf[]>([]);
-  const [mainTab, setMainTab] = useState<'dashboard' | 'products' | 'orders' | 'calendar' | 'traceability' | 'analytics'>('dashboard');
+  const [mainTab, setMainTab] = useState<MainTab>('dashboard');
   const [orderFilter, setOrderFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-
   // Dashboard KPIs & Alerts
   const [kpis, setKpis] = useState<DashboardKpis | null>(null);
   const [alertsData, setAlertsData] = useState<AlertsData | null>(null);
   const [stockPf, setStockPf] = useState<StockPfItem[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // P0.1: Supply Risks (MP critiques, BC en retard, fournisseurs bloquants)
+  // Supply Risks & Productions at Risk
   const [supplyRisks, setSupplyRisks] = useState<SupplyRisksData | null>(null);
   const [isLoadingSupplyRisks, setIsLoadingSupplyRisks] = useState(false);
   const [showSupplyRisksDetails, setShowSupplyRisksDetails] = useState(false);
-
-  // A1: Productions at Risk
   const [productionsAtRisk, setProductionsAtRisk] = useState<ProductionsAtRiskData | null>(null);
   const [isLoadingAtRisk, setIsLoadingAtRisk] = useState(false);
   const [lastSupplyAnalysis, setLastSupplyAnalysis] = useState<Date | null>(null);
-  
-  // ERP Premium: Responsable Appro (lecture seule)
   const [approManager, setApproManager] = useState<{ id: number; name: string } | null>(null);
-
-  // Calendar
+  // Calendar & Analytics
   const [calendarData, setCalendarData] = useState<CalendarDay[]>([]);
-
-  // Analytics
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [analyticsPeriod, setAnalyticsPeriod] = useState<'week' | 'month' | 'year'>('month');
-
   // Lot Traceability
   const [lotSearchQuery, setLotSearchQuery] = useState('');
   const [lotSearchResults, setLotSearchResults] = useState<LotSearchResult[]>([]);
   const [isSearchingLots, setIsSearchingLots] = useState(false);
-
-  // New Product Modal
+  // Modals
   const [showNewProduct, setShowNewProduct] = useState(false);
-
-  // Production Wizard (extracted to ProductionWizardModal)
   const [showWizard, setShowWizard] = useState(false);
   const [wizardInitialProduct, setWizardInitialProduct] = useState<ProductPf | null>(null);
   const [wizardInitialDate, setWizardInitialDate] = useState<string | null>(null);
 
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // DATA LOADING
-  // ═══════════════════════════════════════════════════════════════════════════════
-
   const loadOrders = useCallback(async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await apiFetch<any[]>('/production?limit=100');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setOrders(data.map((o: any) => ({
-        id: o.id,
-        reference: o.reference,
-        productPfId: o.productPfId,
-        productName: o.productPf?.name || 'Produit',
-        productCode: o.productPf?.code || '-',
-        quantity: o.targetQuantity || 0,
-        quantityProduced: o.quantityProduced || 0,
-        batchCount: o.batchCount || 1,
-        status: o.status,
-        yieldPercentage: o.yieldPercentage,
-        createdAt: o.createdAt,
-        user: o.user ? `${o.user.firstName} ${o.user.lastName}` : '-',
+      const data = await apiFetch<RawProductionOrder[]>('/production?limit=100');
+      setOrders(data.map((o) => ({
+        id: o.id, reference: o.reference, productPfId: o.productPfId,
+        productName: o.productPf?.name || 'Produit', productCode: o.productPf?.code || '-',
+        quantity: o.targetQuantity || 0, quantityProduced: o.quantityProduced || 0,
+        batchCount: o.batchCount || 1, status: o.status, yieldPercentage: o.yieldPercentage,
+        createdAt: o.createdAt, user: o.user ? `${o.user.firstName} ${o.user.lastName}` : '-',
       })));
     } catch (error: unknown) {
       log.error('Failed to load orders', { error: (error as Error)?.message || String(error) });
@@ -218,19 +121,15 @@ export default function ProductionPage() {
   const loadProducts = useCallback(async () => {
     try {
       const [productsResult, recipesResult] = await Promise.allSettled([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        apiFetch<any[]>('/products/pf'),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        apiFetch<any[]>('/recipes'),
+        apiFetch<RawProductPf[]>('/products/pf'),
+        apiFetch<RawRecipe[]>('/recipes'),
       ]);
       if (productsResult.status !== 'fulfilled') { log.error('Products API error', { error: productsResult.reason }); toast.error('Erreur chargement des produits'); return; }
       const productsData = productsResult.value;
       const recipesData = recipesResult.status === 'fulfilled' ? recipesResult.value : [];
-      const recipeMap = new Map();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recipesData.forEach((r: any) => recipeMap.set(r.productPfId, r));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setProducts(productsData.map((p: any) => {
+      const recipeMap = new Map<number, RawRecipe>();
+      recipesData.forEach((r) => recipeMap.set(r.productPfId, r));
+      setProducts(productsData.map((p) => {
         const recipe = recipeMap.get(p.id);
         return {
           id: p.id, code: p.code, name: p.name, unit: p.unit,
@@ -250,14 +149,10 @@ export default function ProductionPage() {
   const loadDashboardData = useCallback(async () => {
     try {
       const [kpisResult, alertsResult, stockPfResult, calendarResult] = await Promise.allSettled([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        apiFetch<any>('/production/dashboard/kpis'),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        apiFetch<any>('/production/dashboard/alerts'),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        apiFetch<any>('/production/dashboard/stock-pf'),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        apiFetch<any>('/production/dashboard/calendar'),
+        apiFetch<DashboardKpis>('/production/dashboard/kpis'),
+        apiFetch<AlertsData>('/production/dashboard/alerts'),
+        apiFetch<StockPfItem[]>('/production/dashboard/stock-pf'),
+        apiFetch<{ days: CalendarDay[] }>('/production/dashboard/calendar'),
       ]);
       if (kpisResult.status === 'fulfilled') setKpis(kpisResult.value);
       else toast.error('Erreur chargement KPIs production');
@@ -265,69 +160,48 @@ export default function ProductionPage() {
       else toast.error('Erreur chargement alertes');
       if (stockPfResult.status === 'fulfilled') setStockPf(stockPfResult.value);
       else toast.error('Erreur chargement stock produits finis');
-      if (calendarResult.status === 'fulfilled') {
-        setCalendarData(calendarResult.value.days || []);
-      } else toast.error('Erreur chargement calendrier');
+      if (calendarResult.status === 'fulfilled') setCalendarData(calendarResult.value.days || []);
+      else toast.error('Erreur chargement calendrier');
     } catch (error: unknown) {
       log.error('Failed to load dashboard data', { error: (error as Error)?.message || String(error) });
       toast.error('Erreur réseau — impossible de charger le tableau de bord');
     }
   }, []);
 
-  // P0.1: Charger les risques supply chain
   const loadSupplyRisks = useCallback(async () => {
     setIsLoadingSupplyRisks(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await apiFetch<any>('/production/dashboard/supply-risks');
+      const data = await apiFetch<SupplyRisksData>('/production/dashboard/supply-risks');
       setSupplyRisks(data);
     } catch (error: unknown) {
       log.error('Failed to load supply risks', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les risques supply chain');
-    } finally {
-      setIsLoadingSupplyRisks(false);
-    }
+    } finally { setIsLoadingSupplyRisks(false); }
   }, []);
 
-  // A1: Charger les productions à risque
   const loadProductionsAtRisk = useCallback(async () => {
     setIsLoadingAtRisk(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await apiFetch<any>('/production/dashboard/at-risk');
+      const data = await apiFetch<ProductionsAtRiskData>('/production/dashboard/at-risk');
       setProductionsAtRisk(data);
       setLastSupplyAnalysis(new Date()); // ERP Premium: Horodatage
     } catch (error: unknown) {
       log.error('Failed to load productions at risk', { error: (error as Error)?.message || String(error) });
       toast.error('Impossible de charger les productions à risque');
-    } finally {
-      setIsLoadingAtRisk(false);
-    }
+    } finally { setIsLoadingAtRisk(false); }
   }, []);
 
-  // ERP Premium: Charger le responsable Appro (lecture seule)
   const loadApproManager = useCallback(async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await apiFetch<any>('/admin/users?role=APPRO');
-      const users = data.users || [];
-      if (users.length > 0) {
-        const manager = users[0];
-        setApproManager({
-          id: manager.id,
-          name: `${manager.firstName || ''} ${manager.lastName || ''}`.trim() || manager.email
-        });
-      }
-    } catch (error: unknown) {
-      // Silently fail - responsable appro is optional
-      log.debug('Appro manager not found', { error: (error as Error)?.message });
-    }
+      const data = await apiFetch<AdminUsersResponse>('/admin/users?role=APPRO');
+      const mgr = (data.users || [])[0];
+      if (mgr) setApproManager({ id: mgr.id, name: `${mgr.firstName || ''} ${mgr.lastName || ''}`.trim() || mgr.email });
+    } catch (error: unknown) { log.debug('Appro manager not found', { error: (error as Error)?.message }); }
   }, []);
 
   const loadAnalytics = useCallback(async (period: 'week' | 'month' | 'year') => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await apiFetch<any>(`/production/dashboard/analytics?period=${period}`);
+      const data = await apiFetch<AnalyticsData>(`/production/dashboard/analytics?period=${period}`);
       setAnalytics(data);
     } catch (error: unknown) {
       log.error('Failed to load analytics', { error: (error as Error)?.message || String(error) });
@@ -339,14 +213,11 @@ export default function ProductionPage() {
     if (!query || query.length < 2) { setLotSearchResults([]); return; }
     setIsSearchingLots(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await apiFetch<any>(`/production/lots/search?q=${encodeURIComponent(query)}`);
+      const data = await apiFetch<{ results: LotSearchResult[] }>(`/production/lots/search?q=${encodeURIComponent(query)}`);
       setLotSearchResults(data.results || []);
     } catch (error: unknown) {
       log.error('Failed to search lots', { error: (error as Error)?.message || String(error) });
-    } finally {
-      setIsSearchingLots(false);
-    }
+    } finally { setIsSearchingLots(false); }
   }, []);
 
   const refreshDashboard = async () => {
@@ -365,16 +236,8 @@ export default function ProductionPage() {
   }, [loadOrders, loadProducts, loadDashboardData, loadSupplyRisks, loadProductionsAtRisk, loadApproManager]);
 
   useEffect(() => {
-    if (mainTab === 'analytics') {
-      loadAnalytics(analyticsPeriod);
-    }
+    if (mainTab === 'analytics') loadAnalytics(analyticsPeriod);
   }, [mainTab, analyticsPeriod, loadAnalytics]);
-
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // FILTERS & STATS
-  // ═══════════════════════════════════════════════════════════════════════════════
-
-  // Filtered data (used by extracted tab components internally)
 
   const stats = useMemo(() => ({
     total: orders.length,
@@ -382,13 +245,6 @@ export default function ProductionPage() {
     inProgress: orders.filter((o) => o.status === 'IN_PROGRESS').length,
     completed: orders.filter((o) => o.status === 'COMPLETED').length,
   }), [orders]);
-
-
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // HANDLERS
-  // ═══════════════════════════════════════════════════════════════════════════════
-
-  // Product creation is handled by NewProductModal component
 
   const openWizard = (product?: ProductPf, date?: string | null) => {
     setWizardInitialProduct(product || null);
@@ -402,44 +258,7 @@ export default function ProductionPage() {
     setShowWizard(true);
   };
 
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // RENDER
-  // ═══════════════════════════════════════════════════════════════════════════════
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6 animate-fade-in">
-        {/* Header skeleton */}
-        <div className="glass-card p-6">
-          <div className="flex items-center gap-4">
-            <Skeleton className="w-11 h-11 rounded-[14px]" />
-            <div>
-              <Skeleton className="h-6 w-48 mb-2" />
-              <Skeleton className="h-4 w-32" />
-            </div>
-          </div>
-        </div>
-        {/* KPI strip skeleton */}
-        <div className="grid grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="glass-card p-5">
-              <Skeleton className="h-4 w-20 mb-3" />
-              <Skeleton className="h-8 w-16" />
-            </div>
-          ))}
-        </div>
-        {/* Tab placeholder */}
-        <div className="glass-card overflow-hidden">
-          <div className="flex border-b border-black/[0.04] px-4 py-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-5 w-24" />
-            ))}
-          </div>
-          <SkeletonTable rows={5} columns={4} />
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <ProductionLoadingSkeleton />;
 
   return (
     <div className="glass-bg space-y-6">
@@ -452,13 +271,7 @@ export default function ProductionPage() {
           : undefined}
         actions={(
           <div className="flex items-center gap-2">
-            <Button
-              onClick={refreshDashboard}
-              disabled={isRefreshing}
-              variant="outline"
-              size="icon"
-              aria-label="Actualiser la production"
-            >
+            <Button onClick={refreshDashboard} disabled={isRefreshing} variant="outline" size="icon" aria-label="Actualiser la production">
               <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
             </Button>
             <Button onClick={() => openWizard()}>
@@ -471,122 +284,52 @@ export default function ProductionPage() {
 
       {/* Main Tabs Container */}
       <div className="glass-card overflow-hidden">
-        {/* Tab Headers */}
-        <div className="flex border-b border-black/[0.04] overflow-x-auto" role="tablist" aria-label="Sections production">
-          {[
-            { key: 'dashboard', label: 'Dashboard', icon: Activity },
-            { key: 'orders', label: 'Ordres', icon: Clock, badge: stats.inProgress > 0 ? stats.inProgress : null },
-            { key: 'products', label: 'Produits', icon: Package },
-            { key: 'calendar', label: 'Planning', icon: Calendar },
-            { key: 'traceability', label: 'Traçabilité', icon: Search },
-            { key: 'analytics', label: 'Analytiques', icon: BarChart3 },
-          ].map((tab) => (
-            <button key={tab.key} onClick={() => setMainTab(tab.key as typeof mainTab)} role="tab" aria-selected={mainTab === tab.key} aria-controls={`panel-${tab.key}`} id={`tab-${tab.key}`} className={cn(
-              'flex-shrink-0 px-6 py-4 text-sm font-semibold flex items-center justify-center gap-2 whitespace-nowrap transition-all',
-              mainTab === tab.key
-                ? 'text-[#AF52DE] border-b-2 border-[#AF52DE] bg-[#AF52DE]/5'
-                : 'text-[#86868B] hover:bg-white/40'
-            )}>
-              <tab.icon className="w-4 h-4" /> {tab.label}
-              {tab.badge && (
-                <span className="px-2 py-0.5 bg-[#AF52DE]/10 text-[#AF52DE] text-[11px] font-semibold rounded-full">
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <ProductionTabBar activeTab={mainTab} onTabChange={setMainTab} inProgressCount={stats.inProgress} />
 
-        {/* TAB: DASHBOARD (extracted component) */}
         {mainTab === 'dashboard' && (
-          <div role="tabpanel" id="panel-dashboard" aria-labelledby="tab-dashboard"><ProductionDashboardTab
-            kpis={kpis}
-            alertsData={alertsData}
-            stockPf={stockPf}
-            calendarData={calendarData}
-            orders={orders}
-            supplyRisks={supplyRisks}
-            isLoadingSupplyRisks={isLoadingSupplyRisks}
-            showSupplyRisksDetails={showSupplyRisksDetails}
-            onToggleSupplyRisksDetails={setShowSupplyRisksDetails}
-            productionsAtRisk={productionsAtRisk}
-            isLoadingAtRisk={isLoadingAtRisk}
-            lastSupplyAnalysis={lastSupplyAnalysis}
-            approManager={approManager}
-            onNavigateToCalendar={() => setMainTab('calendar')}
-            onNavigateToOrders={() => setMainTab('orders')}
-          />
-          </div>
-        )}
-
-        {/* TAB: PRODUITS (extracted component) */}
-        {mainTab === 'products' && (
-          <div role="tabpanel" id="panel-products" aria-labelledby="tab-products"><ProductionProductsTab
-            products={products}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onNewProduct={() => setShowNewProduct(true)}
-          />
-          </div>
-        )}
-
-        {/* TAB: ORDRES (extracted component) */}
-        {mainTab === 'orders' && (
-          <div role="tabpanel" id="panel-orders" aria-labelledby="tab-orders"><ProductionOrdersTab
-            orders={orders}
-            filter={orderFilter}
-            onFilterChange={setOrderFilter}
-            onNewProduction={() => openWizard()}
-          />
-          </div>
-        )}
-
-        {/* TAB: CALENDAR (extracted component) */}
-        {mainTab === 'calendar' && (
-          <div role="tabpanel" id="panel-calendar" aria-labelledby="tab-calendar">
-            <ProductionCalendarTab
-              products={products}
-              onOpenWizard={openWizardForDate}
+          <div role="tabpanel" id="panel-dashboard" aria-labelledby="tab-dashboard">
+            <ProductionDashboardTab
+              kpis={kpis} alertsData={alertsData} stockPf={stockPf} calendarData={calendarData} orders={orders}
+              supplyRisks={supplyRisks} isLoadingSupplyRisks={isLoadingSupplyRisks}
+              showSupplyRisksDetails={showSupplyRisksDetails} onToggleSupplyRisksDetails={setShowSupplyRisksDetails}
+              productionsAtRisk={productionsAtRisk} isLoadingAtRisk={isLoadingAtRisk}
+              lastSupplyAnalysis={lastSupplyAnalysis} approManager={approManager}
+              onNavigateToCalendar={() => setMainTab('calendar')} onNavigateToOrders={() => setMainTab('orders')}
             />
           </div>
         )}
-
-        {/* TAB: TRACEABILITY (extracted component) */}
-        {mainTab === 'traceability' && (
-          <div role="tabpanel" id="panel-traceability" aria-labelledby="tab-traceability"><ProductionTraceabilityTab
-            lotSearchQuery={lotSearchQuery}
-            onSearchChange={(q) => { setLotSearchQuery(q); searchLots(q); }}
-            lotSearchResults={lotSearchResults}
-            isSearchingLots={isSearchingLots}
-          />
+        {mainTab === 'products' && (
+          <div role="tabpanel" id="panel-products" aria-labelledby="tab-products">
+            <ProductionProductsTab products={products} searchQuery={searchQuery} onSearchChange={setSearchQuery} onNewProduct={() => setShowNewProduct(true)} />
           </div>
         )}
-
-        {/* TAB: ANALYTICS (extracted component) */}
+        {mainTab === 'orders' && (
+          <div role="tabpanel" id="panel-orders" aria-labelledby="tab-orders">
+            <ProductionOrdersTab orders={orders} filter={orderFilter} onFilterChange={setOrderFilter} onNewProduction={() => openWizard()} />
+          </div>
+        )}
+        {mainTab === 'calendar' && (
+          <div role="tabpanel" id="panel-calendar" aria-labelledby="tab-calendar">
+            <ProductionCalendarTab products={products} onOpenWizard={openWizardForDate} />
+          </div>
+        )}
+        {mainTab === 'traceability' && (
+          <div role="tabpanel" id="panel-traceability" aria-labelledby="tab-traceability">
+            <ProductionTraceabilityTab lotSearchQuery={lotSearchQuery} onSearchChange={(q) => { setLotSearchQuery(q); searchLots(q); }} lotSearchResults={lotSearchResults} isSearchingLots={isSearchingLots} />
+          </div>
+        )}
         {mainTab === 'analytics' && (
-          <div role="tabpanel" id="panel-analytics" aria-labelledby="tab-analytics"><ProductionAnalyticsTab
-            analytics={analytics}
-            analyticsPeriod={analyticsPeriod}
-            onPeriodChange={setAnalyticsPeriod}
-          />
+          <div role="tabpanel" id="panel-analytics" aria-labelledby="tab-analytics">
+            <ProductionAnalyticsTab analytics={analytics} analyticsPeriod={analyticsPeriod} onPeriodChange={setAnalyticsPeriod} />
           </div>
         )}
       </div>
 
-      {/* MODAL: Nouveau Produit (extracted component) */}
-      <NewProductModal
-        isOpen={showNewProduct}
-        onClose={() => setShowNewProduct(false)}
-        onSuccess={loadProducts}
-      />
-
-      {/* MODAL: Wizard Production (extracted component) */}
+      {/* Modals */}
+      <NewProductModal isOpen={showNewProduct} onClose={() => setShowNewProduct(false)} onSuccess={loadProducts} />
       <ProductionWizardModal
-        isOpen={showWizard}
-        onClose={() => setShowWizard(false)}
-        products={products}
-        initialProduct={wizardInitialProduct}
-        initialDate={wizardInitialDate}
+        isOpen={showWizard} onClose={() => setShowWizard(false)} products={products}
+        initialProduct={wizardInitialProduct} initialDate={wizardInitialDate}
         onSuccess={() => { loadOrders(); loadDashboardData(); }}
       />
     </div>

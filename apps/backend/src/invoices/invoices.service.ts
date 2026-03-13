@@ -39,7 +39,7 @@ export class InvoicesService {
    * List all invoices with filters
    */
   async findAll(status?: string, clientId?: number) {
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (status) where.status = status;
     if (clientId) where.clientId = clientId;
 
@@ -165,7 +165,7 @@ export class InvoicesService {
 
     // Retry loop for reference generation with unique constraint handling
     const MAX_RETRIES = 3;
-    let invoice: any;
+    let invoice: Awaited<ReturnType<typeof this.prisma.invoice.create>> | undefined;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
@@ -235,12 +235,13 @@ export class InvoicesService {
         });
 
         break; // Success, exit retry loop
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Prisma unique constraint violation (P2002) or serialization failure (P2034/40001)
-        const isRetryable = error?.code === 'P2002' ||
-          error?.code === 'P2034' ||
-          error?.message?.includes('Unique constraint') ||
-          error?.message?.includes('could not serialize');
+        const prismaError = error as { code?: string; message?: string };
+        const isRetryable = prismaError?.code === 'P2002' ||
+          prismaError?.code === 'P2034' ||
+          prismaError?.message?.includes('Unique constraint') ||
+          prismaError?.message?.includes('could not serialize');
         if (isRetryable && attempt < MAX_RETRIES - 1) {
           continue; // Retry with incremented number
         }
@@ -248,8 +249,8 @@ export class InvoicesService {
       }
     }
 
-    logger.info(`Invoice created: ${invoice.reference} for ${client.code} — ${netToPay} centimes`, 'InvoicesService');
-    return invoice;
+    logger.info(`Invoice created: ${invoice!.reference} for ${client.code} — ${netToPay} centimes`, 'InvoicesService');
+    return invoice!;
   }
 
   /**
@@ -280,7 +281,7 @@ export class InvoicesService {
     const effectiveDate = dto.date ? new Date(dto.date) : invoice.date;
 
     // Build update data
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...(dto.clientId && { clientId: dto.clientId }),
       ...(dto.date && { date: effectiveDate }),
       ...(dto.paymentMethod && { paymentMethod: effectivePaymentMethod }),
@@ -454,7 +455,7 @@ export class InvoicesService {
     }
 
     // Build update data
-    const updateData: any = { status: dto.status as any };
+    const updateData: Record<string, unknown> = { status: dto.status };
 
     // Cancellation tracking
     if (dto.status === 'CANCELLED') {

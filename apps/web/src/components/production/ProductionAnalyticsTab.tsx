@@ -47,14 +47,24 @@ const COLORS = {
 const PIE_COLORS = ['#AF52DE', '#007AFF', '#34C759', '#FF9500', '#FF3B30'];
 
 // Custom tooltip pour les graphiques
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayloadEntry {
+  color: string;
+  name: string;
+  value: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadEntry[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="glass-card p-3 shadow-lg border border-black/[0.04]">
         <p className="text-[13px] font-semibold text-[#1D1D1F] mb-1">{label}</p>
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index) => (
           <p key={index} className="text-[12px]" style={{ color: entry.color }}>
             {entry.name}: <span className="font-semibold">{entry.value.toLocaleString()}</span>
           </p>

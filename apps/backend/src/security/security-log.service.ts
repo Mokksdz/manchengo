@@ -204,15 +204,16 @@ export class SecurityLogService {
     limit?: number;
     offset?: number;
   }) {
-    const where: any = {};
+    const where: Record<string, unknown> = {};
 
     if (params.action) where.action = params.action;
     if (params.userId) where.userId = params.userId;
     if (params.deviceId) where.deviceId = params.deviceId;
     if (params.startDate || params.endDate) {
-      where.createdAt = {};
-      if (params.startDate) where.createdAt.gte = params.startDate;
-      if (params.endDate) where.createdAt.lte = params.endDate;
+      const createdAt: Record<string, Date> = {};
+      if (params.startDate) createdAt.gte = params.startDate;
+      if (params.endDate) createdAt.lte = params.endDate;
+      where.createdAt = createdAt;
     }
 
     const [logs, total] = await Promise.all([

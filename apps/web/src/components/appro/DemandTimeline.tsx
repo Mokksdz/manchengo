@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import type { LucideIcon } from 'lucide-react';
 import {
   CheckCircle,
   FileText,
@@ -31,8 +32,7 @@ interface DemandTimelineProps {
 interface TimelineStep {
   key: string;
   label: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  icon: any;
+  icon: LucideIcon;
   completed: boolean;
   current: boolean;
   date?: string;

@@ -276,4 +276,19 @@ export const t = {
     settings: 'Paramètres',
     logout: 'Déconnexion',
   },
+
+  // ── Accessibilité ──────────────────────────────────────────────────
+  a11y: {
+    skipToContent: 'Aller au contenu principal',
+    loading: 'Chargement',
+    noResults: 'Aucun résultat',
+    searchPlaceholder: 'Rechercher une page ou une action...',
+    closeModal: 'Fermer la fenêtre',
+    openMenu: 'Ouvrir le menu',
+    closeMenu: 'Fermer le menu',
+    toggleTheme: 'Changer le thème',
+    lightMode: 'Mode clair',
+    darkMode: 'Mode sombre',
+    systemMode: 'Thème système',
+  },
 } as const;

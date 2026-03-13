@@ -33,14 +33,20 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton-loader';
 import { KeyboardHint } from '@/components/ui/keyboard-hint';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
+import dynamic from 'next/dynamic';
 import {
-  SupplierRiskCard,
   type SupplierPerformanceData,
   type SupplierRiskLevel,
   getSupplierRiskLevel,
 } from '@/components/suppliers';
 import type { UserRole } from '@/components/appro/CriticalActionBanner';
 import { createLogger } from '@/lib/logger';
+
+// ── Dynamic import: heavy card component with complex rendering ──
+const SupplierRiskCard = dynamic(
+  () => import('@/components/suppliers/SupplierRiskCard').then(mod => ({ default: mod.SupplierRiskCard })),
+  { loading: () => <div className="animate-pulse h-48 bg-gray-100/50 rounded-xl" /> }
+);
 
 const log = createLogger('Suppliers');
 

@@ -275,4 +275,19 @@ export const t = {
     settings: 'الإعدادات',
     logout: 'تسجيل الخروج',
   },
+
+  // ── إمكانية الوصول ──────────────────────────────────────────────────
+  a11y: {
+    skipToContent: 'الانتقال إلى المحتوى الرئيسي',
+    loading: 'جاري التحميل',
+    noResults: 'لا توجد نتائج',
+    searchPlaceholder: 'البحث عن صفحة أو إجراء...',
+    closeModal: 'إغلاق النافذة',
+    openMenu: 'فتح القائمة',
+    closeMenu: 'إغلاق القائمة',
+    toggleTheme: 'تغيير المظهر',
+    lightMode: 'الوضع الفاتح',
+    darkMode: 'الوضع الداكن',
+    systemMode: 'مظهر النظام',
+  },
 } as const;

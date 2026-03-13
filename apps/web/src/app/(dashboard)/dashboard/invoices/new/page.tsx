@@ -197,26 +197,25 @@ export default function CreateInvoicePage() {
     }]);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateLine = (index: number, field: string, value: any) => {
+  const updateLine = (index: number, field: string, value: string | number) => {
     const newLines = [...lines];
     if (field === 'productPfId') {
       const product = products.find(p => p.id === value);
       if (product) {
         newLines[index] = {
           ...newLines[index],
-          productPfId: value,
+          productPfId: Number(value),
           productName: product.name,
           unitPriceHt: product.priceHt,
           lineHt: product.priceHt * newLines[index].quantity,
         };
       }
     } else if (field === 'quantity') {
-      const qty = Math.max(1, Math.round(value)); // Force entier >= 1
+      const qty = Math.max(1, Math.round(Number(value))); // Force entier >= 1
       newLines[index].quantity = qty;
       newLines[index].lineHt = newLines[index].unitPriceHt * qty;
     } else if (field === 'unitPriceHt') {
-      const price = Math.max(0, value); // Force >= 0
+      const price = Math.max(0, Number(value)); // Force >= 0
       newLines[index].unitPriceHt = price;
       newLines[index].lineHt = price * newLines[index].quantity;
     }

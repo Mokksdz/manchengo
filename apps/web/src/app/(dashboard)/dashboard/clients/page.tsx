@@ -8,14 +8,20 @@ import { Users, Plus } from 'lucide-react';
 import { KeyboardHint } from '@/components/ui/keyboard-hint';
 import { useKeyboardShortcuts } from '@/lib/hooks/use-keyboard-shortcuts';
 import { useAuth } from '@/lib/auth-context';
+import dynamic from 'next/dynamic';
 import {
   type Client,
   type ClientFormData,
   EMPTY_FORM_DATA,
 } from '@/components/clients/types';
-import { ClientFormModal } from '@/components/clients/ClientFormModal';
 import { ClientsTable } from '@/components/clients/ClientsTable';
 import { ClientFilters, type TabKey } from '@/components/clients/ClientFilters';
+
+// ── Dynamic import: modal only shown on user action ──
+const ClientFormModal = dynamic(
+  () => import('@/components/clients/ClientFormModal').then(mod => ({ default: mod.ClientFormModal })),
+  { loading: () => null }
+);
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import {

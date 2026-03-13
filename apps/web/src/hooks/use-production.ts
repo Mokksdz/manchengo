@@ -97,6 +97,40 @@ export interface WeeklyPlanData {
   weekEnd: string;
 }
 
+/** Raw production order from API before normalization */
+interface RawProductionOrder {
+  id: number;
+  reference: string;
+  productPfId: number;
+  productPf?: { name: string; code: string };
+  targetQuantity: number;
+  quantityProduced: number;
+  batchCount: number;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  yieldPercentage: number | null;
+  scheduledDate: string | null;
+  createdAt: string;
+  user?: { firstName: string; lastName: string };
+}
+
+/** Raw product PF from API */
+interface RawProductPf {
+  id: number;
+  code: string;
+  name: string;
+  unit: string;
+}
+
+/** Raw recipe from API */
+interface RawRecipe {
+  id: number;
+  productPfId: number;
+  items?: unknown[];
+  batchWeight?: number;
+  outputQuantity?: number;
+  shelfLifeDays?: number;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // QUERY KEYS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -125,10 +159,8 @@ export function useProductionOrders(limit = 100) {
   return useQuery({
     queryKey: productionKeys.orders(),
     queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = await apiFetch<any[]>(`/production?limit=${limit}`);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return data.map((o: any) => ({
+      const data = await apiFetch<RawProductionOrder[]>(`/production?limit=${limit}`);
+      return data.map((o) => ({
         id: o.id,
         reference: o.reference,
         productPfId: o.productPfId,
@@ -155,23 +187,18 @@ export function useProductsPf() {
   return useQuery({
     queryKey: productionKeys.products(),
     queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const [productsResult, recipesResult] = await Promise.allSettled([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        apiFetch<any[]>('/products/pf'),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        apiFetch<any[]>('/recipes'),
+        apiFetch<RawProductPf[]>('/products/pf'),
+        apiFetch<RawRecipe[]>('/recipes'),
       ]);
       if (productsResult.status !== 'fulfilled') throw new Error('Erreur chargement produits');
 
       const productsData = productsResult.value;
       const recipesData = recipesResult.status === 'fulfilled' ? recipesResult.value : [];
-      const recipeMap = new Map();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recipesData.forEach((r: any) => recipeMap.set(r.productPfId, r));
+      const recipeMap = new Map<number, RawRecipe>();
+      recipesData.forEach((r) => recipeMap.set(r.productPfId, r));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return productsData.map((p: any) => {
+      return productsData.map((p) => {
         const recipe = recipeMap.get(p.id);
         return {
           id: p.id,

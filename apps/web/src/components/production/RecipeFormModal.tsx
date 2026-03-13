@@ -59,9 +59,8 @@ export function CreateRecipeModal({
               className="w-full rounded-[14px] border-black/[0.08] bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-[#AF52DE]/15 px-3 py-2"
             >
               <option value={0}>-- Sélectionner un PF --</option>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {productsPf.map((pf: any) => (
-                <option key={pf.id || pf.productId} value={pf.id || pf.productId}>
+              {productsPf.map((pf) => (
+                <option key={pf.id} value={pf.id}>
                   {pf.code} - {pf.name}
                 </option>
               ))}

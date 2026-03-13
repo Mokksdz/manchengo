@@ -30,11 +30,17 @@ import {
   AlertTriangle,
   X,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { PageHeader } from '@/components/ui/page-header';
 import { Skeleton } from '@/components/ui/skeleton-loader';
-import { SupplierImpactChainView } from '@/components/suppliers';
 import type { UserRole } from '@/components/appro/CriticalActionBanner';
 import { createLogger } from '@/lib/logger';
+
+// ── Dynamic import: heavy impact chain visualization component ──
+const SupplierImpactChainView = dynamic(
+  () => import('@/components/suppliers/SupplierImpactChainView').then(mod => ({ default: mod.SupplierImpactChainView })),
+  { loading: () => <div className="animate-pulse h-64 bg-gray-100/50 rounded-xl" /> }
+);
 
 const log = createLogger('SupplierImpact');
 

@@ -1,9 +1,23 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/lib/auth-context';
 import { stockDashboard, StockDashboardData } from '@/lib/api';
-import { ZoneCritique, ZoneATraiter, ZoneSante } from '@/components/stock';
+
+// ── Dynamic imports: heavy stock zone panels (rendered after data loads) ──
+const ZoneCritique = dynamic(
+  () => import('@/components/stock/ZoneCritique').then(mod => ({ default: mod.ZoneCritique })),
+  { loading: () => <div className="animate-pulse h-48 bg-gray-100/50 rounded-xl" /> }
+);
+const ZoneATraiter = dynamic(
+  () => import('@/components/stock/ZoneATraiter').then(mod => ({ default: mod.ZoneATraiter })),
+  { loading: () => <div className="animate-pulse h-48 bg-gray-100/50 rounded-xl" /> }
+);
+const ZoneSante = dynamic(
+  () => import('@/components/stock/ZoneSante').then(mod => ({ default: mod.ZoneSante })),
+  { loading: () => <div className="animate-pulse h-48 bg-gray-100/50 rounded-xl" /> }
+);
 import {
   RefreshCw,
   AlertTriangle,

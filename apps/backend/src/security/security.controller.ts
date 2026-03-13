@@ -54,7 +54,7 @@ export class SecurityController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (role) where.role = role;
     if (isActive !== undefined) where.isActive = isActive === 'true';
 
@@ -130,7 +130,7 @@ export class SecurityController {
   async blockUser(
     @Param('id') id: string,
     @Body() body: { reason?: string },
-    @Request() req: any,
+    @Request() req: { user: { sub: string } },
   ) {
     const adminId = req.user.sub;
 
@@ -156,7 +156,7 @@ export class SecurityController {
    */
   @Post('users/:id/unblock')
   @ApiOperation({ summary: 'Unblock a user' })
-  async unblockUser(@Param('id') id: string, @Request() req: any) {
+  async unblockUser(@Param('id') id: string, @Request() req: { user: { sub: string } }) {
     const adminId = req.user.sub;
 
     await this.prisma.user.update({
@@ -177,7 +177,7 @@ export class SecurityController {
   async changeUserRole(
     @Param('id') id: string,
     @Body() body: { role: UserRole },
-    @Request() req: any,
+    @Request() req: { user: { sub: string } },
   ) {
     const adminId = req.user.sub;
 
@@ -244,7 +244,7 @@ export class SecurityController {
   async revokeDevice(
     @Param('id') id: string,
     @Body() body: { reason?: string },
-    @Request() req: any,
+    @Request() req: { user: { sub: string } },
   ) {
     const adminId = req.user.sub;
 

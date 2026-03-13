@@ -15,7 +15,7 @@ export class ClientsService {
    * List all clients with optional type filter
    */
   async findAll(type?: string) {
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     if (type) {
       where.type = type;
     }
@@ -110,13 +110,14 @@ export class ClientsService {
 
         logger.info(`Client created: ${client.code} - ${dto.name}`, 'ClientsService');
         return client;
-      } catch (error: any) {
-        const isRetryable = error?.code === 'P2002' || error?.code === 'P2034' ||
-          error?.message?.includes('could not serialize');
+      } catch (error: unknown) {
+        const prismaError = error as { code?: string; message?: string };
+        const isRetryable = prismaError?.code === 'P2002' || prismaError?.code === 'P2034' ||
+          prismaError?.message?.includes('could not serialize');
         if (isRetryable && attempt < MAX_RETRIES - 1) {
           continue;
         }
-        if (error?.code === 'P2002') {
+        if (prismaError?.code === 'P2002') {
           throw new ConflictException('Un client avec ce code existe deja');
         }
         throw error;

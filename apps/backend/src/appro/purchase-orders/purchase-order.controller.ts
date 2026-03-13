@@ -81,7 +81,7 @@ export class PurchaseOrderController {
       expectedDelivery?: string;
       notes?: string;
     },
-    @Request() req: any,
+    @Request() req: { user: { id: string } },
   ) {
     return this.poService.createDirect(dto, req.user.id);
   }
@@ -265,7 +265,7 @@ export class PurchaseOrderController {
   async send(
     @Param('id') id: string,
     @Body() dto: SendBcDto,
-    @Request() req: any,
+    @Request() req: { user: { id: string } },
   ): Promise<SendBcResponseDto> {
     return this.poService.sendPurchaseOrder(id, dto, req.user.id);
   }
@@ -339,7 +339,7 @@ export class PurchaseOrderController {
   async receive(
     @Param('id') id: string,
     @Body() dto: ReceiveBcDto,
-    @Request() req: any,
+    @Request() req: { user: { id: string } },
   ): Promise<ReceiveBcResponseDto> {
     return this.poService.receivePurchaseOrder(id, dto, req.user.id);
   }
@@ -387,7 +387,7 @@ export class PurchaseOrderController {
   async cancel(
     @Param('id') id: string,
     @Body() dto: CancelBcDto,
-    @Request() req: any,
+    @Request() req: { user: { id: string; role: string } },
   ): Promise<CancelBcResponseDto> {
     return this.poService.cancelPurchaseOrder(id, dto, req.user.id, req.user.role);
   }

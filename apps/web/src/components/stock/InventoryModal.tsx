@@ -51,8 +51,7 @@ export const InventoryModal = memo(function InventoryModal({ isOpen, onClose, on
     setError(null);
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await apiFetch<any>('/stock/mp/inventory', {
+      await apiFetch<{ success: boolean }>('/stock/mp/inventory', {
         method: 'POST',
         body: JSON.stringify({
           productId: product.productId || product.id,

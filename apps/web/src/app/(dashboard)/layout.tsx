@@ -31,8 +31,13 @@ import {
 import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { OfflineBanner } from '@/components/OfflineBanner';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
+
+// ── Dynamic import: OfflineBanner (only relevant when browser goes offline) ──
+const OfflineBanner = dynamic(
+  () => import('@/components/OfflineBanner').then(mod => ({ default: mod.OfflineBanner })),
+  { ssr: false, loading: () => null }
+);
 
 const CommandPalette = dynamic(
   () => import('@/components/ui/command-palette').then(mod => ({ default: mod.CommandPalette })),

@@ -131,7 +131,7 @@ export function useOfflineSync(onSync?: (event: SyncEvent) => void): SyncEvent[]
   useEffect(() => {
     const unsubscribe = onSyncMessage((data) => {
       const event: SyncEvent = {
-        url: data.url,
+        url: String(data.url ?? ''),
         timestamp: Date.now(),
       };
 

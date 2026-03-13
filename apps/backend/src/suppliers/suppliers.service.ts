@@ -299,13 +299,14 @@ export class SuppliersService {
           updatedAt: supplier.updatedAt,
           receptionCount: 0,
         };
-      } catch (error: any) {
-        const isRetryable = error?.code === 'P2002' || error?.code === 'P2034' ||
-          error?.message?.includes('could not serialize');
+      } catch (error: unknown) {
+        const prismaError = error as { code?: string; message?: string };
+        const isRetryable = prismaError?.code === 'P2002' || prismaError?.code === 'P2034' ||
+          prismaError?.message?.includes('could not serialize');
         if (isRetryable && attempt < MAX_RETRIES - 1) {
           continue;
         }
-        if (error?.code === 'P2002') {
+        if (prismaError?.code === 'P2002') {
           throw new ConflictException('Un fournisseur avec ce code existe déjà');
         }
         throw error;
@@ -508,7 +509,7 @@ export class SuppliersService {
     }
 
     // Construire les conditions de date
-    const dateConditions: any = {};
+    const dateConditions: Record<string, unknown> = {};
     
     if (filters.year) {
       const startOfYear = new Date(filters.year, 0, 1);
@@ -1020,7 +1021,7 @@ export class SuppliersService {
   async blockSupplier(
     id: number,
     dto: { reason: string; blockedUntil?: Date },
-    _userId: number,
+    _userId: string,
   ): Promise<SupplierResponseDto> {
     const supplier = await this.prisma.supplier.findUnique({ 
       where: { id },

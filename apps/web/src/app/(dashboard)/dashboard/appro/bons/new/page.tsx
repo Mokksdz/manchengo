@@ -278,8 +278,7 @@ export default function NewBonCommandePage() {
         apiFetch<Supplier[] | { suppliers: Supplier[] }>('/suppliers?active=true'),
       ]);
       setAllProducts(stockRes);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setSuppliers(Array.isArray(suppData) ? suppData : (suppData as any).suppliers || []);
+      setSuppliers(Array.isArray(suppData) ? suppData : (suppData as { suppliers: Supplier[] }).suppliers || []);
     } catch (err) {
       log.error('Failed to load data:', err);
       setError('Impossible de charger les données');
@@ -481,8 +480,7 @@ export default function NewBonCommandePage() {
       });
       // Refresh suppliers list
       const suppData = await apiFetch<Supplier[] | { suppliers: Supplier[] }>('/suppliers?active=true');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setSuppliers(Array.isArray(suppData) ? suppData : (suppData as any).suppliers || []);
+      setSuppliers(Array.isArray(suppData) ? suppData : (suppData as { suppliers: Supplier[] }).suppliers || []);
       // Auto-select new supplier
       setSupplierId(result.id);
       setShowSupplierModal(false);

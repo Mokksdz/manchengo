@@ -56,7 +56,7 @@ export class InvoicesController {
   @Post()
   @Roles(UserRole.ADMIN, UserRole.COMMERCIAL)
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateInvoiceDto, @Req() req: any) {
+  async create(@Body() dto: CreateInvoiceDto, @Req() req: { user: { id?: string; sub?: string } }) {
     const userId = req.user?.id ?? req.user?.sub;
     if (!userId) throw new UnauthorizedException('User ID not found in token');
     return this.invoicesService.create(dto, userId);
@@ -67,7 +67,7 @@ export class InvoicesController {
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateInvoiceDto,
-    @Req() req: any,
+    @Req() req: { user: { id?: string; sub?: string } },
   ) {
     const userId = req.user?.id ?? req.user?.sub;
     if (!userId) throw new UnauthorizedException('User ID not found in token');
@@ -79,7 +79,7 @@ export class InvoicesController {
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateInvoiceStatusDto,
-    @Req() req: any,
+    @Req() req: { user: { id?: string; sub?: string } },
   ) {
     const userId = req.user?.id ?? req.user?.sub;
     return this.invoicesService.updateStatus(id, dto, userId);

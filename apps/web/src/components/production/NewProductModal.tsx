@@ -31,8 +31,7 @@ export function NewProductModal({ isOpen, onClose, onSuccess }: NewProductModalP
     setIsCreating(true);
     setError('');
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await apiFetch<any>('/products/pf', {
+      await apiFetch<{ id: number; code: string; name: string }>('/products/pf', {
         method: 'POST',
         body: JSON.stringify(form),
       });

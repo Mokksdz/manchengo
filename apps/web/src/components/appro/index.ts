@@ -8,6 +8,9 @@ export * from './ActionableKpiCard';
 export * from './NextActionsList';
 export * from './DemandTimeline';
 export * from './GenerateBcModal';
+export * from './IrsGaugePanel';
+export * from './ActiveAlertsSection';
+export * from './AllClearBanner';
 
 // Decision Cards - Demandes
 export * from './RequestDecisionCard';

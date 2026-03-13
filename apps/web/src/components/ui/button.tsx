@@ -9,14 +9,14 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[linear-gradient(135deg,#191c26_0%,#2d313f_46%,#1a1d28_100%)] text-white shadow-[0_12px_28px_rgba(18,22,33,0.18),inset_0_1px_0_rgba(255,255,255,0.1)] hover:-translate-y-[2px] hover:shadow-[0_16px_34px_rgba(18,22,33,0.22),inset_0_1px_0_rgba(255,255,255,0.16)]",
+          "bg-[linear-gradient(135deg,#191c26_0%,#2d313f_46%,#1a1d28_100%)] text-white shadow-[0_12px_28px_rgba(18,22,33,0.18),inset_0_1px_0_rgba(255,255,255,0.1)] hover:-translate-y-[2px] hover:shadow-[0_16px_34px_rgba(18,22,33,0.22),inset_0_1px_0_rgba(255,255,255,0.16)] dark:bg-[linear-gradient(135deg,#e8e8ec_0%,#d4d4da_46%,#e0e0e6_100%)] dark:text-[#111118] dark:shadow-[0_12px_28px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] dark:hover:shadow-[0_16px_34px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.25)]",
         destructive:
           "bg-[#C62828] text-white hover:bg-[#B71C1C] shadow-lg shadow-red-900/20",
         outline:
-          "border border-white/85 bg-white/75 text-[#1D1D1F] backdrop-blur-[22px] shadow-[0_8px_20px_rgba(18,22,33,0.08),inset_0_1px_0_rgba(255,255,255,0.55)] hover:-translate-y-[1px] hover:bg-white/85",
+          "border border-[var(--glass-border-muted)] bg-[var(--glass-pill-bg)] text-[var(--text-primary)] backdrop-blur-[22px] shadow-[0_8px_20px_rgba(18,22,33,0.08),inset_0_1px_0_var(--glass-inset)] hover:-translate-y-[1px] hover:bg-[var(--glass-bg-hover)]",
         secondary:
-          "bg-white/62 text-[#1D1D1F] backdrop-blur-[18px] hover:bg-white/74",
-        ghost: "text-[#6E6E73] hover:text-[#1D1D1F] hover:bg-white/58",
+          "bg-[var(--glass-bg-muted)] text-[var(--text-primary)] backdrop-blur-[18px] hover:bg-[var(--glass-bg-hover)]",
+        ghost: "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--glass-bg-muted)]",
         link: "text-[#EC7620] underline-offset-4 hover:underline",
         amber: "bg-[linear-gradient(135deg,#ec7620_0%,#f58b34_50%,#dd5c16_100%)] text-white shadow-lg shadow-[#EC7620]/30 hover:-translate-y-[2px] hover:shadow-xl hover:shadow-[#EC7620]/40",
       },

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdminStockMp, useAdminSuppliers, queryKeys } from '@/hooks/use-api';
 import { cn } from '@/lib/utils';
@@ -20,13 +21,23 @@ import {
   PrimaryDecisionAction,
   type DecisionStatus,
   type UserRole,
-  // Extracted modals for optimization
-  ReceptionModal,
-  InventoryModal,
-  HistoryModal,
   type Supplier,
   type StockMpItem as StockMpItemType,
 } from '@/components/stock';
+
+// ── Dynamic imports: modals (only rendered on user action) ──
+const ReceptionModal = dynamic(
+  () => import('@/components/stock/ReceptionModal').then(mod => ({ default: mod.ReceptionModal })),
+  { loading: () => null }
+);
+const InventoryModal = dynamic(
+  () => import('@/components/stock/InventoryModal').then(mod => ({ default: mod.InventoryModal })),
+  { loading: () => null }
+);
+const HistoryModal = dynamic(
+  () => import('@/components/stock/HistoryModal').then(mod => ({ default: mod.HistoryModal })),
+  { loading: () => null }
+);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES

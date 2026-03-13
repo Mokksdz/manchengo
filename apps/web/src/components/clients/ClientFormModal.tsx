@@ -126,8 +126,7 @@ export function ClientFormModal({
             address: formData.address || null,
           };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await apiFetch<any>(url, {
+      await apiFetch<Client>(url, {
         method: editingClient ? 'PUT' : 'POST',
         body: JSON.stringify(body),
       });

@@ -198,8 +198,7 @@ export async function subscribeToPush(
 // SYNC MESSAGE HANDLING
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function onSyncMessage(callback: (data: any) => void): () => void {
+export function onSyncMessage(callback: (data: { type: string; [key: string]: unknown }) => void): () => void {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
     return () => {}; // eslint-disable-line @typescript-eslint/no-empty-function
   }
@@ -221,8 +220,7 @@ export function onSyncMessage(callback: (data: any) => void): () => void {
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function dispatchPWAEvent(type: string, detail: any): void {
+function dispatchPWAEvent(type: string, detail: Record<string, unknown>): void {
   window.dispatchEvent(new CustomEvent(`pwa:${type}`, { detail }));
 }
 

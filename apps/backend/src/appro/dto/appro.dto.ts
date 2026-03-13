@@ -122,7 +122,7 @@ export class DashboardResponseDto {
   stockStats: StockStatsDto;
 
   @ApiProperty({ description: 'MP critiques pour la production (top 5)' })
-  mpCritiquesProduction: any[];
+  mpCritiquesProduction: Record<string, unknown>[];
 
   @ApiProperty() alertesActives: number;
   @ApiProperty() demandesEnAttente: number;

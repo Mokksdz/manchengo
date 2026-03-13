@@ -163,7 +163,7 @@ export class SuppliersController {
   async blockSupplier(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: BlockSupplierDto,
-    @Req() req: any,
+    @Req() req: { user: { id: string } },
   ) {
     return this.suppliersService.blockSupplier(id, dto, req.user.id);
   }
@@ -178,7 +178,7 @@ export class SuppliersController {
   async setSupplierSurveillance(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: SurveillanceSupplierDto,
-    @Req() req: any,
+    @Req() req: { user: { id: string } },
   ) {
     return this.suppliersService.setSupplierSurveillance(id, dto, req.user.id);
   }

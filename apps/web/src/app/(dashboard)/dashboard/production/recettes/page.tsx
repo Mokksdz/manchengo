@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
+import dynamic from 'next/dynamic';
 import {
   type Recipe,
   type StockMp,
@@ -38,8 +39,17 @@ import {
   getStatusBadge,
 } from '@/components/production/recettes-types';
 import { RecipesTable } from '@/components/production/RecipesTable';
-import { CreateRecipeModal, AddIngredientModal } from '@/components/production/RecipeFormModal';
 import { createLogger } from '@/lib/logger';
+
+// ── Dynamic imports: recipe modals (only rendered on user action) ──
+const CreateRecipeModal = dynamic(
+  () => import('@/components/production/RecipeFormModal').then(mod => ({ default: mod.CreateRecipeModal })),
+  { loading: () => null }
+);
+const AddIngredientModal = dynamic(
+  () => import('@/components/production/RecipeFormModal').then(mod => ({ default: mod.AddIngredientModal })),
+  { loading: () => null }
+);
 
 const log = createLogger('Recettes');
 
@@ -312,8 +322,7 @@ export default function RecettesPage() {
       ]);
 
       if (recipesResult.status === 'fulfilled') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const normalizedRecipes = (recipesResult.value || []).map((r: any) => ({
+        const normalizedRecipes = (recipesResult.value || []).map((r) => ({
           ...r,
           ingredients: r.items || r.ingredients || [],
         }));
@@ -327,8 +336,7 @@ export default function RecettesPage() {
         toast.error('Erreur lors du chargement du stock MP');
       }
       if (pfResult.status === 'fulfilled') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setProductsPf((pfResult.value || []).map((pf: any) => ({ ...pf, id: pf.id || pf.productId })));
+        setProductsPf((pfResult.value || []).map((pf) => ({ ...pf, id: pf.id || (pf as ProductPf & { productId?: number }).productId || 0 })));
       } else {
         toast.error('Erreur lors du chargement des produits finis');
       }

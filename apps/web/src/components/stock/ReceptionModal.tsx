@@ -116,8 +116,7 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
     }]);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateLine = (id: string, field: keyof ReceptionLine, value: any) => {
+  const updateLine = (id: string, field: keyof ReceptionLine, value: string | number) => {
     setLines(lines.map(line => {
       if (line.id !== id) return line;
       
@@ -125,7 +124,7 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
         const product = localProducts.find(p => (p.productId || p.id) === value);
         return {
           ...line,
-          productMpId: value,
+          productMpId: Number(value),
           productName: product?.name || '',
           productUnit: product?.unit || '',
         };
@@ -149,8 +148,7 @@ export const ReceptionModal = memo(function ReceptionModal({ isOpen, onClose, on
     setError(null);
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await apiFetch<any>('/stock/mp/receptions', {
+      await apiFetch<{ id: number }>('/stock/mp/receptions', {
         method: 'POST',
         body: JSON.stringify({
           supplierId: Number(supplierId),

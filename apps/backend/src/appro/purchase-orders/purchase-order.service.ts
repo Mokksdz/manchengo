@@ -963,7 +963,7 @@ export class PurchaseOrderService {
    */
   // @ts-expect-error TS6133 — kept for future use
   private async _verifyVersion(
-    tx: any,
+    tx: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
     poId: string,
     expectedVersion: number,
   ): Promise<void> {

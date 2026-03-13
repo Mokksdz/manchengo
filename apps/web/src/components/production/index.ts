@@ -27,11 +27,34 @@ export { ProductionDashboardTab } from './ProductionDashboardTab';
 export { ProductionProductsTab } from './ProductionProductsTab';
 export { ProductionOrdersTab } from './ProductionOrdersTab';
 
+// Page-level sub-components
+export { ProductionLoadingSkeleton } from './ProductionLoadingSkeleton';
+export { ProductionTabBar } from './ProductionTabBar';
+
 // Product Detail Tabs
 export { ProductParamsTab } from './ProductParamsTab';
 export { ProductRecipeTab } from './ProductRecipeTab';
 export { ProductBatchTab } from './ProductBatchTab';
 export { ProductHistoryTab } from './ProductHistoryTab';
+
+// Page-level shared types
+export type {
+  ProductionOrder,
+  ProductPf,
+  DashboardKpis,
+  ProductionAlert,
+  AlertsData,
+  StockPfItem,
+  CalendarDay,
+  AnalyticsData,
+  LotSearchResult,
+  TraceabilityInfo,
+  MainTab,
+  RawProductionOrder,
+  RawProductPf,
+  RawRecipe,
+  AdminUsersResponse,
+} from './production-page-types';
 
 // Types
 export type {

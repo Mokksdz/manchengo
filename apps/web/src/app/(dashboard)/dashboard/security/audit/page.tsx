@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '@/lib/api';
 import { useRequireRole } from '@/lib/hooks/use-require-role';
+import type { LucideIcon } from 'lucide-react';
 import {
   FileText,
   RefreshCw,
@@ -46,8 +47,7 @@ interface SecurityLog {
   createdAt: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const actionLabels: Record<string, { label: string; icon: any; color: string }> = {
+const actionLabels: Record<string, { label: string; icon: LucideIcon; color: string }> = {
   LOGIN_SUCCESS: { label: 'Connexion réussie', icon: LogIn, color: 'text-[#34C759]' },
   LOGIN_FAILURE: { label: 'Échec connexion', icon: LogIn, color: 'text-[#FF3B30]' },
   LOGOUT: { label: 'Déconnexion', icon: LogOut, color: 'text-[#86868B]' },
