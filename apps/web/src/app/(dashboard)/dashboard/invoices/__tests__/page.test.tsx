@@ -166,7 +166,7 @@ describe('InvoicesPage', () => {
       // "Brouillon" appears both in status filter and invoice row
       const brouillons = screen.getAllByText('Brouillon');
       expect(brouillons.length).toBeGreaterThanOrEqual(1);
-      const payees = screen.getAllByText('Payée');
+      const payees = screen.getAllByText('Payee');
       expect(payees.length).toBeGreaterThanOrEqual(1);
     });
   });

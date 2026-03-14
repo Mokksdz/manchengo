@@ -881,7 +881,7 @@ describe('SuppliersService', () => {
         service.blockSupplier(
           1,
           { reason: 'Retards repetes sur les livraisons MP' },
-          1,
+          '1',
         ),
       ).rejects.toThrow(NotImplementedException);
     });
@@ -896,7 +896,7 @@ describe('SuppliersService', () => {
       });
 
       await expect(
-        service.blockSupplier(1, { reason: 'Short' }, 1),
+        service.blockSupplier(1, { reason: 'Short' }, '1'),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -910,7 +910,7 @@ describe('SuppliersService', () => {
       });
 
       await expect(
-        service.blockSupplier(1, { reason: '' }, 1),
+        service.blockSupplier(1, { reason: '' }, '1'),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -918,7 +918,7 @@ describe('SuppliersService', () => {
       prisma.supplier.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.blockSupplier(999, { reason: 'Retards frequents sur approvisionnement' }, 1),
+        service.blockSupplier(999, { reason: 'Retards frequents sur approvisionnement' }, '1'),
       ).rejects.toThrow(NotFoundException);
     });
   });

@@ -206,6 +206,7 @@ describe('ProductionService - Invariants metier', () => {
         'user-1',
       );
 
+      if (!result) throw new Error('Expected create() to return an order');
       expect(result.status).toBe('PENDING');
       expect(result.batchCount).toBe(2);
       expect(result.targetQuantity).toBe(20); // 2 batches * 10 output

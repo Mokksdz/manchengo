@@ -76,10 +76,14 @@ jest.mock('@/components/ui/button', () => ({
   ),
 }));
 
-jest.mock('@/components/stock', () => ({
+jest.mock('@/components/stock/ZoneCritique', () => ({
   ZoneCritique: ({ data: _data }: { data: unknown }) => <div data-testid="zone-critique">Zone Critique</div>,
-  ZoneATraiter: ({ data: _data2 }: { data: unknown }) => <div data-testid="zone-atraiter">Zone À Traiter</div>,
-  ZoneSante: ({ data: _data3 }: { data: unknown }) => <div data-testid="zone-sante">Zone Santé</div>,
+}));
+jest.mock('@/components/stock/ZoneATraiter', () => ({
+  ZoneATraiter: ({ data: _data }: { data: unknown }) => <div data-testid="zone-atraiter">Zone À Traiter</div>,
+}));
+jest.mock('@/components/stock/ZoneSante', () => ({
+  ZoneSante: ({ data: _data }: { data: unknown }) => <div data-testid="zone-sante">Zone Santé</div>,
 }));
 
 import StockDashboardPage from '../page';
