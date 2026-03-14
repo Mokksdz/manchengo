@@ -72,9 +72,9 @@ const nextConfig = {
                 ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
                 : "script-src 'self' 'unsafe-inline'",
               // unsafe-inline required for Next.js inline styles and Tailwind
-              "style-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob:",
-              "font-src 'self' data:",
+              "font-src 'self' data: https://fonts.gstatic.com",
               (() => {
                 const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
                 // Build connect-src with specific WebSocket URLs (no wildcards)
