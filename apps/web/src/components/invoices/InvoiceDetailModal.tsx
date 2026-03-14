@@ -5,8 +5,7 @@ import { X, Pencil, FileDown } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { useFocusTrap, useEscapeKey } from '@/lib/hooks/use-focus-trap';
 import { calculateTimbreRatePercent } from '@/lib/fiscal-rules';
-import type { Invoice } from './types';
-import { getStatusStyle, getStatusLabel, paymentMethods } from './types';
+import { type Invoice, getStatusStyle, getStatusLabel, paymentMethods } from './types';
 
 interface InvoiceDetailModalProps {
   invoice: Invoice;

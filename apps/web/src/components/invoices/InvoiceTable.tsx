@@ -5,8 +5,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton, SkeletonTable } from '@/components/ui/skeleton-loader';
 import { KeyboardHint } from '@/components/ui/keyboard-hint';
-import type { Invoice, StatusFilter } from './types';
-import { getStatusStyle, getStatusLabel } from './types';
+import { type Invoice, type StatusFilter, getStatusStyle, getStatusLabel } from './types';
 
 interface InvoiceTableProps {
   invoices: Invoice[];

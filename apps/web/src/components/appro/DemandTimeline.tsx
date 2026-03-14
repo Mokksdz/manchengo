@@ -1,14 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import type { LucideIcon } from 'lucide-react';
-import {
-  CheckCircle,
-  FileText,
-  Send,
-  Package,
-  Clock,
-} from 'lucide-react';
+import { type LucideIcon, CheckCircle, FileText, Send, Package, Clock } from 'lucide-react';
 
 type DemandeStatus = 
   | 'BROUILLON' | 'SOUMISE' | 'VALIDEE' | 'REJETEE' 

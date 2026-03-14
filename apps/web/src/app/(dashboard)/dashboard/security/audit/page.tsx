@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '@/lib/api';
 import { useRequireRole } from '@/lib/hooks/use-require-role';
-import type { LucideIcon } from 'lucide-react';
 import {
+  type LucideIcon,
   FileText,
   RefreshCw,
   CheckCircle,

@@ -4,7 +4,7 @@ import { StockService } from '../stock/stock.service';
 import { DevicesService } from '../security/devices.service';
 import { SecurityLogService } from '../security/security-log.service';
 import { AuditService } from '../common/audit/audit.service';
-import { UserRole, AuditAction, AuditSeverity } from '@prisma/client';
+import { Prisma, UserRole, AuditAction, AuditSeverity } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import {
   CreateProductMpDto,
@@ -282,9 +282,9 @@ export class AdminService {
     const safeLimit = Math.min(limit || 20, 200);
     const skip = (page - 1) * safeLimit;
 
-    const where: any = {};
+    const where: Prisma.InvoiceWhereInput = {};
     if (status) {
-      where.status = status;
+      where.status = status as Prisma.EnumInvoiceStatusFilter;
     }
     // V11: Server-side search by reference or client name
     if (search) {
@@ -336,9 +336,9 @@ export class AdminService {
     const safeLimit = Math.min(limit || 20, 200);
     const skip = (page - 1) * safeLimit;
 
-    const where: any = {};
+    const where: Prisma.ProductionOrderWhereInput = {};
     if (status) {
-      where.status = status;
+      where.status = status as Prisma.EnumProductionOrderStatusFilter;
     }
 
     const [orders, total] = await Promise.all([

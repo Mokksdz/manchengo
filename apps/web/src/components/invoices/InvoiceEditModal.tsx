@@ -8,8 +8,7 @@ import { useFocusTrap, useEscapeKey } from '@/lib/hooks/use-focus-trap';
 import { calculateTimbreRate } from '@/lib/fiscal-rules';
 import { formatPrice } from '@/lib/format';
 import { createLogger } from '@/lib/logger';
-import type { Invoice, Client, ProductPf, EditFormLine } from './types';
-import { paymentMethods } from './types';
+import { type Invoice, type Client, type ProductPf, type EditFormLine, paymentMethods } from './types';
 
 const log = createLogger('InvoiceEditModal');
 

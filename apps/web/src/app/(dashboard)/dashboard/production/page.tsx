@@ -11,23 +11,21 @@ import { Button } from '@/components/ui/button';
 import {
   type SupplyRisksData,
   type ProductionsAtRiskData,
+  type ProductionOrder,
+  type ProductPf,
+  type DashboardKpis,
+  type AlertsData,
+  type StockPfItem,
+  type CalendarDay,
+  type AnalyticsData,
+  type LotSearchResult,
+  type MainTab,
+  type RawProductionOrder,
+  type RawProductPf,
+  type RawRecipe,
+  type AdminUsersResponse,
   ProductionLoadingSkeleton,
   ProductionTabBar,
-} from '@/components/production';
-import type {
-  ProductionOrder,
-  ProductPf,
-  DashboardKpis,
-  AlertsData,
-  StockPfItem,
-  CalendarDay,
-  AnalyticsData,
-  LotSearchResult,
-  MainTab,
-  RawProductionOrder,
-  RawProductPf,
-  RawRecipe,
-  AdminUsersResponse,
 } from '@/components/production';
 import { createLogger } from '@/lib/logger';
 

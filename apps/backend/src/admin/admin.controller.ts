@@ -35,6 +35,10 @@ import {
   RevokeDeviceDto,
 } from './dto/admin.dto';
 
+interface AuthenticatedRequest {
+  user: { id: number; role: string; email?: string };
+}
+
 @ApiTags('Admin')
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -352,7 +356,7 @@ export class AdminController {
   async resetUserPassword(
     @Param('id') id: string,
     @Body() dto: ResetPasswordDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.adminService.resetUserPassword(id, dto.newPassword, req.user);
   }
@@ -390,7 +394,7 @@ export class AdminController {
   async updateInvoice(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateInvoiceDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.adminService.updateInvoice(id, dto, req.user.id);
   }
@@ -402,7 +406,7 @@ export class AdminController {
   async updateInvoiceStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateInvoiceStatusDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.adminService.updateInvoiceStatus(id, dto.status, req.user.id, req.user.role);
   }
@@ -459,7 +463,7 @@ export class AdminController {
   async revokeDevice(
     @Param('id') id: string,
     @Body() dto: RevokeDeviceDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     return this.adminService.revokeDevice(id, req.user.id, dto.reason);
   }
