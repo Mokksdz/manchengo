@@ -27,7 +27,7 @@ export class TenantMiddleware implements NestMiddleware {
   constructor(private readonly prisma: PrismaService) {}
 
   async use(req: Request, _res: Response, next: NextFunction) {
-    const user = (req as any).user;
+    const user = (req as Request & { user?: { id?: string } }).user;
 
     if (!user?.id) {
       return next();
@@ -36,7 +36,7 @@ export class TenantMiddleware implements NestMiddleware {
     try {
       const companyId = await this.resolveCompanyId(user.id);
       if (companyId) {
-        (req as any).tenantId = companyId;
+        (req as Request & { tenantId?: string }).tenantId = companyId;
       }
     } catch (error) {
       this.logger.warn(`Failed to resolve tenant for user ${user.id}: ${error}`);

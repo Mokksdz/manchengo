@@ -73,13 +73,14 @@ import { logger } from '../common/logger/logger.service';
             });
 
             // Attach error handler to prevent uncaught exceptions
-            const client = (store as any)?.client;
+            const client = (store as { client?: { on: (event: string, handler: (arg?: unknown) => void) => void } })?.client;
             if (client && typeof client.on === 'function') {
-              client.on('error', (err: Error) => {
-                logger.warn(`Redis error (non-fatal): ${err.message}`, 'Cache');
+              client.on('error', (err: unknown) => {
+                const message = err instanceof Error ? err.message : String(err);
+                logger.warn(`Redis error (non-fatal): ${message}`, 'Cache');
               });
-              client.on('reconnecting', (delay: number) => {
-                logger.warn(`Redis reconnecting (delay: ${delay}ms)`, 'Cache');
+              client.on('reconnecting', (delay: unknown) => {
+                logger.warn(`Redis reconnecting (delay: ${typeof delay === 'number' ? delay : '?'}ms)`, 'Cache');
               });
             }
 

@@ -90,7 +90,7 @@ export class MonitoringController {
   async acknowledgeAlert(
     @Param('id') id: string,
     @Body() body: { note?: string },
-    @Request() req: any,
+    @Request() req: { user: { sub: string } },
   ) {
     const userId = req.user.sub;
     return this.alertsService.acknowledgeAlert(id, userId, body.note);
@@ -98,7 +98,7 @@ export class MonitoringController {
 
   /**
    * POST /api/monitoring/alerts/:id/close
-   * 
+   *
    * Close an alert (resolved or dismissed)
    */
   @Post('alerts/:id/close')
@@ -106,7 +106,7 @@ export class MonitoringController {
   async closeAlert(
     @Param('id') id: string,
     @Body() body: { note?: string },
-    @Request() req: any,
+    @Request() req: { user: { sub: string } },
   ) {
     const userId = req.user.sub;
     return this.alertsService.closeAlert(id, userId, body.note);

@@ -19,6 +19,33 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ApproService, StockState, StockMpWithState } from '../appro/appro.service';
 import { PurchaseOrderService } from '../appro/purchase-orders/purchase-order.service';
 
+/** Shape returned by PurchaseOrderService.getLatePurchaseOrders() */
+interface LatePurchaseOrderItem {
+  productMp: { id: number; code: string; name: string; unit: string; criticite: string } | null;
+}
+
+interface LatePurchaseOrder {
+  id: string;
+  reference: string;
+  status: string;
+  expectedDelivery: Date | null;
+  daysLate: number;
+  isCritical: boolean;
+  hasCriticalMp: boolean;
+  impactLevel: string;
+  supplier: { id: number; name: string; code?: string | null } | null;
+  items: LatePurchaseOrderItem[];
+}
+
+/** Shape of BC info pushed into latePOsMap */
+interface BcMapEntry {
+  bcId: string;
+  reference: string;
+  daysLate: number;
+  supplierName: string | undefined;
+  isCritical: boolean;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES & INTERFACES — P0.1 Supply Risks
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -267,21 +294,23 @@ export class ProductionSupplyRisksService {
   /**
    * Transforme les BC en retard pour l'UI Production
    */
-  private transformBcCritiques(latePOs: any[]): BcCritiqueProduction[] {
+  private transformBcCritiques(latePOs: LatePurchaseOrder[]): BcCritiqueProduction[] {
     return latePOs.map(po => ({
       bcId: po.id,
       reference: po.reference,
       supplierName: po.supplier?.name ?? 'Inconnu',
       supplierId: po.supplier?.id ?? 0,
       daysLate: po.daysLate,
-      expectedDelivery: po.expectedDelivery,
+      expectedDelivery: po.expectedDelivery ? po.expectedDelivery.toISOString() : '',
       impactLevel: po.impactLevel as BcImpactLevel,
       hasCriticalMp: po.hasCriticalMp,
-      mpImpacted: po.items?.map((item: any) => ({
-        id: item.productMp?.id,
-        code: item.productMp?.code,
-        name: item.productMp?.name,
-      })).filter((mp: any) => mp.id) ?? [],
+      mpImpacted: po.items
+        ?.map(item => ({
+          id: item.productMp?.id,
+          code: item.productMp?.code,
+          name: item.productMp?.name,
+        }))
+        .filter((mp): mp is { id: number; code: string; name: string } => mp.id !== undefined) ?? [],
       status: po.status,
     })).sort((a, b) => {
       // Trier par impact puis par jours de retard
@@ -302,7 +331,7 @@ export class ProductionSupplyRisksService {
    */
   private async aggregateFournisseursBloquants(
     criticalMp: StockMpWithState[],
-    latePOs: any[],
+    latePOs: LatePurchaseOrder[],
   ): Promise<FournisseurBloquant[]> {
     // Map fournisseur -> MP bloquantes
     const supplierMap = new Map<number, {
@@ -343,15 +372,16 @@ export class ProductionSupplyRisksService {
 
     // Compter les BC en retard par fournisseur
     for (const po of latePOs) {
-      const supplierId = po.supplier?.id;
-      if (!supplierId) continue;
-      
+      const poSupplier = po.supplier;
+      if (!poSupplier) continue;
+      const supplierId = poSupplier.id;
+
       const existing = supplierMap.get(supplierId);
       if (existing) {
         existing.bcEnRetard++;
       } else {
         supplierMap.set(supplierId, {
-          supplier: { id: supplierId, name: po.supplier.name, code: po.supplier.code || '' },
+          supplier: { id: supplierId, name: poSupplier.name, code: poSupplier.code ?? '' },
           mpBloquantes: [],
           bcEnRetard: 1,
         });
@@ -437,16 +467,17 @@ export class ProductionSupplyRisksService {
     // Créer des maps pour lookup rapide
     const criticalMpMap = new Map(criticalMp.map(mp => [mp.id, mp]));
     const latePOsMpIds = new Set<number>();
-    const latePOsMap = new Map<number, any[]>(); // mpId -> BC info
+    const latePOsMap = new Map<number, BcMapEntry[]>(); // mpId -> BC info
 
     for (const po of latePOs) {
       for (const item of po.items || []) {
         if (item.productMp?.id) {
           latePOsMpIds.add(item.productMp.id);
-          if (!latePOsMap.has(item.productMp.id)) {
-            latePOsMap.set(item.productMp.id, []);
+          const existing = latePOsMap.get(item.productMp.id) ?? [];
+          if (existing.length === 0) {
+            latePOsMap.set(item.productMp.id, existing);
           }
-          latePOsMap.get(item.productMp.id)!.push({
+          existing.push({
             bcId: po.id,
             reference: po.reference,
             daysLate: po.daysLate,

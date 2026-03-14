@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { SecurityAction } from '@prisma/client';
+import { SecurityAction, Prisma } from '@prisma/client';
 
 /**
  * Security Log Service
@@ -31,7 +31,7 @@ export class SecurityLogService {
     deviceId?: string;
     ipAddress?: string;
     userAgent?: string;
-    details?: Record<string, any>;
+    details?: Record<string, unknown>;
     success?: boolean;
   }): Promise<void> {
     await this.prisma.securityLog.create({
@@ -42,7 +42,7 @@ export class SecurityLogService {
         deviceId: params.deviceId,
         ipAddress: params.ipAddress,
         userAgent: params.userAgent,
-        details: params.details,
+        details: params.details as Prisma.InputJsonValue ?? Prisma.JsonNull,
         success: params.success ?? true,
       },
     });

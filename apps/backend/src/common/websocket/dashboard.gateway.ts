@@ -185,7 +185,7 @@ export class DashboardGateway
   /**
    * Emit to a specific room with throttle protection
    */
-  private emitToRoom(room: RoomName, event: string, data: any) {
+  private emitToRoom(room: RoomName, event: string, data: Record<string, unknown>) {
     if (!this.server) return;
 
     // Throttle: skip if same event emitted within THROTTLE_MS
@@ -256,7 +256,7 @@ export class DashboardGateway
   /**
    * Backward-compatible emit method for services using the old API
    */
-  emitDashboardUpdate(event: string, data: any) {
+  emitDashboardUpdate(event: string, data: Record<string, unknown>) {
     // Route to appropriate room based on event prefix
     if (event.startsWith('stock:')) {
       this.emitToRoom('stock', event, data);

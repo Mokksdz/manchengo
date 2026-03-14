@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
-import { LotStatus, Prisma, UserRole } from '@prisma/client';
+import { LotStatus, Prisma, UserRole, AuditAction, MovementOrigin } from '@prisma/client';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -194,7 +194,7 @@ export class LotConsumptionService {
           await tx.stockMovement.create({
             data: {
               movementType: 'OUT',
-              origin: reason as any,
+              origin: reason as MovementOrigin,
               productType: 'MP',
               productMpId,
               lotMpId: consumption.lotId,
@@ -220,7 +220,7 @@ export class LotConsumptionService {
         // 5. Audit consolidé
         await this.audit.log({
           actor: { id: userId, role: userRole || ('PRODUCTION' as UserRole) },
-          action: 'STOCK_MOVEMENT_CREATED' as any,
+          action: AuditAction.STOCK_MOVEMENT_CREATED,
           entityType: 'ProductMp',
           entityId: String(productMpId),
           metadata: {

@@ -140,7 +140,7 @@ export class EventBusService implements OnModuleInit, OnModuleDestroy {
       this.subscriptions.set(eventType, []);
     }
 
-    const subs = this.subscriptions.get(eventType)!;
+    const subs = this.subscriptions.get(eventType) ?? [];
     subs.push(subscription);
 
     // Trier par priorité (plus haute en premier)

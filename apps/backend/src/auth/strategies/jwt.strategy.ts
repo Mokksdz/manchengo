@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger, ExecutionContext } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
@@ -82,11 +82,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * If primary verification fails and a previous secret exists,
    * manually verify with the old key before rejecting.
    */
-  handleRequest(err: any, user: any, _info: any, context: any) {
+  handleRequest<TUser = unknown>(err: Error | null, user: TUser | false, _info: unknown, context: ExecutionContext): TUser {
     if ((err || !user) && this.previousSecret) {
       // Try N-1 verification with previous secret
       try {
-        const req = context?.switchToHttp?.()?.getRequest?.() || context;
+        const req: Request = context.switchToHttp().getRequest<Request>();
         const token = extractJwtFromCookieOrHeader(req);
         if (token) {
           const payload = jwt.verify(token, this.previousSecret) as TokenPayload;

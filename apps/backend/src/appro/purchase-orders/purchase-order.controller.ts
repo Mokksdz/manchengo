@@ -294,7 +294,7 @@ export class PurchaseOrderController {
   @ApiResponse({ status: 200, description: 'BC confirmé' })
   @ApiResponse({ status: 400, description: 'BC pas en statut SENT' })
   @ApiResponse({ status: 404, description: 'BC non trouvé' })
-  async confirm(@Param('id') id: string, @Request() req: any) {
+  async confirm(@Param('id') id: string, @Request() req: { user: { id: string } }) {
     return this.poService.confirmPurchaseOrder(id, req.user.id);
   }
 
@@ -407,7 +407,7 @@ export class PurchaseOrderController {
   })
   @ApiParam({ name: 'id', description: 'ID du BC (UUID)' })
   @ApiResponse({ status: 200, description: 'Résultat de l\'acquisition du lock' })
-  async acquireLock(@Param('id') id: string, @Request() req: any) {
+  async acquireLock(@Param('id') id: string, @Request() req: { user: { id: string } }) {
     return this.poService.acquireLock(id, req.user.id);
   }
 
@@ -426,7 +426,7 @@ export class PurchaseOrderController {
   })
   @ApiParam({ name: 'id', description: 'ID du BC (UUID)' })
   @ApiResponse({ status: 200, description: 'Lock libéré' })
-  async releaseLock(@Param('id') id: string, @Request() req: any) {
+  async releaseLock(@Param('id') id: string, @Request() req: { user: { id: string } }) {
     return { released: await this.poService.releaseLock(id, req.user.id) };
   }
 }

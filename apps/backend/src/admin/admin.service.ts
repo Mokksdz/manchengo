@@ -4,7 +4,7 @@ import { StockService } from '../stock/stock.service';
 import { DevicesService } from '../security/devices.service';
 import { SecurityLogService } from '../security/security-log.service';
 import { AuditService } from '../common/audit/audit.service';
-import { Prisma, UserRole, AuditAction, AuditSeverity } from '@prisma/client';
+import { Prisma, UserRole, AuditAction, AuditSeverity, InvoiceStatus, ProductType, SecurityAction } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import {
   CreateProductMpDto,
@@ -522,7 +522,7 @@ export class AdminService {
     }
 
     // Construire les conditions de date
-    const dateConditions: any = {};
+    const dateConditions: Record<string, unknown> = {};
     
     if (filters.year) {
       const startOfYear = new Date(filters.year, 0, 1);
@@ -638,9 +638,9 @@ export class AdminService {
     const safeLimit = Math.min(limit || 50, 200);
     const skip = (page - 1) * safeLimit;
 
-    const where: any = { isDeleted: false };
+    const where: Prisma.StockMovementWhereInput = { isDeleted: false };
     if (type) {
-      where.productType = type;
+      where.productType = type as ProductType;
     }
 
     const [movements, total] = await Promise.all([
@@ -671,8 +671,8 @@ export class AdminService {
   // A29: Pagination support (backward compatible — no params = all results)
   async getUsers(options?: { page?: number; limit?: number; role?: string }) {
     const { page, limit, role } = options || {};
-    const where = role ? { role: role as any } : {};
-    const query: any = {
+    const where: Prisma.UserWhereInput = role ? { role: role as UserRole } : {};
+    const query: Prisma.UserFindManyArgs = {
       where,
       select: {
         id: true,
@@ -967,7 +967,7 @@ export class AdminService {
         entityType: 'User',
         entityId: id,
         metadata: { targetEmail: user.email, targetName: `${user.firstName} ${user.lastName}` },
-      }).catch(() => {});
+      }).catch(() => { /* intentionally empty */ });
     }
 
     return { message: 'Mot de passe réinitialisé avec succès' };
@@ -998,7 +998,7 @@ export class AdminService {
       const logMethod = newStatus
         ? this.securityLogService.logUserUnblock.bind(this.securityLogService)
         : this.securityLogService.logUserBlock.bind(this.securityLogService);
-      logMethod(adminUser.id, id).catch(() => {});
+      logMethod(adminUser.id, id).catch(() => { /* intentionally empty */ });
 
       this.auditService.log({
         actor: { id: adminUser.id, role: adminUser.role as UserRole, email: adminUser.email },
@@ -1009,7 +1009,7 @@ export class AdminService {
         beforeState: { isActive: user.isActive },
         afterState: { isActive: newStatus },
         metadata: { targetEmail: user.email },
-      }).catch(() => {});
+      }).catch(() => { /* intentionally empty */ });
     }
 
     return result;
@@ -1078,7 +1078,8 @@ export class AdminService {
     const lineData: { productPfId: number; quantity: number; unitPriceHt: number; lineHt: number }[] = [];
 
     for (const line of dto.lines) {
-      const product = productMap.get(line.productPfId)!;
+      const product = productMap.get(line.productPfId);
+      if (!product) throw new NotFoundException(`Produit PF #${line.productPfId} non trouvé`);
       const unitPrice = line.unitPriceHt ?? product.priceHt;
       const lineHt = unitPrice * line.quantity;
       totalHt += lineHt;
@@ -1238,7 +1239,7 @@ export class AdminService {
     }
 
     // Mise à jour simple sans lignes — recalculer timbre si paymentMethod change
-    const updateData: any = {};
+    const updateData: Prisma.InvoiceUncheckedUpdateInput = {};
     if (dto.clientId !== undefined) updateData.clientId = dto.clientId;
 
     const newPaymentMethod = dto.paymentMethod ?? invoice.paymentMethod;
@@ -1312,7 +1313,7 @@ export class AdminService {
           // Mettre à jour le statut dans la MÊME transaction
           return tx.invoice.update({
             where: { id },
-            data: { status: newStatus as any },
+            data: { status: newStatus as InvoiceStatus },
             include: {
               client: true,
               lines: { include: { productPf: true } },
@@ -1326,7 +1327,7 @@ export class AdminService {
     // Cas simple: CANCELLED (pas de stock à déduire)
     return this.prisma.invoice.update({
       where: { id },
-      data: { status: newStatus as any },
+      data: { status: newStatus as InvoiceStatus },
       include: {
         client: true,
         lines: { include: { productPf: true } },
@@ -1366,7 +1367,7 @@ export class AdminService {
         address: invoiceData.client.address,
         phone: invoiceData.client.phone,
       },
-      lines: invoiceData.lines.map((line: any) => ({
+      lines: invoiceData.lines.map((line) => ({
         code: line.productPf.code,
         name: line.productPf.name,
         unit: line.productPf.unit,
@@ -1444,7 +1445,7 @@ export class AdminService {
             entityType: 'ProductMp',
             entityId: String(dto.productId),
             metadata: { quantity: dto.quantity, reason: dto.reason, lotNumber },
-          }).catch(() => {});
+          }).catch(() => { /* intentionally empty */ });
         }
 
         return { message: 'Ajustement stock MP effectué', lot };
@@ -1500,7 +1501,7 @@ export class AdminService {
             entityType: 'ProductPf',
             entityId: String(dto.productId),
             metadata: { quantity: dto.quantity, reason: dto.reason, lotNumber },
-          }).catch(() => {});
+          }).catch(() => { /* intentionally empty */ });
         }
 
         return { message: 'Ajustement stock PF effectué', lot };
@@ -1531,9 +1532,9 @@ export class AdminService {
     const { action, limit = 25, page = 1 } = options;
     const safeLimit = Math.min(limit || 25, 200);
     const skip = (page - 1) * safeLimit;
-    const where: any = {};
+    const where: Prisma.SecurityLogWhereInput = {};
     if (action) {
-      where.action = action;
+      where.action = action as SecurityAction;
     }
 
     const [logs, total] = await Promise.all([

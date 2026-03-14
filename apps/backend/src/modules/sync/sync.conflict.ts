@@ -431,8 +431,8 @@ export class SyncConflictResolver {
           action,
           errorCode: conflict.errorCode,
           errorMessage: conflict.errorMessage,
-          resolution: conflict.resolution,
-        } as any,
+          resolution: conflict.resolution as Prisma.InputJsonValue | undefined,
+        },
         success: false,
       },
     });

@@ -15,7 +15,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PurchaseOrderStatus } from '@prisma/client';
+import { PurchaseOrderStatus, Prisma } from '@prisma/client';
 import {
   SendBcDto,
   SendBcResponseDto,
@@ -267,7 +267,7 @@ export class PurchaseOrderService {
         id: po.id,
         reference: po.reference,
         status: po.status,
-        sentAt: po.sentAt!,
+        sentAt: po.sentAt ?? new Date(),
         sentVia: (po.sentVia as SendVia) ?? SendVia.MANUAL,
         emailSent: po.sentVia === 'EMAIL',
         message: `BC ${po.reference} déjà envoyé (idempotence)`,
@@ -280,7 +280,7 @@ export class PurchaseOrderService {
       id: result.id,
       reference: result.reference,
       status: result.status,
-      sentAt: result.sentAt!,
+      sentAt: result.sentAt ?? new Date(),
       sentVia: dto.sendVia,
       emailSent,
       message: emailSent
@@ -426,7 +426,7 @@ export class PurchaseOrderService {
           id: po.id,
           reference: po.reference,
           status: po.status,
-          cancelledAt: po.cancelledAt!,
+          cancelledAt: po.cancelledAt ?? new Date(),
           reason: po.cancelReason || dto.reason,
           message: `BC ${po.reference} déjà annulé (idempotence)`,
         };
@@ -477,7 +477,7 @@ export class PurchaseOrderService {
       id: result.id,
       reference: result.reference,
       status: result.status,
-      cancelledAt: result.cancelledAt!,
+      cancelledAt: result.cancelledAt ?? new Date(),
       reason: dto.reason,
       message: `BC ${result.reference} annulé avec succès`,
     };
@@ -586,7 +586,8 @@ export class PurchaseOrderService {
 
       // 3. Traiter chaque ligne
       for (const line of dto.lines) {
-        const item = po.items.find((i) => i.id === line.itemId)!;
+        const item = po.items.find((i) => i.id === line.itemId);
+        if (!item) throw new BadRequestException(`Ligne #${line.itemId} non trouvée dans le BC`);
         const currentQtyReceived = Number(item.quantityReceived);
         const itemQuantity = Number(item.quantity);
         const itemUnitPrice = Number(item.unitPrice);
@@ -870,7 +871,7 @@ export class PurchaseOrderService {
 
     // Enrichir avec champs calculés
     return latePOs.map((po) => {
-      const expectedDate = new Date(po.expectedDelivery!);
+      const expectedDate = new Date(po.expectedDelivery ?? now);
       expectedDate.setHours(0, 0, 0, 0);
       const daysLate = Math.ceil((now.getTime() - expectedDate.getTime()) / (1000 * 60 * 60 * 24));
       const isCritical = daysLate >= criticalThresholdDays;
@@ -1069,7 +1070,7 @@ export class PurchaseOrderService {
     return true;
   }
 
-  private async generateReference(tx: any): Promise<string> {
+  private async generateReference(tx: Prisma.TransactionClient): Promise<string> {
     const year = new Date().getFullYear();
     const prefix = `BC-${year}-`;
 
@@ -1087,7 +1088,7 @@ export class PurchaseOrderService {
     return `${prefix}${sequence.toString().padStart(5, '0')}`;
   }
 
-  private async generateReceptionReference(tx: any): Promise<string> {
+  private async generateReceptionReference(tx: Prisma.TransactionClient): Promise<string> {
     const today = new Date();
     const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
     const prefix = `REC-${dateStr}-`;

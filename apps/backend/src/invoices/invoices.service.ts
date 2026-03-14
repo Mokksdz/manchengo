@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInvoiceDto, UpdateInvoiceDto, UpdateInvoiceStatusDto } from './dto/invoice.dto';
 import { logger } from '../common/logger/logger.service';
+import { PaymentMethod } from '@prisma/client';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INVOICES SERVICE — Facturation avec calcul TVA algerienne
@@ -209,7 +210,7 @@ export class InvoicesService {
               timbreFiscal,
               timbreRate,
               netToPay,
-              paymentMethod: dto.paymentMethod as any,
+              paymentMethod: dto.paymentMethod as PaymentMethod,
               status: 'DRAFT',
               userId,
               lines: {
@@ -249,8 +250,9 @@ export class InvoicesService {
       }
     }
 
-    logger.info(`Invoice created: ${invoice!.reference} for ${client.code} — ${netToPay} centimes`, 'InvoicesService');
-    return invoice!;
+    if (!invoice) throw new Error('Invoice creation failed after retries');
+    logger.info(`Invoice created: ${invoice.reference} for ${client.code} — ${netToPay} centimes`, 'InvoicesService');
+    return invoice;
   }
 
   /**
@@ -323,7 +325,7 @@ export class InvoicesService {
 
       const updated = await this.prisma.$transaction(async (tx) => {
         // Validate all products exist
-        const productIds = dto.lines!.map(l => l.productPfId);
+        const productIds = (dto.lines ?? []).map(l => l.productPfId);
         const existingProducts = await tx.productPf.findMany({
           where: { id: { in: productIds } },
           select: { id: true },

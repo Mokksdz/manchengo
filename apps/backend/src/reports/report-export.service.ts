@@ -75,7 +75,7 @@ export class ReportExportService {
       },
     };
 
-    this.printer = new (PdfPrinter as any)(fonts);
+    this.printer = new (PdfPrinter as { new(fonts: unknown): typeof PdfPrinter })(fonts);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -118,7 +118,7 @@ export class ReportExportService {
   // DATA FETCHING
   // ═══════════════════════════════════════════════════════════════════════════════
 
-  private async fetchReportData(reportType: ReportType, filters: ReportFilters): Promise<ReportResult<any>> {
+  private async fetchReportData(reportType: ReportType, filters: ReportFilters): Promise<ReportResult<Record<string, unknown>>> {
     switch (reportType) {
       case 'stock-valorization':
         return this.reportsService.getStockValorizationReport();
@@ -143,7 +143,7 @@ export class ReportExportService {
 
   private async generateExcel(
     reportType: ReportType,
-    report: ReportResult<any>,
+    report: ReportResult<Record<string, unknown>>,
     filters: ReportFilters,
   ): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
@@ -249,7 +249,7 @@ export class ReportExportService {
 
   private async generatePdf(
     reportType: ReportType,
-    report: ReportResult<any>,
+    report: ReportResult<Record<string, unknown>>,
     filters: ReportFilters,
   ): Promise<Buffer> {
     const title = this.getReportTitle(reportType);
@@ -262,7 +262,7 @@ export class ReportExportService {
       style: 'tableHeader',
     }));
 
-    const tableRows: TableCell[][] = report.data.map((item: any) =>
+    const tableRows: TableCell[][] = report.data.map((item) =>
       columns.map((c) => ({
         text: String(this.formatCellValue(item[c.key], c.type) ?? '-'),
         style: c.type === 'amount' ? 'tableCellRight' : 'tableCell',

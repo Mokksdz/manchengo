@@ -49,7 +49,7 @@ export interface DashboardAlert {
   actionDeadline?: Date;
   entityType?: string;
   entityId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
 }
 
@@ -147,9 +147,18 @@ export class StockDashboardService {
     ]);
 
     // Use fallbacks for any failed zone
-    const safeCritique = critique || { totalCount: 0, items: [] } as any;
-    const safeATraiter = aTraiter || { totalCount: 0, items: [] } as any;
-    const safeSante = sante || { fifoCompliance: 0, dlcCompliance: 0, rotationScore: 0 } as any;
+    const safeCritique: ZoneCritique = critique ?? {
+      lotsExpiresToday: [], productsInRupture: [], lotsBlockedToDeclare: [],
+      inventoryCriticalPending: [], totalCount: 0,
+    };
+    const safeATraiter: ZoneATraiter = aTraiter ?? {
+      productsBelowMin: [], lotsExpiringJ7: [], lotsExpiringJ3: [], lotsExpiringJ1: [],
+      inventoriesPending: [], inventoriesOverdue: [], totalCount: 0,
+    };
+    const safeSante: ZoneSante = sante ?? {
+      fifoCompliance: 0, stockRotation: 0, avgInventoryDrift: 0,
+      inventoryFreshness: 0, lastUpdated: new Date(),
+    };
 
     const criticalCount = safeCritique.totalCount || 0;
     const warningCount = safeATraiter.totalCount || 0;

@@ -14,6 +14,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { LicensingService } from './licensing.service';
 import { DevicePlatform } from '@prisma/client';
 
+interface JwtRequest {
+  user: { sub: string };
+}
+
 /**
  * Licensing Controller - SaaS License Management
  *
@@ -42,7 +46,7 @@ export class LicensingController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get license status for current user' })
-  async getLicenseStatus(@Request() req: any) {
+  async getLicenseStatus(@Request() req: JwtRequest) {
     const userId = req.user.sub;
     return this.licensingService.validateUserLicense(userId);
   }
@@ -57,7 +61,7 @@ export class LicensingController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Register device against license' })
   async registerDevice(
-    @Request() req: any,
+    @Request() req: JwtRequest,
     @Body() body: {
       deviceId: string;
       platform: DevicePlatform;
@@ -83,7 +87,7 @@ export class LicensingController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Activate license key' })
   async activateLicense(
-    @Request() _req: any,
+    @Request() _req: JwtRequest,
     @Body() body: { licenseKey: string; companyId: string },
   ) {
     return this.licensingService.activateLicense(body.licenseKey, body.companyId);
@@ -174,7 +178,7 @@ export class LicensingController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Check if write operations allowed' })
-  async checkWriteAllowed(@Request() req: any) {
+  async checkWriteAllowed(@Request() req: JwtRequest) {
     const userId = req.user.sub;
     const allowed = await this.licensingService.isWriteAllowed(userId);
     return { writeAllowed: allowed };

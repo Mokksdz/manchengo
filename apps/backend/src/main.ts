@@ -44,13 +44,13 @@ function validateEnv() {
     }
 
     // Enforce minimum secret length
-    if (process.env.JWT_SECRET!.length < 32) {
+    if ((process.env.JWT_SECRET ?? '').length < 32) {
       throw new Error('SECURITY: JWT_SECRET must be at least 32 characters in production.');
     }
-    if (process.env.JWT_REFRESH_SECRET!.length < 32) {
+    if ((process.env.JWT_REFRESH_SECRET ?? '').length < 32) {
       throw new Error('SECURITY: JWT_REFRESH_SECRET must be at least 32 characters in production.');
     }
-    if (process.env.QR_SECRET_KEY!.length < 32) {
+    if ((process.env.QR_SECRET_KEY ?? '').length < 32) {
       throw new Error('SECURITY: QR_SECRET_KEY must be at least 32 characters in production.');
     }
 

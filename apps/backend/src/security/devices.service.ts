@@ -1,6 +1,7 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecurityLogService } from './security-log.service';
+import { Prisma } from '@prisma/client';
 
 /**
  * Devices Service
@@ -33,7 +34,7 @@ export class DevicesService {
     name: string;
     platform: string;
     appVersion?: string;
-  }): Promise<{ isNew: boolean; device: any }> {
+  }): Promise<{ isNew: boolean; device: Record<string, unknown> }> {
     const existing = await this.prisma.device.findUnique({
       where: { id: params.deviceId },
     });
@@ -201,7 +202,7 @@ export class DevicesService {
     limit?: number;
     offset?: number;
   }) {
-    const where: any = {};
+    const where: Prisma.DeviceWhereInput = {};
     if (params?.userId) where.userId = params.userId;
     if (params?.isActive !== undefined) where.isActive = params.isActive;
 

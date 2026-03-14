@@ -5,6 +5,10 @@ import { SecurityHardeningService, EmergencyMode } from './security-hardening.se
 import { FeatureFlagsService } from './feature-flags.service';
 import { UserRole } from '@prisma/client';
 
+interface GovernanceRequest {
+  user?: { id?: string; role?: UserRole };
+}
+
 /**
  * Governance Controller - ADMIN-ONLY endpoints for system governance
  *
@@ -50,11 +54,11 @@ export class GovernanceController {
   @ApiOperation({ summary: 'Purge records for an entity type (admin only)' })
   async purgeEntity(
     @Body() body: { entityType: string; dryRun?: boolean },
-    @Req() req: any,
+    @Req() req: GovernanceRequest,
   ) {
     const userId = req.user?.id || 'system';
     const userRole = req.user?.role || UserRole.ADMIN;
-    
+
     return this.retentionService.purgeEntity(
       body.entityType,
       userId,
@@ -93,7 +97,7 @@ export class GovernanceController {
   @ApiOperation({ summary: 'Set emergency mode (admin only)' })
   async setEmergencyMode(
     @Body() body: { mode: EmergencyMode; reason: string },
-    @Req() req: any,
+    @Req() req: GovernanceRequest,
   ) {
     const userId = req.user?.id || 'system';
     const userRole = req.user?.role || UserRole.ADMIN;
@@ -128,7 +132,7 @@ export class GovernanceController {
   @ApiOperation({ summary: 'Check if a feature is enabled for current user' })
   checkFeature(
     @Query('key') key: string,
-    @Req() req: any,
+    @Req() req: GovernanceRequest,
   ) {
     const userId = req.user?.id;
     const userRole = req.user?.role;
@@ -143,7 +147,7 @@ export class GovernanceController {
   @ApiOperation({ summary: 'Enable or disable a feature flag (admin only)' })
   async toggleFeature(
     @Body() body: { key: string; enabled: boolean },
-    @Req() req: any,
+    @Req() req: GovernanceRequest,
   ) {
     const userId = req.user?.id || 'system';
     const userRole = req.user?.role || UserRole.ADMIN;
@@ -159,7 +163,7 @@ export class GovernanceController {
   @ApiOperation({ summary: 'Emergency kill switch for a feature (admin only)' })
   async killSwitch(
     @Body() body: { key: string; reason: string },
-    @Req() req: any,
+    @Req() req: GovernanceRequest,
   ) {
     const userId = req.user?.id || 'system';
     const userRole = req.user?.role || UserRole.ADMIN;
@@ -176,7 +180,7 @@ export class GovernanceController {
   @ApiOperation({ summary: 'Set rollout percentage for a feature (admin only)' })
   async setRollout(
     @Body() body: { key: string; percent: number },
-    @Req() req: any,
+    @Req() req: GovernanceRequest,
   ) {
     const userId = req.user?.id || 'system';
     const userRole = req.user?.role || UserRole.ADMIN;

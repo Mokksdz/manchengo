@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
-import { AlertType, AlertSeverity, AlertStatus, SecurityAction } from '@prisma/client';
+import { AlertType, AlertSeverity, AlertStatus, SecurityAction, Prisma } from '@prisma/client';
 
 /**
  * Alerts Service
@@ -63,7 +63,7 @@ export class AlertsService {
     limit?: number;
     offset?: number;
   }) {
-    const where: any = {};
+    const where: Prisma.AlertWhereInput = {};
     if (params.status) where.status = params.status;
     if (params.type) where.type = params.type;
     if (params.severity) where.severity = params.severity;
@@ -155,7 +155,7 @@ export class AlertsService {
     message: string;
     entityType?: string;
     entityId?: string;
-    metadata?: any;
+    metadata?: Prisma.InputJsonValue;
     threshold?: number;
     value?: number;
     expiresAt?: Date;

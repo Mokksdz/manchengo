@@ -16,7 +16,7 @@ import {
   DeliveryValidationResponse,
   DeliveryQueryDto,
 } from './dto/delivery.dto';
-import { DeliveryStatus } from '@prisma/client';
+import { DeliveryStatus, Prisma } from '@prisma/client';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DELIVERY SERVICE - QR Validation & Proof of Delivery
@@ -348,7 +348,7 @@ export class DeliveryService {
           id: result.id,
           reference: result.reference,
           status: result.status,
-          validatedAt: result.validatedAt!,
+          validatedAt: result.validatedAt ?? new Date(),
           client: result.client,
           invoice: result.invoice,
         },
@@ -376,8 +376,8 @@ export class DeliveryService {
       }
 
       if (error instanceof ConflictException) {
-        const errorResponse = error.getResponse() as any;
-        const errorMsg = typeof errorResponse === 'string' ? errorResponse : errorResponse?.message || error.message;
+        const errorResponse = error.getResponse() as string | { message?: string };
+        const errorMsg = typeof errorResponse === 'string' ? errorResponse : errorResponse?.message ?? error.message;
 
         await this.logValidationAttempt({
           deliveryId: qrData.entityId,
@@ -399,8 +399,8 @@ export class DeliveryService {
       }
 
       if (error instanceof BadRequestException) {
-        const errorResponse = error.getResponse() as any;
-        const errorMsg = typeof errorResponse === 'string' ? errorResponse : errorResponse?.message || error.message;
+        const errorResponse = error.getResponse() as string | { message?: string };
+        const errorMsg = typeof errorResponse === 'string' ? errorResponse : errorResponse?.message ?? error.message;
         const isStockError = errorMsg?.includes('Stock PF insuffisant');
 
         await this.logValidationAttempt({
@@ -418,7 +418,7 @@ export class DeliveryService {
         return {
           success: false,
           message: errorMsg,
-          error: isStockError ? 'STOCK_INSUFFICIENT' as any : DeliveryValidationError.DELIVERY_CANCELLED,
+          error: isStockError ? ('STOCK_INSUFFICIENT' as DeliveryValidationError) : DeliveryValidationError.DELIVERY_CANCELLED,
         };
       }
 
@@ -466,7 +466,7 @@ export class DeliveryService {
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: Prisma.DeliveryWhereInput = {
       status: DeliveryStatus.PENDING,
     };
 
@@ -477,10 +477,10 @@ export class DeliveryService {
     if (query.dateFrom || query.dateTo) {
       where.scheduledDate = {};
       if (query.dateFrom) {
-        where.scheduledDate.gte = new Date(query.dateFrom);
+        (where.scheduledDate as Prisma.DateTimeNullableFilter).gte = new Date(query.dateFrom);
       }
       if (query.dateTo) {
-        where.scheduledDate.lte = new Date(query.dateTo);
+        (where.scheduledDate as Prisma.DateTimeNullableFilter).lte = new Date(query.dateTo);
       }
     }
 
@@ -521,7 +521,7 @@ export class DeliveryService {
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.DeliveryWhereInput = {};
 
     if (query.status) {
       where.status = query.status;
@@ -534,10 +534,10 @@ export class DeliveryService {
     if (query.dateFrom || query.dateTo) {
       where.createdAt = {};
       if (query.dateFrom) {
-        where.createdAt.gte = new Date(query.dateFrom);
+        (where.createdAt as Prisma.DateTimeFilter).gte = new Date(query.dateFrom);
       }
       if (query.dateTo) {
-        where.createdAt.lte = new Date(query.dateTo);
+        (where.createdAt as Prisma.DateTimeFilter).lte = new Date(query.dateTo);
       }
     }
 
@@ -855,7 +855,7 @@ export class DeliveryService {
     success: boolean;
     errorCode?: string;
     errorMessage?: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
   }) {
     try {
       await this.prisma.deliveryValidationLog.create({
@@ -870,7 +870,7 @@ export class DeliveryService {
           success: data.success,
           errorCode: data.errorCode || null,
           errorMessage: data.errorMessage || null,
-          metadata: data.metadata || null,
+          metadata: data.metadata as Prisma.InputJsonValue ?? Prisma.JsonNull,
         },
       });
     } catch (error) {

@@ -112,11 +112,15 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
     limit: number,
     blockSeconds: number,
   ) {
+    const redis = this.redis;
+    if (!redis) {
+      return this.incrementMemory(storageKey, blockKey, ttlSeconds, limit, blockSeconds);
+    }
     try {
       // Check if blocked
-      const blocked = await this.redis!.get(blockKey);
+      const blocked = await redis.get(blockKey);
       if (blocked) {
-        const blockTtl = await this.redis!.ttl(blockKey);
+        const blockTtl = await redis.ttl(blockKey);
         return {
           totalHits: limit + 1,
           timeToExpire: 0,
@@ -126,20 +130,20 @@ export class RedisThrottlerStorage implements ThrottlerStorage, OnModuleDestroy 
       }
 
       // Atomic increment
-      const totalHits = await this.redis!.incr(storageKey);
+      const totalHits = await redis.incr(storageKey);
 
       // Set expiry on first hit
       if (totalHits === 1) {
-        await this.redis!.expire(storageKey, ttlSeconds);
+        await redis.expire(storageKey, ttlSeconds);
       }
 
       // Get remaining TTL
-      const remainingTtl = await this.redis!.ttl(storageKey);
+      const remainingTtl = await redis.ttl(storageKey);
       const timeToExpire = Math.max(remainingTtl * 1000, 0);
 
       // If over limit and blockDuration > 0, set block key
       if (totalHits > limit && blockSeconds > 0) {
-        await this.redis!.set(blockKey, '1', 'EX', blockSeconds);
+        await redis.set(blockKey, '1', 'EX', blockSeconds);
         return {
           totalHits,
           timeToExpire,

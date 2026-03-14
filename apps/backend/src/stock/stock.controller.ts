@@ -14,6 +14,7 @@ import { StockService } from './stock.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '@prisma/client';
 import {
   CreateReceptionDto,
   AdjustInventoryMpDto,
@@ -36,7 +37,7 @@ export class StockController {
   @Get('mp')
   @Roles('ADMIN', 'APPRO', 'PRODUCTION')
   @ApiOperation({ summary: 'Liste stock Matières Premières (calculé)' })
-  async getStockMp(@Request() req: any) {
+  async getStockMp(@Request() req: { user: { id: string; role: UserRole } }) {
     const data = await this.stockService.getStockMp();
     // PRODUCTION: masquer les données financières
     if (req.user?.role === 'PRODUCTION') {
@@ -76,7 +77,7 @@ export class StockController {
   @Post('mp/receptions')
   @Roles('ADMIN', 'APPRO')
   @ApiOperation({ summary: 'Créer une réception MP (Achat fournisseur)' })
-  async createReception(@Body() dto: CreateReceptionDto, @Request() req: any) {
+  async createReception(@Body() dto: CreateReceptionDto, @Request() req: { user: { id: string; role: UserRole } }) {
     return this.stockService.createReception(
       {
         supplierId: dto.supplierId,
@@ -97,7 +98,7 @@ export class StockController {
   @Post('mp/inventory')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Ajustement inventaire MP (ADMIN uniquement)' })
-  async adjustInventoryMp(@Body() dto: AdjustInventoryMpDto, @Request() req: any) {
+  async adjustInventoryMp(@Body() dto: AdjustInventoryMpDto, @Request() req: { user: { id: string; role: UserRole } }) {
     return this.stockService.adjustInventory(
       {
         productType: 'MP',
@@ -117,7 +118,7 @@ export class StockController {
   @Get('pf')
   @Roles('ADMIN', 'COMMERCIAL', 'PRODUCTION')
   @ApiOperation({ summary: 'Liste stock Produits Finis (calculé)' })
-  async getStockPf(@Request() req: any) {
+  async getStockPf(@Request() req: { user: { id: string; role: UserRole } }) {
     const data = await this.stockService.getStockPf();
     // PRODUCTION: masquer les données financières
     if (req.user?.role === 'PRODUCTION') {
@@ -157,7 +158,7 @@ export class StockController {
   @Post('pf/inventory')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Ajustement inventaire PF (ADMIN uniquement)' })
-  async adjustInventoryPf(@Body() dto: AdjustInventoryPfDto, @Request() req: any) {
+  async adjustInventoryPf(@Body() dto: AdjustInventoryPfDto, @Request() req: { user: { id: string; role: UserRole } }) {
     return this.stockService.adjustInventory(
       {
         productType: 'PF',
@@ -186,7 +187,7 @@ export class StockController {
   @Post('loss')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Déclarer une perte MP/PF (ADMIN uniquement)' })
-  async declareLoss(@Body() dto: DeclareLossDto, @Request() req: any) {
+  async declareLoss(@Body() dto: DeclareLossDto, @Request() req: { user: { id: string; role: UserRole } }) {
     return this.stockService.declareLoss(
       {
         productType: dto.productType,

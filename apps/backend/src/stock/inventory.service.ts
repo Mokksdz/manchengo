@@ -12,6 +12,8 @@ import {
   InventoryStatus,
   InventoryRiskLevel,
   Prisma,
+  AuditAction,
+  AuditSeverity,
 } from '@prisma/client';
 
 /**
@@ -205,9 +207,9 @@ export class InventoryService {
     // 9. Audit
     await this.audit.log({
       actor: { id: countedById, role: userRole },
-      action: 'STOCK_INVENTORY_ADJUSTED' as any,
+      action: AuditAction.STOCK_INVENTORY_ADJUSTED,
       severity:
-        analysis.riskLevel === 'CRITICAL' ? ('SECURITY' as any) : ('INFO' as any),
+        analysis.riskLevel === 'CRITICAL' ? AuditSeverity.SECURITY : AuditSeverity.INFO,
       entityType: data.productType === 'MP' ? 'ProductMp' : 'ProductPf',
       entityId: String(data.productId),
       beforeState: { theoreticalStock: theoretical },
@@ -288,8 +290,8 @@ export class InventoryService {
     if (declaration.countedById === validatedById) {
       await this.audit.log({
         actor: { id: validatedById, role: validatorRole },
-        action: 'ACCESS_DENIED' as any,
-        severity: 'SECURITY' as any,
+        action: AuditAction.ACCESS_DENIED,
+        severity: AuditSeverity.SECURITY,
         entityType: 'InventoryDeclaration',
         entityId: String(declarationId),
         metadata: {
@@ -333,7 +335,7 @@ export class InventoryService {
 
         await this.audit.log({
           actor: { id: validatedById, role: validatorRole },
-          action: 'STOCK_INVENTORY_ADJUSTED' as any,
+          action: AuditAction.STOCK_INVENTORY_ADJUSTED,
           entityType: 'InventoryDeclaration',
           entityId: String(declarationId),
           metadata: {
@@ -376,9 +378,9 @@ export class InventoryService {
     // 8. Audit
     await this.audit.log({
       actor: { id: validatedById, role: validatorRole },
-      action: 'STOCK_INVENTORY_ADJUSTED' as any,
+      action: AuditAction.STOCK_INVENTORY_ADJUSTED,
       severity:
-        declaration.riskLevel === 'CRITICAL' ? ('SECURITY' as any) : ('INFO' as any),
+        declaration.riskLevel === 'CRITICAL' ? AuditSeverity.SECURITY : AuditSeverity.INFO,
       entityType: 'InventoryDeclaration',
       entityId: String(declarationId),
       metadata: {
@@ -432,8 +434,8 @@ export class InventoryService {
 
     await this.audit.log({
       actor: { id: rejectedById, role: rejectorRole },
-      action: 'STOCK_INVENTORY_ADJUSTED' as any,
-      severity: 'WARNING' as any,
+      action: AuditAction.STOCK_INVENTORY_ADJUSTED,
+      severity: AuditSeverity.WARNING,
       entityType: 'InventoryDeclaration',
       entityId: String(declarationId),
       metadata: {
@@ -533,7 +535,7 @@ export class InventoryService {
     productType: ProductType,
     productId: number,
     limit = 20,
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     const where: Prisma.InventoryDeclarationWhereInput = {
       productType,
       ...(productType === 'MP'

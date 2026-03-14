@@ -215,7 +215,8 @@ export class SecurityAlertingService implements OnModuleInit {
         timestamp: alert.timestamp.toISOString(),
       });
 
-      await fetch(this.webhookUrl!, {
+      if (!this.webhookUrl) return;
+      await fetch(this.webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body,

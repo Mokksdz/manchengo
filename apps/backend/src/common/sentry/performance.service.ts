@@ -247,7 +247,7 @@ export class PerformanceService implements OnModuleInit {
     try {
       Sentry.metrics.gauge(name, value, {
         unit,
-      } as any);
+      });
     } catch {
       // Metrics API might not be available in all Sentry versions
       this.logger.debug(`Metric captured locally: ${name}=${value}${unit}`);

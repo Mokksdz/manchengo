@@ -62,12 +62,12 @@ export class PaginationController {
     @Query('criticite') criticite?: string,
     @Query('isStockTracked') isStockTracked?: boolean,
     @Query('search') search?: string,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     const where: Record<string, unknown> = {};
 
     if (categoryId) where.categoryId = Number(categoryId);
     if (criticite) where.criticite = criticite;
-    if (isStockTracked !== undefined) where.isStockTracked = isStockTracked === true || isStockTracked === 'true' as any;
+    if (isStockTracked !== undefined) where.isStockTracked = isStockTracked === true || (isStockTracked as unknown) === 'true';
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -97,7 +97,7 @@ export class PaginationController {
     @Query() pagination: OffsetPaginationDto,
     @Query('categoryId') categoryId?: number,
     @Query('search') search?: string,
-  ): Promise<OffsetPaginatedResult<any>> {
+  ): Promise<OffsetPaginatedResult<unknown>> {
     const where: Record<string, unknown> = { isActive: true };
 
     if (categoryId) where.categoryId = Number(categoryId);
@@ -147,7 +147,7 @@ export class PaginationController {
     @Query('movementType') movementType?: string,
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     const where: Record<string, unknown> = {};
 
     if (mpId) where.productMpId = Number(mpId);
@@ -185,7 +185,7 @@ export class PaginationController {
     @Query() pagination: CursorPaginationDto,
     @Query('status') status?: string,
     @Query('recipeId') recipeId?: number,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     const where: Record<string, unknown> = {};
 
     if (status) where.status = status;
@@ -215,7 +215,7 @@ export class PaginationController {
     @Query() pagination: CursorPaginationDto,
     @Query('grade') grade?: string,
     @Query('search') search?: string,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     const where: Record<string, unknown> = {};
 
     if (grade) where.grade = grade;
@@ -252,12 +252,12 @@ export class PaginationController {
     @Query('niveau') niveau?: string,
     @Query('type') type?: string,
     @Query('unacknowledgedOnly') unacknowledgedOnly?: boolean,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     const where: Record<string, unknown> = {};
 
     if (niveau) where.niveau = niveau;
     if (type) where.type = type;
-    if (unacknowledgedOnly === true || unacknowledgedOnly === 'true' as any) {
+    if (unacknowledgedOnly === true || (unacknowledgedOnly as unknown) === 'true') {
       where.acknowledgedAt = null;
     }
 
@@ -293,7 +293,7 @@ export class PaginationController {
     @Query('severity') severity?: string,
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     const where: Record<string, unknown> = {};
 
     if (action) where.action = action;
@@ -332,7 +332,7 @@ export class PaginationController {
     @Query() pagination: CursorPaginationDto,
     @Query('status') status?: string,
     @Query('supplierId') supplierId?: number,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     const where: Record<string, unknown> = {};
 
     if (status) where.status = status;
@@ -364,7 +364,7 @@ export class PaginationController {
     @Query('mpId') mpId?: number,
     @Query('status') status?: string,
     @Query('expiringBefore') expiringBefore?: string,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     const where: Record<string, unknown> = {};
 
     if (mpId) where.productMpId = Number(mpId);

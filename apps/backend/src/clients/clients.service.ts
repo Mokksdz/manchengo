@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateClientDto, UpdateClientDto } from './dto/client.dto';
 import { logger } from '../common/logger/logger.service';
+import { ClientType } from '@prisma/client';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CLIENTS SERVICE — CRUD Operations for Client Management
@@ -94,7 +95,7 @@ export class ClientsService {
             data: {
               code,
               name: dto.name,
-              type: dto.type as any || 'DISTRIBUTEUR',
+              type: (dto.type as ClientType) || 'DISTRIBUTEUR',
               nif: dto.nif || '',
               rc: dto.rc || '',
               ai: dto.ai || '',
@@ -135,7 +136,7 @@ export class ClientsService {
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
-        ...(dto.type !== undefined && { type: dto.type as any }),
+        ...(dto.type !== undefined && { type: dto.type as ClientType }),
         ...(dto.nif !== undefined && { nif: dto.nif }),
         ...(dto.rc !== undefined && { rc: dto.rc }),
         ...(dto.ai !== undefined && { ai: dto.ai }),

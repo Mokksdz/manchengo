@@ -225,13 +225,17 @@ export class SyncRateLimitGuard implements CanActivate, OnModuleInit, OnModuleDe
     deviceId: string,
     path: string,
   ): Promise<boolean> {
+    const redis = this.redis;
+    if (!redis) {
+      return this.checkMemoryRateLimit(key, limit, deviceId, path);
+    }
     try {
       const windowSeconds = Math.ceil(this.WINDOW_MS / 1000);
-      const count = await this.redis!.incr(key);
+      const count = await redis.incr(key);
 
       if (count === 1) {
         // First request in window — set TTL
-        await this.redis!.expire(key, windowSeconds);
+        await redis.expire(key, windowSeconds);
       }
 
       if (count > limit) {

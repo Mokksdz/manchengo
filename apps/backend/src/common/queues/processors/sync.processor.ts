@@ -223,8 +223,8 @@ export class SyncProcessor implements OnModuleInit {
     await job.updateProgress(40);
 
     // Recalculer uniquement les produits impactés
-    const mpIds = [...new Set(recentMovements.filter((m) => m.productMpId).map((m) => m.productMpId!))];
-    const pfIds = [...new Set(recentMovements.filter((m) => m.productPfId).map((m) => m.productPfId!))];
+    const mpIds = [...new Set(recentMovements.filter((m) => m.productMpId !== null).map((m) => m.productMpId as number))];
+    const pfIds = [...new Set(recentMovements.filter((m) => m.productPfId !== null).map((m) => m.productPfId as number))];
 
     results['mp-stocks'] = await this.syncMpStocksByIds(mpIds, errors);
     await job.updateProgress(60);

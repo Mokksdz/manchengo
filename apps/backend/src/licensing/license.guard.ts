@@ -26,7 +26,7 @@ export interface LicenseOptions {
 }
 
 export const LicenseRequired = (options?: LicenseOptions) => {
-  return (target: any, _key?: string, descriptor?: any) => {
+  return (target: object, _key?: string, descriptor?: PropertyDescriptor) => {
     Reflect.defineMetadata(LICENSE_KEY, options || {}, descriptor?.value || target);
     return descriptor || target;
   };

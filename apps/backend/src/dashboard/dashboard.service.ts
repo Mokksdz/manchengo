@@ -475,7 +475,7 @@ export class DashboardService {
 
     const rendements = completedOrders
       .filter((o) => o.targetQuantity > 0 && o.quantityProduced)
-      .map((o) => (o.quantityProduced! / o.targetQuantity) * 100);
+      .map((o) => ((o.quantityProduced ?? 0) / o.targetQuantity) * 100);
 
     const rendementMoyen =
       rendements.length > 0

@@ -117,11 +117,11 @@ export class IdempotencyMiddleware implements NestMiddleware {
 
     // Intercepter la réponse pour la sauvegarder
     const originalJson = res.json.bind(res);
-    const userId = (req as any).user?.id || 'anonymous';
+    const userId = (req as Request & { user?: { id?: string } }).user?.id || 'anonymous';
     const endpoint = `${req.method} ${req.path}`;
     const requestHash = this.hashRequest(req.body);
 
-    res.json = (body: any) => {
+    res.json = (body: unknown) => {
       // Sauvegarder la réponse de manière asynchrone (ne pas bloquer)
       this.saveIdempotencyRecord(
         idempotencyKey,
@@ -156,7 +156,7 @@ export class IdempotencyMiddleware implements NestMiddleware {
     return uuidRegex.test(str);
   }
 
-  private hashRequest(body: any): string {
+  private hashRequest(body: unknown): string {
     const normalized = JSON.stringify(body || {});
     return crypto.createHash('sha256').update(normalized).digest('hex');
   }
@@ -189,7 +189,7 @@ export class IdempotencyMiddleware implements NestMiddleware {
     userId: string,
     requestHash: string,
     responseStatus: number,
-    responseBody: any,
+    responseBody: unknown,
   ): Promise<void> {
     const expiresAt = new Date(Date.now() + IDEMPOTENCY_TTL_MS);
 

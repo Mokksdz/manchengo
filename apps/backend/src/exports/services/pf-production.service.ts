@@ -17,6 +17,26 @@ interface ProductionEntry {
   responsable: string;
 }
 
+interface RawProductionRow {
+  id: number;
+  reference: string;
+  completedAt: Date | null;
+  quantityProduced: number | null;
+  targetQuantity: number | null;
+  yieldPercentage: number | null;
+  productCode: string;
+  productName: string;
+  productUnit: string;
+  userFirstName: string | null;
+  userLastName: string | null;
+}
+
+interface RawConsumptionRow {
+  quantityConsumed: number;
+  mpCode: string;
+  mpUnit: string;
+}
+
 /**
  * PF Production Journal Service
  * 
@@ -46,7 +66,7 @@ export class PfProductionService {
    */
   async getProductionEntries(startDate: Date, endDate: Date): Promise<ProductionEntry[]> {
     // Use raw query approach for complex joins
-    const productions = await this.prisma.$queryRaw<any[]>`
+    const productions = await this.prisma.$queryRaw<RawProductionRow[]>`
       SELECT 
         po.id,
         po.reference,
@@ -72,7 +92,7 @@ export class PfProductionService {
 
     for (const prod of productions) {
       // Get consumptions for this production
-      const consumptions = await this.prisma.$queryRaw<any[]>`
+      const consumptions = await this.prisma.$queryRaw<RawConsumptionRow[]>`
         SELECT 
           pc.quantity_consumed as "quantityConsumed",
           mp.code as "mpCode",

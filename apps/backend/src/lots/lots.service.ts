@@ -3,6 +3,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LOTS SERVICE - V1.1 FIFO + DLC Management
@@ -86,11 +87,15 @@ export class LotsService {
     const baseNumber = `L${prefix}-${dateStr}`;
 
     // Trouver le dernier numéro du jour
-    const table = prefix === 'MP' ? this.prisma.lotMp : this.prisma.lotPf;
-    const lastLot = await (table as any).findFirst({
-      where: { lotNumber: { startsWith: baseNumber } },
-      orderBy: { lotNumber: 'desc' },
-    });
+    const lastLot = prefix === 'MP'
+      ? await this.prisma.lotMp.findFirst({
+          where: { lotNumber: { startsWith: baseNumber } },
+          orderBy: { lotNumber: 'desc' },
+        })
+      : await this.prisma.lotPf.findFirst({
+          where: { lotNumber: { startsWith: baseNumber } },
+          orderBy: { lotNumber: 'desc' },
+        });
 
     let sequence = 1;
     if (lastLot?.lotNumber) {
@@ -203,12 +208,12 @@ export class LotsService {
     productId: number,
     quantityNeeded: number,
     blockIfExpired = true,
-    existingTx?: any,
+    existingTx?: Prisma.TransactionClient,
   ): Promise<FifoConsumption[]> {
     if (quantityNeeded <= 0) {
       throw new BadRequestException('La quantité demandée doit être supérieure à 0');
     }
-    const executeLogic = async (tx: any) => {
+    const executeLogic = async (tx: Prisma.TransactionClient) => {
       // Récupérer les lots AVAILABLE triés FIFO (plus ancien d'abord)
       const lots = await tx.lotMp.findMany({
         where: {
@@ -451,12 +456,12 @@ export class LotsService {
     productId: number,
     quantityNeeded: number,
     blockIfExpired = true,
-    existingTx?: any,
+    existingTx?: Prisma.TransactionClient,
   ): Promise<FifoConsumption[]> {
     if (quantityNeeded <= 0) {
       throw new BadRequestException('La quantité demandée doit être supérieure à 0');
     }
-    const executeLogic = async (tx: any) => {
+    const executeLogic = async (tx: Prisma.TransactionClient) => {
       // Récupérer les lots AVAILABLE triés FIFO
       const lots = await tx.lotPf.findMany({
         where: {

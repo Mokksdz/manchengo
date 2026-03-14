@@ -1,11 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RecipeService } from './recipe.service';
-import { LotConsumptionService } from '../stock/lot-consumption.service';
+import { LotConsumptionService, ConsumptionResult, ConsumptionPreview } from '../stock/lot-consumption.service';
 import { LoggerService } from '../common/logger/logger.service';
 import { AuditService } from '../common/audit/audit.service';
 import { CacheService } from '../cache/cache.service';
+import { UserRole, AuditAction, AuditSeverity, Prisma, ProductionStatus } from '@prisma/client';
 import PdfPrinter from 'pdfmake';
+import { TDocumentDefinitions, Content } from 'pdfmake/interfaces';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -137,7 +139,7 @@ export class ProductionService {
   /**
    * Générer un numéro de lot INSIDE an existing transaction (prevents race conditions)
    */
-  private async generateLotNumberInTx(tx: any, productCode: string): Promise<string> {
+  private async generateLotNumberInTx(tx: Prisma.TransactionClient, productCode: string): Promise<string> {
     const today = new Date();
     const dateStr = today.toISOString().slice(2, 10).replace(/-/g, '');
     const prefix = `${productCode}-${dateStr}`;
@@ -162,10 +164,10 @@ export class ProductionService {
    * Liste tous les ordres de production
    */
   async findAll(filters?: { status?: string; productPfId?: number; limit?: number }) {
-    const where: any = {};
-    
+    const where: Prisma.ProductionOrderWhereInput = {};
+
     if (filters?.status) {
-      where.status = filters.status;
+      where.status = filters.status as ProductionStatus;
     }
     if (filters?.productPfId) {
       where.productPfId = filters.productPfId;
@@ -309,8 +311,8 @@ export class ProductionService {
 
     if (!stockCheck.canProduce) {
       const shortages = stockCheck.availability
-        .filter((a: any) => !a.isAvailable && a.isMandatory)
-        .map((a: any) => `${a.productMp.code}: manque ${a.shortage} ${a.productMp.unit}`)
+        .filter((a) => !a.isAvailable && a.isMandatory)
+        .map((a) => `${a.productMp?.code}: manque ${a.shortage} ${a.productMp?.unit}`)
         .join(', ');
       
       throw new BadRequestException(
@@ -320,8 +322,8 @@ export class ProductionService {
 
     // Réservation de stock — avertissement si stock critique (< 120% du besoin)
     const plannedConsumptions = stockCheck.availability
-      .filter((a: any) => a.isAvailable && a.isMandatory)
-      .map((a: any) => ({
+      .filter((a) => a.isAvailable && a.isMandatory)
+      .map((a) => ({
         productMpId: a.productMpId,
         quantityNeeded: a.requiredQuantity,
         available: a.availableQuantity,
@@ -341,7 +343,7 @@ export class ProductionService {
 
     // Créer l'ordre dans une transaction Serializable pour garantir l'unicité de la référence
     const MAX_RETRIES = 3;
-    let order: any;
+    let order: Awaited<ReturnType<typeof this.prisma.productionOrder.create>> | undefined;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
@@ -391,10 +393,12 @@ export class ProductionService {
         });
 
         break; // Success
-      } catch (error: any) {
-        const isRetryable = error?.code === 'P2002' ||
-          error?.code === 'P2034' ||
-          error?.message?.includes('could not serialize');
+      } catch (error: unknown) {
+        const isRetryable = (error instanceof Error && (
+          (error as { code?: string }).code === 'P2002' ||
+          (error as { code?: string }).code === 'P2034' ||
+          error.message.includes('could not serialize')
+        ));
         if (isRetryable && attempt < MAX_RETRIES - 1) {
           continue;
         }
@@ -426,33 +430,36 @@ export class ProductionService {
       throw new BadRequestException('Aucune recette associée à cet ordre');
     }
 
+    type RecipeItem = NonNullable<(typeof order)['recipe']>['items'][number];
     // 1. Prévisualiser les consommations FIFO pour chaque MP
     const consumptionPreviews: Array<{
-      item: any;
-      preview: any;
+      item: RecipeItem;
+      productMpId: number;
+      preview: ConsumptionPreview;
     }> = [];
 
     for (const item of order.recipe.items) {
       if (!item.productMpId || !item.affectsStock) continue;
+      const productMpId = item.productMpId; // narrowed to number
 
       const qtyPerBatch = Number(item.quantity);
       const requiredQty = Math.round(qtyPerBatch * order.batchCount * 100) / 100;
       const preview = await this.lotConsumption.previewFIFO(
-        item.productMpId,
+        productMpId,
         requiredQty,
       );
 
       if (!preview.sufficient && item.isMandatory) {
         throw new BadRequestException({
           code: 'INSUFFICIENT_STOCK',
-          message: `Stock insuffisant pour ${item.productMp?.code || 'MP#' + item.productMpId}: besoin ${requiredQty}, disponible ${preview.availableStock}`,
-          productMpId: item.productMpId,
+          message: `Stock insuffisant pour ${item.productMp?.code || 'MP#' + productMpId}: besoin ${requiredQty}, disponible ${preview.availableStock}`,
+          productMpId,
           required: requiredQty,
           available: preview.availableStock,
         });
       }
 
-      consumptionPreviews.push({ item, preview });
+      consumptionPreviews.push({ item, productMpId, preview });
     }
 
     // 2. Consommer en FIFO via le service (chaque appel est une transaction Serializable)
@@ -461,21 +468,21 @@ export class ProductionService {
     const consumptionResults: Array<{
       productMpId: number;
       requiredQty: number;
-      result: any;
+      result: ConsumptionResult;
     }> = [];
 
     try {
-      for (const { item, preview } of consumptionPreviews) {
+      for (const { item, productMpId, preview } of consumptionPreviews) {
         if (!preview.sufficient && !item.isMandatory) {
           // Skip optional items with insufficient stock
           continue;
         }
 
         const requiredQty = Math.round(Number(item.quantity) * order.batchCount * 100) / 100;
-        const idempotencyKey = `PROD-${order.id}-${item.productMpId}`;
+        const idempotencyKey = `PROD-${order.id}-${productMpId}`;
 
         const result = await this.lotConsumption.consumeFIFO(
-          item.productMpId,
+          productMpId,
           requiredQty,
           'PRODUCTION_OUT',
           userId,
@@ -488,7 +495,7 @@ export class ProductionService {
         );
 
         consumptionResults.push({
-          productMpId: item.productMpId,
+          productMpId,
           requiredQty,
           result,
         });
@@ -496,7 +503,7 @@ export class ProductionService {
 
       // P5: Fetch unitCost for all consumed lots in a single batch query
       const allConsumedLotIds = consumptionResults.flatMap(
-        (cr) => cr.result.consumptions.map((c: any) => c.lotId),
+        (cr) => cr.result.consumptions.map((c) => c.lotId),
       );
       const lotCosts = allConsumedLotIds.length > 0
         ? await this.prisma.lotMp.findMany({
@@ -509,7 +516,7 @@ export class ProductionService {
       // Create detailed consumption records in a single transaction
       await this.prisma.$transaction(
         consumptionResults.flatMap(({ productMpId, requiredQty: _requiredQty, result }) =>
-          result.consumptions.map((consumption: any) =>
+          result.consumptions.map((consumption) =>
             this.prisma.productionConsumption.create({
               data: {
                 productionOrderId: order.id,
@@ -591,8 +598,8 @@ export class ProductionService {
 
     // 4. Audit
     await this.audit.log({
-      actor: { id: userId, role: 'PRODUCTION' as any },
-      action: 'PRODUCTION_ORDER_STARTED' as any,
+      actor: { id: userId, role: UserRole.PRODUCTION },
+      action: AuditAction.PRODUCTION_ORDER_STARTED,
       entityType: 'ProductionOrder',
       entityId: String(order.id),
       metadata: {
@@ -677,14 +684,14 @@ export class ProductionService {
 
     // Calculer le coût de revient (somme des consommations MP + coûts FLUID)
     let totalCost = order.consumptions
-      .filter((c: any) => !c.isReversed)
-      .reduce((sum: number, c: any) => {
-        return sum + (Number(c.quantityConsumed) * (c.unitCost || 0));
+      .filter((c) => !c.isReversed)
+      .reduce((sum: number, c) => {
+        return sum + (Number(c.quantityConsumed) * (Number(c.unitCost) || 0));
       }, 0);
 
     // Ajouter les coûts FLUID (non tracés via les consommations de lots)
     if (order.recipe?.items) {
-      for (const item of order.recipe.items as any[]) {
+      for (const item of order.recipe.items) {
         if (item.type === 'FLUID' && item.unitCost) {
           const fluidQty = Number(item.quantity) * order.batchCount;
           totalCost += Math.round(fluidQty * Number(item.unitCost));
@@ -869,9 +876,9 @@ export class ProductionService {
 
       // Audit de l'annulation
       await this.audit.log({
-        actor: { id: userId, role: 'PRODUCTION' as any },
-        action: 'PRODUCTION_ORDER_CANCELLED' as any,
-        severity: 'WARNING' as any,
+        actor: { id: userId, role: UserRole.PRODUCTION },
+        action: AuditAction.PRODUCTION_ORDER_CANCELLED,
+        severity: AuditSeverity.WARNING,
         entityType: 'ProductionOrder',
         entityId: String(order.id),
         metadata: {
@@ -999,7 +1006,7 @@ export class ProductionService {
       title: string;
       description: string;
       link?: string;
-      data?: any;
+      data?: Record<string, unknown>;
       createdAt: Date;
     }> = [];
 
@@ -1031,7 +1038,7 @@ export class ProductionService {
         description: `Lot ${lot.lotNumber} expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''} (${lot.quantityRemaining} ${lot.product.unit} restants)`,
         link: `/dashboard/stock/pf/${lot.product.id}`,
         data: { lotId: lot.id, productId: lot.product.id, daysLeft },
-        createdAt: lot.expiryDate!,
+        createdAt: lot.expiryDate,
       });
     }
 
@@ -1061,7 +1068,7 @@ export class ProductionService {
         description: `${order.productPf.name} - Rendement ${(Number(order.yieldPercentage) || 0).toFixed(1)}% (cible: 100%)`,
         link: `/dashboard/production/order/${order.id}`,
         data: { orderId: order.id, yield: order.yieldPercentage },
-        createdAt: order.completedAt!,
+        createdAt: order.completedAt ?? new Date(),
       });
     }
 
@@ -1218,9 +1225,10 @@ export class ProductionService {
       orderBy: { createdAt: 'asc' },
     });
 
+    type CalendarOrder = (typeof orders)[number];
     // Group by date
-    const calendar: Record<string, any[]> = {};
-    
+    const calendar: Record<string, CalendarOrder[]> = {};
+
     for (let i = 0; i < days; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() + i);
@@ -1244,9 +1252,9 @@ export class ProductionService {
         dayName: new Date(date).toLocaleDateString('fr-FR', { weekday: 'short' }),
         orders,
         totalOrders: orders.length,
-        pending: orders.filter((o: any) => o.status === 'PENDING').length,
-        inProgress: orders.filter((o: any) => o.status === 'IN_PROGRESS').length,
-        completed: orders.filter((o: any) => o.status === 'COMPLETED').length,
+        pending: orders.filter((o) => o.status === 'PENDING').length,
+        inProgress: orders.filter((o) => o.status === 'IN_PROGRESS').length,
+        completed: orders.filter((o) => o.status === 'COMPLETED').length,
       })),
     };
   }
@@ -1255,7 +1263,7 @@ export class ProductionService {
    * Lot traceability - search by lot number
    */
   async searchLots(query: string, type?: 'MP' | 'PF') {
-    const results: any[] = [];
+    const results: Array<Record<string, unknown>> = [];
 
     if (!type || type === 'PF') {
       const lotsPf = await this.prisma.lotPf.findMany({
@@ -1409,7 +1417,8 @@ export class ProductionService {
 
     // Group by date
     const productionByDate: Record<string, { date: string; quantity: number; orders: number; avgYield: number; yields: number[] }> = {};
-    const productionByProduct: Record<number, { product: any; quantity: number; orders: number; avgYield: number }> = {};
+    type ProductPfSummary = (typeof orders)[number]['productPf'];
+    const productionByProduct: Record<number, { product: ProductPfSummary; quantity: number; orders: number; avgYield: number }> = {};
 
     for (const order of orders) {
       if (!order.completedAt) continue; // Sécurité: filtré par query mais TypeScript ne le sait pas
@@ -1480,7 +1489,7 @@ export class ProductionService {
     page?: number;
     limit?: number;
   }) {
-    const where: any = { productPfId };
+    const where: Prisma.ProductionOrderWhereInput = { productPfId };
 
     // Filtres temporels
     if (filters?.year) {
@@ -1589,7 +1598,7 @@ export class ProductionService {
     };
 
     // Build consumptions table
-    const consumptionsTable = order.consumptions.length > 0 ? [
+    const consumptionsTable: Content[] = order.consumptions.length > 0 ? ([
       {
         table: {
           headerRows: 1,
@@ -1598,25 +1607,25 @@ export class ProductionService {
             [
               { text: 'Matière Première', style: 'tableHeader' },
               { text: 'Lot', style: 'tableHeader' },
-              { text: 'Prévu', style: 'tableHeader', alignment: 'right' },
-              { text: 'Consommé', style: 'tableHeader', alignment: 'right' },
+              { text: 'Prévu', style: 'tableHeader', alignment: 'right' as const },
+              { text: 'Consommé', style: 'tableHeader', alignment: 'right' as const },
             ],
             ...order.consumptions.map((c) => [
               { text: `${c.productMp?.code} - ${c.productMp?.name}`, style: 'tableCell' },
               { text: c.lotMp?.lotNumber || '-', style: 'tableCell' },
-              { text: c.quantityPlanned.toString(), style: 'tableCell', alignment: 'right' },
-              { text: c.quantityConsumed.toString(), style: 'tableCell', alignment: 'right' },
+              { text: c.quantityPlanned.toString(), style: 'tableCell', alignment: 'right' as const },
+              { text: c.quantityConsumed.toString(), style: 'tableCell', alignment: 'right' as const },
             ]),
           ],
         },
         layout: 'lightHorizontalLines',
-        margin: [0, 10, 0, 20],
+        margin: [0, 10, 0, 20] as [number, number, number, number],
       },
-    ] : [];
+    ] as Content[]) : [];
 
     // Build lots table
-    const lotsTable = order.lots.length > 0 ? [
-      { text: 'Lots Produits', style: 'sectionTitle', margin: [0, 10, 0, 5] },
+    const lotsTable: Content[] = order.lots.length > 0 ? ([
+      { text: 'Lots Produits', style: 'sectionTitle', margin: [0, 10, 0, 5] as [number, number, number, number] },
       {
         table: {
           headerRows: 1,
@@ -1624,24 +1633,24 @@ export class ProductionService {
           body: [
             [
               { text: 'N° Lot', style: 'tableHeader' },
-              { text: 'Quantité', style: 'tableHeader', alignment: 'right' },
+              { text: 'Quantité', style: 'tableHeader', alignment: 'right' as const },
               { text: 'Date Fabrication', style: 'tableHeader' },
               { text: 'DLC', style: 'tableHeader' },
             ],
             ...order.lots.map((lot) => [
               { text: lot.lotNumber, style: 'tableCell', bold: true },
-              { text: `${lot.quantityInitial} ${order.productPf.unit}`, style: 'tableCell', alignment: 'right' },
+              { text: `${lot.quantityInitial} ${order.productPf.unit}`, style: 'tableCell', alignment: 'right' as const },
               { text: formatDate(lot.manufactureDate), style: 'tableCell' },
               { text: lot.expiryDate ? formatDate(lot.expiryDate) : '-', style: 'tableCell' },
             ]),
           ],
         },
         layout: 'lightHorizontalLines',
-        margin: [0, 5, 0, 20],
+        margin: [0, 5, 0, 20] as [number, number, number, number],
       },
-    ] : [];
+    ] as Content[]) : [];
 
-    const docDefinition: any = {
+    const docDefinition: TDocumentDefinitions = {
       pageSize: 'A4',
       pageMargins: [40, 60, 40, 60],
       content: [
@@ -1688,7 +1697,7 @@ export class ProductionService {
                 { text: `Batchs: ${order.batchCount}`, style: 'infoText' },
                 { text: `Quantité cible: ${order.targetQuantity} ${order.productPf.unit}`, style: 'infoText' },
                 { text: `Quantité produite: ${order.quantityProduced} ${order.productPf.unit}`, style: 'infoText' },
-                order.yieldPercentage ? { text: `Rendement: ${order.yieldPercentage.toFixed(1)}%`, style: 'infoText' } : {},
+                order.yieldPercentage ? { text: `Rendement: ${order.yieldPercentage.toFixed(1)}%`, style: 'infoText' } : { text: '' },
               ],
             },
           ],
@@ -1699,14 +1708,14 @@ export class ProductionService {
         {
           columns: [
             { text: `Créé le: ${formatDate(order.createdAt)}`, style: 'dateText' },
-            order.startedAt ? { text: `Démarré le: ${formatDate(order.startedAt)}`, style: 'dateText' } : {},
-            order.completedAt ? { text: `Terminé le: ${formatDate(order.completedAt)}`, style: 'dateText' } : {},
+            order.startedAt ? { text: `Démarré le: ${formatDate(order.startedAt)}`, style: 'dateText' } : { text: '' },
+            order.completedAt ? { text: `Terminé le: ${formatDate(order.completedAt)}`, style: 'dateText' } : { text: '' },
           ],
         },
         { text: '', margin: [0, 15] },
 
         // Consumptions
-        order.consumptions.length > 0 ? { text: 'Consommations MP', style: 'sectionTitle' } : {},
+        order.consumptions.length > 0 ? { text: 'Consommations MP', style: 'sectionTitle' } : { text: '' },
         ...consumptionsTable,
 
         // Lots produced
@@ -1881,13 +1890,13 @@ export class ProductionService {
             canProduce: check.canProduce,
             status: check.canProduce ? 'available' : 'shortage',
             shortages: check.availability
-              .filter((a: any) => !a.isAvailable && a.isMandatory)
-              .map((a: any) => ({
-                productMpId: a.productMp.id,
-                code: a.productMp.code,
-                name: a.productMp.name,
-                required: a.required,
-                available: a.available,
+              .filter((a) => !a.isAvailable && a.isMandatory)
+              .map((a) => ({
+                productMpId: a.productMp?.id,
+                code: a.productMp?.code,
+                name: a.productMp?.name,
+                required: a.requiredQuantity,
+                available: a.availableQuantity,
                 shortage: a.shortage,
               })),
           };

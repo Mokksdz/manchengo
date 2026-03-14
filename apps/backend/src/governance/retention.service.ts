@@ -208,17 +208,18 @@ export class RetentionService {
     };
 
     const model = modelMap[entityType];
-    if (!model || !(this.prisma as any)[model]) {
+    const prismaDelegate = model ? (this.prisma as unknown as Record<string, { count: (args?: unknown) => Promise<number>; findFirst: (args?: unknown) => Promise<{ createdAt: Date } | null> }>)[model] : undefined;
+    if (!prismaDelegate) {
       return { totalRecords: 0, eligibleForPurge: 0, oldestRecord: null };
     }
 
     try {
       const [total, eligible, oldest] = await Promise.all([
-        (this.prisma as any)[model].count(),
-        (this.prisma as any)[model].count({
+        prismaDelegate.count(),
+        prismaDelegate.count({
           where: { createdAt: { lt: cutoffDate } },
         }),
-        (this.prisma as any)[model].findFirst({
+        prismaDelegate.findFirst({
           orderBy: { createdAt: 'asc' },
           select: { createdAt: true },
         }),
@@ -367,7 +368,8 @@ export class RetentionService {
     };
 
     const model = modelMap[entityType];
-    if (!model || !(this.prisma as any)[model]) {
+    const prismaDelegate = model ? (this.prisma as unknown as Record<string, { deleteMany: (args?: unknown) => Promise<{ count: number }> }>)[model] : undefined;
+    if (!prismaDelegate) {
       return 0;
     }
 
@@ -381,7 +383,7 @@ export class RetentionService {
       return 0;
     }
 
-    const result = await (this.prisma as any)[model].deleteMany({
+    const result = await prismaDelegate.deleteMany({
       where: { createdAt: { lt: cutoffDate } },
     });
 

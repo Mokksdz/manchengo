@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma, DeliveryStatus, InvoiceStatus } from '@prisma/client';
+import { Prisma, DeliveryStatus, InvoiceStatus, PaymentMethod } from '@prisma/client';
 import { SyncConflictResolver } from './sync.conflict';
 import {
   SyncEntityType,
@@ -144,10 +144,10 @@ export class SyncEventApplier {
           deviceId,
           success: true,
           metadata: {
-            latitude: payload.latitude,
-            longitude: payload.longitude,
+            latitude: payload.latitude as Prisma.InputJsonValue,
+            longitude: payload.longitude as Prisma.InputJsonValue,
             occurredAt: event.occurredAt,
-          } as any,
+          },
         },
       });
 
@@ -203,9 +203,9 @@ export class SyncEventApplier {
           deviceId,
           success: true,
           metadata: {
-            reason: payload.reason,
+            reason: payload.reason as Prisma.InputJsonValue,
             occurredAt: event.occurredAt,
-          } as any,
+          },
         },
       });
 
@@ -250,7 +250,7 @@ export class SyncEventApplier {
           totalTtc: Number(payload.total_ttc || payload.totalTtc),
           timbreFiscal: Number(payload.timbre_fiscal || payload.timbreFiscal || 0),
           netToPay: Number(payload.net_to_pay || payload.netToPay),
-          paymentMethod: (payload.payment_method || payload.paymentMethod || 'ESPECES') as any,
+          paymentMethod: (payload.payment_method || payload.paymentMethod || 'ESPECES') as PaymentMethod,
           status: InvoiceStatus.DRAFT,
           userId,
         },
@@ -297,10 +297,10 @@ export class SyncEventApplier {
           metadata: {
             syncEventId: event.id,
             mobileEventId: event.id,
-            tempId: payload.temp_id || payload.tempId,
+            tempId: (payload.temp_id ?? payload.tempId) as Prisma.InputJsonValue,
             source: 'MOBILE_SYNC',
             deviceId,
-          } as any,
+          },
         },
       });
 
@@ -321,7 +321,7 @@ export class SyncEventApplier {
       const updateData: Prisma.InvoiceUpdateInput = {};
 
       if (payload.payment_method || payload.paymentMethod) {
-        updateData.paymentMethod = (payload.payment_method || payload.paymentMethod) as any;
+        updateData.paymentMethod = (payload.payment_method || payload.paymentMethod) as PaymentMethod;
       }
       if (payload.delivery_notes || payload.deliveryNotes) {
         // Store in a custom field or handle as needed
@@ -361,7 +361,7 @@ export class SyncEventApplier {
     if (action === SyncAction.PAYMENT_RECORDED) {
       const invoiceId = Number(payload.invoice_id || payload.invoiceId);
       const amount = Number(payload.amount);
-      const paymentMethod = (payload.payment_method || payload.paymentMethod || 'ESPECES') as any;
+      const paymentMethod = (payload.payment_method || payload.paymentMethod || 'ESPECES') as PaymentMethod;
 
       // Create payment
       const payment = await tx.payment.create({

@@ -169,7 +169,7 @@ export class AccountingService {
     return receptions
       .filter((r) => r.supplier !== null)
       .map((reception) => {
-        const supplier = reception.supplier!;
+        const supplier = reception.supplier ?? { code: '', name: '' };
         const totalHt = reception.lines.reduce((sum, l) => sum + (l.totalHT || 0), 0);
         const totalTva = reception.lines.reduce((sum, l) => sum + (l.tvaAmount || 0), 0);
         const totalTtc = reception.lines.reduce((sum, l) => sum + (l.totalTTC || 0), 0);

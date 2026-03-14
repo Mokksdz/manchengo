@@ -425,11 +425,12 @@ export class AlertProcessor implements OnModuleInit {
         if (!item.productMp) continue;
 
         const required = Number(item.quantity) * order.batchCount;
-        const available = await this.calculateMpStock(item.productMpId!);
+        const mpId = item.productMpId ?? 0;
+        const available = await this.calculateMpStock(mpId);
 
         if (available < required) {
           missingMp.push({
-            id: item.productMpId!,
+            id: mpId,
             name: item.productMp.name,
             code: item.productMp.code,
             required,

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
+import { AuditAction, AuditSeverity, UserRole } from '@prisma/client';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -112,9 +113,9 @@ export class LotExpiryJob {
         // Audit chaque lot MP
         for (const lot of expiredLotsMp) {
           await this.audit.log({
-            actor: { id: 'SYSTEM', role: 'ADMIN' as any },
-            action: 'STOCK_MOVEMENT_CREATED' as any,
-            severity: 'WARNING' as any,
+            actor: { id: 'SYSTEM', role: 'ADMIN' as UserRole },
+            action: AuditAction.STOCK_MOVEMENT_CREATED,
+            severity: AuditSeverity.WARNING,
             entityType: 'LotMp',
             entityId: String(lot.id),
             metadata: {
@@ -146,9 +147,9 @@ export class LotExpiryJob {
         // Audit chaque lot PF
         for (const lot of expiredLotsPf) {
           await this.audit.log({
-            actor: { id: 'SYSTEM', role: 'ADMIN' as any },
-            action: 'STOCK_MOVEMENT_CREATED' as any,
-            severity: 'WARNING' as any,
+            actor: { id: 'SYSTEM', role: 'ADMIN' as UserRole },
+            action: AuditAction.STOCK_MOVEMENT_CREATED,
+            severity: AuditSeverity.WARNING,
             entityType: 'LotPf',
             entityId: String(lot.id),
             metadata: {
@@ -330,7 +331,7 @@ export class LotExpiryJob {
 
     const alertData = {
       type: 'STOCK_EXPIRING' as const,
-      severity: severity as any,
+      severity,
       status: 'OPEN' as const,
       title: `${lots.length} lot(s) expirent dans ${days} jour(s)`,
       message: `${lots.length} lot(s) expirent dans ${days} jour(s). Valeur estimée: ${(totalValue / 100).toFixed(2)} DA. Prioriser leur consommation.`,

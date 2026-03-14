@@ -29,9 +29,25 @@ export interface LockResult {
   expiresAt?: Date;
 }
 
+/** Extended Prisma model type for lock fields not yet in generated schema (migration P1.1) */
+type PurchaseOrderLockModel = {
+  findUnique: (args: unknown) => Promise<{
+    lockedById: string | null;
+    lockExpiresAt: Date | null;
+    lockedBy: { firstName: string; lastName: string } | null;
+  } | null>;
+  update: (args: unknown) => Promise<unknown>;
+  updateMany: (args: unknown) => Promise<unknown>;
+};
+
 @Injectable()
 export class LockService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Typed accessor for lock-extended purchaseOrder model (pre-migration P1.1) */
+  private get poLockModel(): PurchaseOrderLockModel {
+    return this.prisma.purchaseOrder as unknown as PurchaseOrderLockModel;
+  }
 
   /**
    * Vérifie qu'une entité n'est pas verrouillée par un autre utilisateur.
@@ -72,12 +88,12 @@ export class LockService {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + LOCK_DURATION_MS);
 
-    const po = await (this.prisma.purchaseOrder as any).findUnique({
+    const po = await this.poLockModel.findUnique({
       where: { id: poId },
       include: {
         lockedBy: { select: { firstName: true, lastName: true } },
       },
-    }) as any;
+    });
 
     if (!po) {
       return { success: false };
@@ -102,7 +118,7 @@ export class LockService {
     }
 
     // Acquérir le verrou
-    await (this.prisma.purchaseOrder as any).update({
+    await this.poLockModel.update({
       where: { id: poId },
       data: {
         lockedById: userId,
@@ -118,7 +134,7 @@ export class LockService {
    * Libère un verrou sur un BC
    */
   async releasePurchaseOrderLock(poId: string, userId: string): Promise<void> {
-    await (this.prisma.purchaseOrder as any).updateMany({
+    await this.poLockModel.updateMany({
       where: {
         id: poId,
         lockedById: userId,
@@ -135,7 +151,7 @@ export class LockService {
    * Force le déverrouillage BC (ADMIN uniquement)
    */
   async forceUnlockPurchaseOrder(poId: string): Promise<void> {
-    await (this.prisma.purchaseOrder as any).update({
+    await this.poLockModel.update({
       where: { id: poId },
       data: {
         lockedById: null,

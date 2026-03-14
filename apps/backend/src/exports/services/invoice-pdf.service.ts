@@ -1,9 +1,21 @@
 import { Injectable, NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PdfGeneratorService } from './pdf-generator.service';
-import { TDocumentDefinitions } from 'pdfmake/interfaces';
+import { TDocumentDefinitions, Content } from 'pdfmake/interfaces';
 import * as path from 'path';
 import * as fs from 'fs';
+import { Prisma } from '@prisma/client';
+
+type InvoiceWithRelations = Prisma.InvoiceGetPayload<{
+  include: {
+    client: true;
+    lines: {
+      include: {
+        productPf: true;
+      };
+    };
+  };
+}>;
 
 /**
  * Invoice PDF Service
@@ -67,7 +79,7 @@ export class InvoicePdfService {
   /**
    * Generate the invoice PDF document
    */
-  private async generatePdf(invoice: any): Promise<Buffer> {
+  private async generatePdf(invoice: InvoiceWithRelations): Promise<Buffer> {
     this.logger.log(`Generating PDF for invoice: ${invoice.reference}`);
     
     const company = this.pdfGenerator.companyInfo;
@@ -78,7 +90,7 @@ export class InvoicePdfService {
     const clientNif = invoice.client?.nif || '';
     
     // Build table body with invoice lines
-    const tableBody: any[][] = [
+    const tableBody: Content[][] = [
       [
         { text: '#', bold: true, fillColor: '#f0f0f0' },
         { text: 'Désignation', bold: true, fillColor: '#f0f0f0' },
@@ -90,7 +102,7 @@ export class InvoicePdfService {
     
     // Add lines safely
     if (invoice.lines && Array.isArray(invoice.lines)) {
-      invoice.lines.forEach((line: any, i: number) => {
+      invoice.lines.forEach((line, i: number) => {
         tableBody.push([
           (i + 1).toString(),
           line.productPf?.name || 'Article',
@@ -118,7 +130,7 @@ export class InvoicePdfService {
     const clientPhone = invoice.client?.phone || '';
 
     // Build content array
-    const content: any[] = [];
+    const content: Content[] = [];
     
     // Header: Logo left, Company info right
     content.push({
@@ -157,7 +169,7 @@ export class InvoicePdfService {
     );
       
     // Client info box
-    const clientInfoStack: any[] = [
+    const clientInfoStack: Content[] = [
       { text: 'CLIENT', fontSize: 8, bold: true, color: '#888888', margin: [0, 0, 0, 5] },
       { text: clientName, fontSize: 12, bold: true },
     ];

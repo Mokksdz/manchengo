@@ -1,7 +1,13 @@
 import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LicenseStatus, LicenseType, DevicePlatform } from '@prisma/client';
+import { LicenseStatus, LicenseType, DevicePlatform, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
+
+type CompanyWithLicenses = Prisma.CompanyGetPayload<{
+  include: { licenses: true };
+}>;
+
+type LicenseRecord = Prisma.LicenseGetPayload<Record<string, never>>;
 
 /**
  * Licensing Service
@@ -30,8 +36,8 @@ export class LicensingService {
   async validateUserLicense(userId: string): Promise<{
     valid: boolean;
     readOnly: boolean;
-    company: any;
-    license: any;
+    company: CompanyWithLicenses | null;
+    license: LicenseRecord | null;
     reason?: string;
   }> {
     // Find user's company
@@ -224,7 +230,7 @@ export class LicensingService {
   /**
    * Activate a license with key
    */
-  async activateLicense(licenseKey: string, companyId: string): Promise<any> {
+  async activateLicense(licenseKey: string, companyId: string): Promise<LicenseRecord> {
     const license = await this.prisma.license.findUnique({
       where: { licenseKey },
     });
@@ -253,7 +259,7 @@ export class LicensingService {
     taxId?: string;
     address?: string;
     phone?: string;
-  }): Promise<{ company: any; license: any }> {
+  }): Promise<{ company: Prisma.CompanyGetPayload<Record<string, never>>; license: LicenseRecord }> {
     // Generate company code
     const companyCount = await this.prisma.company.count();
     const code = `MCG-${String(companyCount + 1).padStart(3, '0')}`;

@@ -223,7 +223,7 @@ export class RecipeService {
 
       if (dependentRecipe) {
         const hasCircular = dependentRecipe.items.some(
-          (ri: any) => ri.productMpId === dto.productPfId
+          (ri) => ri.productMpId === dto.productPfId
         );
         if (hasCircular) {
           throw new BadRequestException(
@@ -235,7 +235,7 @@ export class RecipeService {
 
     // Vérifier que les produits MP/Packaging existent (sauf FLUID)
     const itemsWithProduct = dto.items.filter((i) => i.type !== 'FLUID' && i.productMpId);
-    const mpIds = itemsWithProduct.map((i) => i.productMpId!);
+    const mpIds = itemsWithProduct.map((i) => i.productMpId as number);
     
     if (mpIds.length > 0) {
       const existingMps = await this.prisma.productMp.findMany({
@@ -567,13 +567,14 @@ export class RecipeService {
     const recipe = await this.findById(recipeId);
 
     // Filtrer uniquement les items qui affectent le stock (pas FLUID)
-    const stockItems = recipe.items.filter((item: any) => 
-      item.affectsStock !== false && item.productMpId
+    type RecipeItemWithMpId = (typeof recipe.items)[number] & { productMpId: number };
+    const stockItems = recipe.items.filter(
+      (item): item is RecipeItemWithMpId => item.affectsStock !== false && item.productMpId !== null,
     );
 
     const availability = await Promise.all(
-      stockItems.map(async (item: any) => {
-        const requiredQty = item.quantity * batchCount;
+      stockItems.map(async (item) => {
+        const requiredQty = Number(item.quantity) * batchCount;
 
         // Calculer stock disponible (lots AVAILABLE, non expirés, avec quantité > 0)
         // IMPORTANT: Aligné avec lot-consumption.service.ts qui filtre aussi par status AVAILABLE

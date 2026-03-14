@@ -343,7 +343,7 @@ export class EventReplayService {
     }>();
 
     for (const event of result.events) {
-      const payload = event.payload as any;
+      const payload = event.payload as { orderId?: string; recipeName?: string; plannedQuantity?: number; actualQuantity?: number };
       const orderId = payload.orderId || event.aggregateId;
 
       if (!orderMap.has(orderId)) {
@@ -358,7 +358,8 @@ export class EventReplayService {
         });
       }
 
-      const order = orderMap.get(orderId)!;
+      const order = orderMap.get(orderId);
+      if (!order) continue;
       order.events.push(event);
 
       switch (event.type) {
@@ -489,7 +490,7 @@ export class EventReplayService {
    * Génère une description lisible d'un événement
    */
   private getEventDescription(event: DomainEvent): string {
-    const payload = event.payload as any;
+    const payload = event.payload as { quantity?: number; unit?: string; adjustment?: number; orderNumber?: string; actualQuantity?: number; message?: string };
 
     switch (event.type) {
       case EventType.STOCK_RECEIVED:

@@ -44,7 +44,7 @@ export class StockStatementService {
     });
 
     // Batch: collect all lot IDs across all products
-    const allLotIds = products.flatMap(p => p.lots?.map((l: any) => l.id) || []);
+    const allLotIds = products.flatMap(p => p.lots?.map(l => l.id) ?? []);
 
     if (allLotIds.length === 0) {
       return products.map(product => ({
@@ -99,7 +99,7 @@ export class StockStatementService {
     const statements: StockStatementEntry[] = [];
 
     for (const product of products) {
-      const lotIds = product.lots.map((l: any) => l.id);
+      const lotIds = product.lots.map(l => l.id);
 
       // Calculate entries and exits from pre-fetched data
       let entries = 0;
@@ -168,7 +168,7 @@ export class StockStatementService {
     });
 
     // Batch: collect all lot IDs across all products
-    const allLotIds = products.flatMap(p => p.lots?.map((l: any) => l.id) || []);
+    const allLotIds = products.flatMap(p => p.lots?.map(l => l.id) ?? []);
 
     if (allLotIds.length === 0) {
       return products.map(product => ({
@@ -223,7 +223,7 @@ export class StockStatementService {
     const statements: StockStatementEntry[] = [];
 
     for (const product of products) {
-      const lotIds = product.lots.map((l: any) => l.id);
+      const lotIds = product.lots.map(l => l.id);
 
       // Calculate entries and exits from pre-fetched data
       let entries = 0;

@@ -166,7 +166,7 @@ export class SecurityHardeningService implements OnModuleInit, OnModuleDestroy {
     this.evictOldestEntries(this.lockedUsers, this.MAX_MAP_SIZE);
   }
 
-  private evictOldestEntries(map: Map<string, any>, maxSize: number): void {
+  private evictOldestEntries(map: Map<string, RateLimitEntry | Date>, maxSize: number): void {
     if (map.size <= maxSize) return;
     const entriesToRemove = map.size - maxSize;
     const iterator = map.keys();
@@ -275,31 +275,35 @@ export class SecurityHardeningService implements OnModuleInit, OnModuleDestroy {
     success: boolean,
     ipAddress?: string,
   ): Promise<{ blocked: boolean; remainingAttempts: number }> {
+    const redis = this.redis;
+    if (!redis) {
+      return this.recordLoginAttemptMemory(identifier, success, ipAddress);
+    }
     try {
       const lockKey = `lock:${identifier}`;
       const attemptKey = `login:${identifier}`;
       const windowSeconds = 3600; // 1 hour
 
       // Check if locked
-      const lockTtl = await this.redis!.ttl(lockKey);
+      const lockTtl = await redis.ttl(lockKey);
       if (lockTtl > 0) {
         return { blocked: true, remainingAttempts: 0 };
       }
 
       if (success) {
-        await this.redis!.del(attemptKey);
-        await this.redis!.del(lockKey);
+        await redis.del(attemptKey);
+        await redis.del(lockKey);
         return { blocked: false, remainingAttempts: this.thresholds.maxLoginAttemptsPerHour };
       }
 
-      const count = await this.redis!.incr(attemptKey);
+      const count = await redis.incr(attemptKey);
       if (count === 1) {
-        await this.redis!.expire(attemptKey, windowSeconds);
+        await redis.expire(attemptKey, windowSeconds);
       }
 
       if (count >= this.thresholds.maxLoginAttemptsPerHour) {
         const lockSeconds = this.thresholds.lockoutDurationMinutes * 60;
-        await this.redis!.setex(lockKey, lockSeconds, '1');
+        await redis.setex(lockKey, lockSeconds, '1');
 
         await this.auditService.log({
           actor: { id: identifier, role: UserRole.COMMERCIAL },
@@ -405,6 +409,11 @@ export class SecurityHardeningService implements OnModuleInit, OnModuleDestroy {
     userId: string,
     operationType: 'admin' | 'stock' | 'bulk',
   ): Promise<{ allowed: boolean; retryAfterSeconds: number }> {
+    const redis = this.redis;
+    if (!redis) {
+      return this.checkRateLimitMemory(userId, operationType);
+    }
+
     let windowSeconds: number;
     let maxCount: number;
 
@@ -427,14 +436,14 @@ export class SecurityHardeningService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const key = `op:${operationType}:${userId}`;
-      const count = await this.redis!.incr(key);
+      const count = await redis.incr(key);
 
       if (count === 1) {
-        await this.redis!.expire(key, windowSeconds);
+        await redis.expire(key, windowSeconds);
       }
 
       if (count > maxCount) {
-        const ttl = await this.redis!.ttl(key);
+        const ttl = await redis.ttl(key);
         return { allowed: false, retryAfterSeconds: Math.max(ttl, 1) };
       }
 

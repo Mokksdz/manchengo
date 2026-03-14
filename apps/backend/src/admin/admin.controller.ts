@@ -365,7 +365,7 @@ export class AdminController {
   @Post('users/:id/toggle-status')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Toggle user active status' })
-  async toggleUserStatus(@Param('id') id: string, @Request() req: any) {
+  async toggleUserStatus(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.adminService.toggleUserStatus(id, req.user);
   }
 
@@ -377,7 +377,7 @@ export class AdminController {
   @Roles('ADMIN', 'COMMERCIAL')
   @ApiOperation({ summary: 'Créer une nouvelle facture' })
   @ApiBody({ type: CreateInvoiceDto })
-  async createInvoice(@Body() dto: CreateInvoiceDto, @Request() req: any) {
+  async createInvoice(@Body() dto: CreateInvoiceDto, @Request() req: AuthenticatedRequest) {
     return this.adminService.createInvoice(dto, req.user.id);
   }
 
@@ -427,7 +427,7 @@ export class AdminController {
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Manual stock adjustment' })
   @ApiBody({ type: StockAdjustmentDto })
-  async adjustStock(@Body() dto: StockAdjustmentDto, @Request() req: any) {
+  async adjustStock(@Body() dto: StockAdjustmentDto, @Request() req: AuthenticatedRequest) {
     return this.adminService.adjustStock(dto, req.user.id, req.user);
   }
 

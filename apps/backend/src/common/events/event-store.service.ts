@@ -15,6 +15,7 @@
  */
 
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoggerService } from '../logger';
 import { v4 as uuidv4 } from 'uuid';
@@ -211,8 +212,8 @@ export class EventStoreService implements OnModuleInit {
           category: event.category,
           aggregateType: event.aggregateType,
           aggregateId: event.aggregateId,
-          payload: event.payload as any,
-          metadata: event.metadata as any,
+          payload: event.payload as Prisma.InputJsonValue,
+          metadata: event.metadata as Prisma.InputJsonValue,
           createdAt: event.createdAt,
         },
       });
@@ -284,8 +285,8 @@ export class EventStoreService implements OnModuleInit {
           category: e.category,
           aggregateType: e.aggregateType,
           aggregateId: e.aggregateId,
-          payload: e.payload as any,
-          metadata: e.metadata as any,
+          payload: e.payload as Prisma.InputJsonValue,
+          metadata: e.metadata as Prisma.InputJsonValue,
           createdAt: e.createdAt,
         })),
       });
@@ -351,7 +352,7 @@ export class EventStoreService implements OnModuleInit {
     const limit = Math.min(criteria.limit || 50, 1000);
     const offset = criteria.offset || 0;
 
-    const where: any = {};
+    const where: Prisma.DomainEventWhereInput = {};
 
     if (criteria.aggregateType) where.aggregateType = criteria.aggregateType;
     if (criteria.aggregateId) where.aggregateId = criteria.aggregateId;
@@ -485,7 +486,7 @@ export class EventStoreService implements OnModuleInit {
   /**
    * Mappe un enregistrement DB vers DomainEvent
    */
-  private mapToDomainEvent(record: any): DomainEvent {
+  private mapToDomainEvent(record: { id: string; version: number; type: string; category: string; aggregateType: string; aggregateId: string; payload: unknown; metadata: unknown; createdAt: Date }): DomainEvent {
     return {
       id: record.id,
       version: record.version,

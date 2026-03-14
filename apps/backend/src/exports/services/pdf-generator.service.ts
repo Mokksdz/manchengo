@@ -63,7 +63,7 @@ export class PdfGeneratorService {
       },
     };
 
-    this.printer = new (PdfPrinter as any)(fonts);
+    this.printer = new (PdfPrinter as unknown as new (fonts: object) => InstanceType<typeof PdfPrinter>)(fonts);
   }
 
   /**
@@ -128,7 +128,7 @@ export class PdfGeneratorService {
    * Create standard document header with company info
    */
   createHeader(title: string, period?: string): Content {
-    const items: any[] = [
+    const items: Content[] = [
       { text: this.companyInfo.name, style: 'companyName', alignment: 'center' },
       { text: this.companyInfo.address, style: 'companyAddress', alignment: 'center' },
       { text: `NIF: ${this.companyInfo.nif} | RC: ${this.companyInfo.rc}`, style: 'companyFiscal', alignment: 'center' },

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoggerService } from '../common/logger/logger.service';
+import { ProductionStatus, PurchaseOrderStatus } from '@prisma/client';
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -38,7 +39,7 @@ export class ReportsService {
   /**
    * Stock valorization report (FIFO)
    */
-  async getStockValorizationReport(): Promise<ReportResult<any>> {
+  async getStockValorizationReport(): Promise<ReportResult<Record<string, unknown>>> {
     const mpStock = await this.prisma.lotMp.findMany({
       where: { quantityRemaining: { gt: 0 }, isActive: true },
       include: { product: true },
@@ -92,7 +93,7 @@ export class ReportsService {
   /**
    * Stock movement report
    */
-  async getStockMovementReport(filters: ReportFilters): Promise<ReportResult<any>> {
+  async getStockMovementReport(filters: ReportFilters): Promise<ReportResult<Record<string, unknown>>> {
     const movements = await this.prisma.stockMovement.findMany({
       where: {
         createdAt: {
@@ -148,14 +149,14 @@ export class ReportsService {
   /**
    * Production performance report
    */
-  async getProductionReport(filters: ReportFilters): Promise<ReportResult<any>> {
+  async getProductionReport(filters: ReportFilters): Promise<ReportResult<Record<string, unknown>>> {
     const orders = await this.prisma.productionOrder.findMany({
       where: {
         createdAt: {
           gte: filters.startDate,
           lte: filters.endDate,
         },
-        ...(filters.status && { status: filters.status as any }),
+        ...(filters.status && { status: filters.status as ProductionStatus }),
       },
       include: {
         productPf: { select: { code: true, name: true } },
@@ -218,7 +219,7 @@ export class ReportsService {
   /**
    * Purchase orders report
    */
-  async getPurchaseOrdersReport(filters: ReportFilters): Promise<ReportResult<any>> {
+  async getPurchaseOrdersReport(filters: ReportFilters): Promise<ReportResult<Record<string, unknown>>> {
     const orders = await this.prisma.purchaseOrder.findMany({
       where: {
         createdAt: {
@@ -226,7 +227,7 @@ export class ReportsService {
           lte: filters.endDate,
         },
         ...(filters.supplierId && { supplierId: filters.supplierId }),
-        ...(filters.status && { status: filters.status as any }),
+        ...(filters.status && { status: filters.status as PurchaseOrderStatus }),
       },
       include: {
         supplier: { select: { code: true, name: true } },
@@ -283,7 +284,7 @@ export class ReportsService {
   /**
    * Supplier performance report
    */
-  async getSupplierPerformanceReport(filters: ReportFilters): Promise<ReportResult<any>> {
+  async getSupplierPerformanceReport(filters: ReportFilters): Promise<ReportResult<Record<string, unknown>>> {
     const suppliers = await this.prisma.supplier.findMany({
       where: { isActive: true },
       include: {
@@ -340,7 +341,7 @@ export class ReportsService {
   /**
    * Sales report by client
    */
-  async getSalesReport(filters: ReportFilters): Promise<ReportResult<any>> {
+  async getSalesReport(filters: ReportFilters): Promise<ReportResult<Record<string, unknown>>> {
     const invoices = await this.prisma.invoice.findMany({
       where: {
         date: {

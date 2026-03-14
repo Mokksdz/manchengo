@@ -1,6 +1,6 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SyncStatus } from '@prisma/client';
+import { SyncStatus, Prisma } from '@prisma/client';
 import { SyncIdempotencyService } from './sync.idempotency';
 import { SyncEventApplier } from './sync.applier';
 import {
@@ -16,6 +16,7 @@ import {
   FailedEventDto,
   ServerEventDto,
   ConflictErrorCode,
+  ConflictResolutionDto,
 } from './sync.dto';
 
 @Injectable()
@@ -134,7 +135,7 @@ export class SyncService {
             errorCode: result.existingEvent.errorCode as ConflictErrorCode,
             errorMessage: 'Event précédemment échoué',
             retry: false,
-            resolution: result.existingEvent.resolution as any,
+            resolution: result.existingEvent.resolution as ConflictResolutionDto | undefined,
           });
         }
       }
@@ -177,7 +178,7 @@ export class SyncService {
                   entityType: event.entityType,
                   entityId: event.entityId,
                   action: event.action,
-                  payload: event.payload as any,
+                  payload: event.payload as Prisma.InputJsonValue,
                   payloadHash: event.checksum,
                   occurredAt: new Date(event.occurredAt),
                   status: SyncStatus.FAILED,
@@ -205,7 +206,7 @@ export class SyncService {
                 entityType: event.entityType,
                 entityId: event.entityId,
                 action: event.action,
-                payload: event.payload as any,
+                payload: event.payload as Prisma.InputJsonValue,
                 payloadHash: event.checksum,
                 occurredAt: new Date(event.occurredAt),
                 status: SyncStatus.PENDING,
@@ -242,16 +243,16 @@ export class SyncService {
                   status: SyncStatus.FAILED,
                   errorCode: applyResult.errorCode,
                   errorMessage: applyResult.errorMessage,
-                  resolution: applyResult.resolution as any,
+                  resolution: applyResult.resolution as Prisma.InputJsonValue | undefined,
                 },
               });
 
               failedEvents.push({
                 eventId: event.id,
-                errorCode: applyResult.errorCode!,
-                errorMessage: applyResult.errorMessage!,
+                errorCode: applyResult.errorCode ?? ConflictErrorCode.VALIDATION_ERROR,
+                errorMessage: applyResult.errorMessage ?? 'Unknown error',
                 retry: this.shouldRetry(applyResult.errorCode),
-                resolution: applyResult.resolution as any,
+                resolution: applyResult.resolution,
               });
             }
           }

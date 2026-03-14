@@ -64,10 +64,10 @@ export class HealthController {
       timestamp: new Date().toISOString(),
       checks: {
         database: dbOk
-          ? { status: 'up', responseTimeMs: (dbResult as PromiseFulfilledResult<any>).value.ms }
+          ? { status: 'up', responseTimeMs: (dbResult as PromiseFulfilledResult<{ ok: boolean; ms: number }>).value.ms }
           : { status: 'down', error: dbResult.status === 'rejected' ? dbResult.reason?.message : 'Unknown' },
         cache: cacheOk
-          ? { status: 'up', responseTimeMs: (cacheResult as PromiseFulfilledResult<any>).value.ms }
+          ? { status: 'up', responseTimeMs: (cacheResult as PromiseFulfilledResult<{ ok: boolean; ms: number }>).value.ms }
           : { status: 'down', error: cacheResult.status === 'rejected' ? cacheResult.reason?.message : 'Unknown' },
       },
     };

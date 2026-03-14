@@ -11,7 +11,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { InventoryService } from './inventory.service';
+import { InventoryService, PendingInventory } from './inventory.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -242,7 +242,7 @@ export class InventoryController {
    * Mappe les champs backend vers les noms attendus par le frontend
    * backend: theoreticalStock/declaredStock → frontend: systemQuantity/declaredQuantity
    */
-  private mapDeclarationsForFrontend(declarations: any[]) {
+  private mapDeclarationsForFrontend(declarations: PendingInventory[]) {
     return declarations.map((d) => ({
       id: d.id,
       productType: d.productType,

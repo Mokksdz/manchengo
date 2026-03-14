@@ -37,11 +37,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // Structured log entry
     const logEntry = {
       timestamp: new Date().toISOString(),
-      requestId: (request as any).id || request.headers['x-request-id'] || 'unknown',
+      requestId: (request as Request & { id?: string }).id || request.headers['x-request-id'] || 'unknown',
       method: request.method,
       url: request.url,
       statusCode: status,
-      userId: (request as any).user?.sub || (request as any).user?.id || 'anonymous',
+      userId: (request as Request & { user?: { sub?: string; id?: string } }).user?.sub || (request as Request & { user?: { sub?: string; id?: string } }).user?.id || 'anonymous',
       userAgent: request.headers['user-agent'],
       ip: request.ip || request.socket?.remoteAddress,
       error: errorResponse.error,
@@ -95,11 +95,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message = exceptionResponse;
         error = HttpStatus[status] || 'Error';
       } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
-        const resp = exceptionResponse as Record<string, any>;
-        message = Array.isArray(resp.message)
-          ? resp.message.join(', ')
-          : resp.message || exception.message;
-        error = resp.error || HttpStatus[status] || 'Error';
+        const resp = exceptionResponse as Record<string, unknown>;
+        const rawMessage = resp.message;
+        message = Array.isArray(rawMessage)
+          ? (rawMessage as unknown[]).map(String).join(', ')
+          : (typeof rawMessage === 'string' ? rawMessage : null) || exception.message;
+        error = (typeof resp.error === 'string' ? resp.error : null) || HttpStatus[status] || 'Error';
       } else {
         message = exception.message;
         error = HttpStatus[status] || 'Error';

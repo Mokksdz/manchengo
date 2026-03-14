@@ -34,7 +34,7 @@ export class PerformanceInterceptor implements NestInterceptor {
     slowCount: number;
   }> = new Map();
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<Request>();
     const { method, url } = request;
     const startTime = Date.now();
@@ -129,8 +129,8 @@ export class PerformanceInterceptor implements NestInterceptor {
   /**
    * Get performance metrics summary
    */
-  getMetrics(): Record<string, any> {
-    const result: Record<string, any> = {};
+  getMetrics(): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
 
     this.metrics.forEach((value, key) => {
       result[key] = {

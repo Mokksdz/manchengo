@@ -153,7 +153,7 @@ export class PaginationService {
     const direction = request.direction || 'forward';
 
     // Construire la query
-    const prismaModel = (this.prisma as any)[model];
+    const prismaModel = (this.prisma as unknown as Record<string, { findMany: (args?: unknown) => Promise<Record<string, unknown>[]> }>)[model];
     if (!prismaModel) {
       throw new Error(`Model "${model}" not found`);
     }
@@ -203,7 +203,7 @@ export class PaginationService {
 
     const nextCursor = hasMore && lastItem
       ? this.encodeCursor({
-          id: lastItem.id,
+          id: lastItem.id as string | number,
           sortValue: lastItem[sort.field],
           sortField: sort.field,
         })
@@ -211,7 +211,7 @@ export class PaginationService {
 
     const prevCursor = request.cursor && firstItem
       ? this.encodeCursor({
-          id: firstItem.id,
+          id: firstItem.id as string | number,
           sortValue: firstItem[sort.field],
           sortField: sort.field,
         })
@@ -291,7 +291,7 @@ export class PaginationService {
     const sort = request.sort || defaultSort;
     const skip = (page - 1) * limit;
 
-    const prismaModel = (this.prisma as any)[model];
+    const prismaModel = (this.prisma as unknown as Record<string, { count: (args?: unknown) => Promise<number>; findMany: (args?: unknown) => Promise<Record<string, unknown>[]> }>)[model];
     if (!prismaModel) {
       throw new Error(`Model "${model}" not found`);
     }
@@ -333,7 +333,7 @@ export class PaginationService {
   async paginateMp(
     where: Record<string, unknown>,
     request: CursorPaginationRequest,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     return this.cursorPaginate(
       'productMp',
       { ...where, isActive: true },
@@ -349,7 +349,7 @@ export class PaginationService {
   async paginatePf(
     where: Record<string, unknown>,
     request: CursorPaginationRequest,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     return this.cursorPaginate(
       'productPf',
       { ...where, isActive: true },
@@ -365,7 +365,7 @@ export class PaginationService {
   async paginateStockMovements(
     where: Record<string, unknown>,
     request: CursorPaginationRequest,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     return this.cursorPaginate(
       'stockMovement',
       { ...where, isDeleted: false },
@@ -384,7 +384,7 @@ export class PaginationService {
   async paginateProductionOrders(
     where: Record<string, unknown>,
     request: CursorPaginationRequest,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     return this.cursorPaginate(
       'productionOrder',
       where,
@@ -408,7 +408,7 @@ export class PaginationService {
   async paginateSuppliers(
     where: Record<string, unknown>,
     request: CursorPaginationRequest,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     return this.cursorPaginate(
       'supplier',
       { ...where, isActive: true },
@@ -426,7 +426,7 @@ export class PaginationService {
   async paginateLots(
     where: Record<string, unknown>,
     request: CursorPaginationRequest,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     return this.cursorPaginate(
       'lot',
       where,
@@ -444,7 +444,7 @@ export class PaginationService {
   async paginateApproAlerts(
     where: Record<string, unknown>,
     request: CursorPaginationRequest,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     return this.cursorPaginate(
       'approAlert',
       where,
@@ -464,7 +464,7 @@ export class PaginationService {
   async paginatePurchaseOrders(
     where: Record<string, unknown>,
     request: CursorPaginationRequest,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     return this.cursorPaginate(
       'purchaseOrder',
       where,
@@ -488,7 +488,7 @@ export class PaginationService {
   async paginateAuditLogs(
     where: Record<string, unknown>,
     request: CursorPaginationRequest,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     return this.cursorPaginate(
       'auditLog',
       where,
@@ -503,7 +503,7 @@ export class PaginationService {
   async paginateDomainEvents(
     where: Record<string, unknown>,
     request: CursorPaginationRequest,
-  ): Promise<CursorPaginatedResult<any>> {
+  ): Promise<CursorPaginatedResult<unknown>> {
     return this.cursorPaginate(
       'domainEvent',
       where,
