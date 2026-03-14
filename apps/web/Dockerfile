@@ -18,6 +18,11 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
+# Activer standalone output + pointer vers le backend Docker interne
+ARG BACKEND_URL=http://manchengo-backend:3000
+ENV BACKEND_URL=${BACKEND_URL}
+ENV DOCKER_BUILD=true
+
 RUN npm run build
 
 # Stage 3: Production (standalone output)
@@ -42,6 +47,6 @@ ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3001 || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3001 || exit 1
 
 CMD ["node", "server.js"]

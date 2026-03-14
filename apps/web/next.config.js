@@ -7,6 +7,10 @@ const isDesktopExport = process.env.NEXT_OUTPUT === 'export';
 const nextConfig = {
   reactStrictMode: true,
 
+  // Production Docker build — ESLint errors don't block deployment
+  // (errors tracked separately via CI)
+  eslint: { ignoreDuringBuilds: true },
+
   // Gzip compression
   compress: true,
 

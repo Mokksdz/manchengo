@@ -10,6 +10,9 @@
 
 set -e
 
+# Toujours exécuter depuis la racine du projet (chemins relatifs ./backups, docker compose)
+cd /opt/manchengo
+
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

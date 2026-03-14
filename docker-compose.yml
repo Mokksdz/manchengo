@@ -30,12 +30,12 @@ services:
       - data
     security_opt:
       - no-new-privileges:true
-    pids_limit: 100
     deploy:
       resources:
         limits:
           cpus: '1.0'
           memory: 512M
+          pids: 100
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U manchengo -d manchengo_erp"]
       interval: 10s
@@ -68,12 +68,12 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=64m
-    pids_limit: 50
     deploy:
       resources:
         limits:
           cpus: '0.5'
           memory: 256M
+          pids: 50
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme_in_production}", "ping"]
       interval: 10s
@@ -101,8 +101,8 @@ services:
       JWT_EXPIRES_IN: 15m
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_REFRESH_EXPIRES_IN: 1d
-      CORS_ORIGINS: ${CORS_ORIGINS:-https://app.manchengo.dz}
-      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.manchengo.dz}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://manchengo.vectarlab.tech}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.vectarlab.tech}
       QR_SECRET_KEY: ${QR_SECRET_KEY}
       CACHE_STORE: redis
       REDIS_HOST: redis
@@ -116,23 +116,23 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SECURITY_WEBHOOK_URL: ${SECURITY_WEBHOOK_URL:-}
       SECURITY_ALERT_ENABLED: ${SECURITY_ALERT_ENABLED:-true}
-    ports:
-      - "3000:3000"
+    # Pas de ports exposés au host — accès via réseau vps-proxy (houna-nginx)
     networks:
       - data
       - app
+      - vps-proxy
     security_opt:
       - no-new-privileges:true
     read_only: true
     tmpfs:
       - /tmp:size=128m
       - /app/logs:size=64m
-    pids_limit: 150
     deploy:
       resources:
         limits:
           cpus: '1.0'
           memory: 512M
+          pids: 150
 
   # ─── Frontend (Next.js) ──────────────────────────────────────────────────
   web:
@@ -140,73 +140,47 @@ services:
       context: ./apps/web
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://manchengo.vectarlab.tech/api}
     container_name: manchengo-web
     restart: unless-stopped
     depends_on:
       - backend
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000/api}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://manchengo.vectarlab.tech/api}
       SENTRY_DSN: ${SENTRY_DSN_FRONTEND:-}
-    ports:
-      - "3001:3001"
+    # Pas de ports exposés au host — accès via réseau vps-proxy (houna-nginx)
     networks:
       - app
+      - vps-proxy
     security_opt:
       - no-new-privileges:true
     read_only: true
     tmpfs:
       - /tmp:size=64m
-    pids_limit: 100
     deploy:
       resources:
         limits:
           cpus: '1.0'
           memory: 512M
+          pids: 100
 
   # ─── Nginx Reverse Proxy ─────────────────────────────────────────────────
-  nginx:
-    image: nginx:alpine
-    container_name: manchengo-nginx
-    restart: unless-stopped
-    depends_on:
-      - backend
-      - web
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./infra/nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./infra/certbot/conf:/etc/letsencrypt:ro
-      - ./infra/certbot/www:/var/www/certbot:ro
-    networks:
-      - app
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:size=32m
-      - /var/cache/nginx:size=64m
-      - /run:size=8m
-    pids_limit: 50
-    healthcheck:
-      test: ["CMD", "nginx", "-t"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+  # DÉSACTIVÉ : houna-nginx (port 80/443) gère manchengo.vectarlab.tech
+  # Le vhost est dans /opt/stack/nginx/conf.d/manchengo.vectarlab.tech.conf
 
 # ─── Network Segmentation ─────────────────────────────────────────────────
-# data: postgres + redis + backend (DB access)
-# app:  backend + web + nginx (HTTP access)
-# nginx/web cannot reach postgres/redis directly
+# data:      postgres + redis + backend (DB access, internal)
+# app:       backend + web (HTTP interne)
+# vps-proxy: backend + web + houna-nginx (reverse proxy externe)
 networks:
   data:
     driver: bridge
     internal: true   # No external access
   app:
     driver: bridge
+  vps-proxy:
+    external: true   # Réseau partagé avec houna-nginx
 
 volumes:
   postgres_data:
