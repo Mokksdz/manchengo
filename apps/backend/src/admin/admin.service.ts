@@ -338,7 +338,7 @@ export class AdminService {
 
     const where: Prisma.ProductionOrderWhereInput = {};
     if (status) {
-      where.status = status as Prisma.EnumProductionOrderStatusFilter;
+      where.status = status as Prisma.EnumProductionStatusFilter;
     }
 
     const [orders, total] = await Promise.all([

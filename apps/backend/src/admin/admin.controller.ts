@@ -34,9 +34,10 @@ import {
   StockAdjustmentDto,
   RevokeDeviceDto,
 } from './dto/admin.dto';
+import { UserRole } from '@prisma/client';
 
 interface AuthenticatedRequest {
-  user: { id: number; role: string; email?: string };
+  user: { id: string; role: string; email: string };
 }
 
 @ApiTags('Admin')
@@ -408,7 +409,7 @@ export class AdminController {
     @Body() dto: UpdateInvoiceStatusDto,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.adminService.updateInvoiceStatus(id, dto.status, req.user.id, req.user.role);
+    return this.adminService.updateInvoiceStatus(id, dto.status, req.user.id, req.user.role as UserRole);
   }
 
   @Get('invoices/:id/pdf')
